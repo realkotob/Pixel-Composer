@@ -1,22 +1,20 @@
-function Node_String(_x, _y, _group = -1) : Node_Value_Processor(_x, _y, _group) constructor {
+function Node_String(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
 	name = "Text";
-	previewable   = false;
+	setDimension(96, 48);
 	
-	w = 96;
-	min_h = 0;
+	newInput(0, nodeValue_Text("Text", self, ""));
 	
-	inputs[| 0] = nodeValue(0, "Text", self, JUNCTION_CONNECT.input, VALUE_TYPE.text, "");
-	outputs[| 0] = nodeValue(0, "Text", self, JUNCTION_CONNECT.output, VALUE_TYPE.text, "");
+	newOutput(0, nodeValue_Output("Text", self, VALUE_TYPE.text, ""));
 	
-	function process_value_data(_data) { 
-		return _data[0];
+	static processData = function(_output, _data, _index = 0) { 
+		return string(_data[0]);
 	}
 	
-	doUpdate();
-	
-	function onDrawNode(xx, yy, _mx, _my, _s) {
-		draw_set_text(f_h5, fa_center, fa_center, COLORS._main_text);
-		var str = inputs[| 0].getValue();
-		draw_text_cut(xx + w / 2 * _s, yy + 10 + h / 2 * _s, str, w - ui(6));
+	static onDrawNode = function(xx, yy, _mx, _my, _s, _hover, _focus) {
+		var str  = getInputData(0);
+		var bbox = drawGetBbox(xx, yy, _s);
+		
+		draw_set_text(f_sdf, fa_center, fa_center, COLORS._main_text);
+		draw_text_bbox(bbox, str);
 	}
 }

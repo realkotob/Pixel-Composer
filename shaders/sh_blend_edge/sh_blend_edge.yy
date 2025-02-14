@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_blend_edge",
+  "name":"sh_blend_edge",
+  "parent":{
+    "name":"blend_edge",
+    "path":"folders/nodes/data/filter/effects/blend_edge.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

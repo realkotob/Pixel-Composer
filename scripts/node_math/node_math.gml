@@ -1,136 +1,251 @@
-enum MATH_OPERATOR {
-	add,
-	subtract,
-	multiply,
-	divide,
-	power,
-	root,
+#region
+	enum MATH_OPERATOR {
+		add,      //  0
+		subtract, //  1
+		multiply, //  2
+		divide,   //  3
+		power,    //  4
+		root,     //  5
+			
+		sin,      //  6
+		cos,      //  7
+		tan,      //  8
+			
+		modulo,   //  9
+			
+		floor,    // 10
+		ceiling,  // 11
+		round,    // 12
 		
-	sin,
-	cos,
-	tan,
+		lerp,     // 13
+		abs,      // 14
 		
-	modulo,
+		clamp,    // 15
+		snap,     // 16
+		fract,    // 17
 		
-	floor,
-	ceiling,
-	round,
-}
-
-function Node_create_Math(_x, _y, _group = -1, _param = "") {
-	var node = new Node_Math(_x, _y, _group);
-	
-	switch(_param) {
-		case "add" :		node.inputs[| 0].setValue(MATH_OPERATOR.add); break;
-		case "subtract" :	node.inputs[| 0].setValue(MATH_OPERATOR.subtract); break;
-		case "multiply" :	node.inputs[| 0].setValue(MATH_OPERATOR.multiply); break;
-		case "divide" :		node.inputs[| 0].setValue(MATH_OPERATOR.divide); break;
-		case "power" :		node.inputs[| 0].setValue(MATH_OPERATOR.power); break;
-		case "root" :		node.inputs[| 0].setValue(MATH_OPERATOR.root); break;
+		map,
 		
-		case "sin" :		node.inputs[| 0].setValue(MATH_OPERATOR.sin); break;
-		case "cos" :		node.inputs[| 0].setValue(MATH_OPERATOR.cos); break;
-		case "tan" :		node.inputs[| 0].setValue(MATH_OPERATOR.tan); break;
-		
-		case "modulo" :		node.inputs[| 0].setValue(MATH_OPERATOR.modulo); break;
-		
-		case "floor" :		node.inputs[| 0].setValue(MATH_OPERATOR.floor); break;
-		case "ceiling" :	node.inputs[| 0].setValue(MATH_OPERATOR.ceiling); break;
-		case "round" :		node.inputs[| 0].setValue(MATH_OPERATOR.round); break;
+		length,
 	}
 	
-	//ds_list_add(PANEL_GRAPH.nodes_list, node);
-	return node;
-}
+	global.node_math_keys     = [	"add", "subtract", "multiply", "divide", "power", "root", 
+									"+", "-", "*", "/", "^", 
+	                        		"sin", "cos", "tan", "modulo", "round", 
+	                        		"ceiling", "floor", "lerp", "abs", "fract", 
+	                        		"clamp", "snap", "map" ];
+	              
+	global.node_math_keys_map = [	MATH_OPERATOR.add,     MATH_OPERATOR.subtract, MATH_OPERATOR.multiply, MATH_OPERATOR.divide, MATH_OPERATOR.power, MATH_OPERATOR.root, 
+									MATH_OPERATOR.add,     MATH_OPERATOR.subtract, MATH_OPERATOR.multiply, MATH_OPERATOR.divide, MATH_OPERATOR.power, 
+	                        		MATH_OPERATOR.sin,     MATH_OPERATOR.cos,      MATH_OPERATOR.tan,      MATH_OPERATOR.modulo, MATH_OPERATOR.round, 
+	                        		MATH_OPERATOR.ceiling, MATH_OPERATOR.floor,    MATH_OPERATOR.lerp,     MATH_OPERATOR.abs,    MATH_OPERATOR.fract, 
+	                        		MATH_OPERATOR.clamp,   MATH_OPERATOR.snap,     MATH_OPERATOR.map, ];
+	
+	global.node_math_names    = [  /* 0 -  9*/ "Add", "Subtract", "Multiply", "Divide", "Power", "Root", "Sin", "Cos", "Tan", "Modulo", 
+								   /*10 - 20*/ "Floor", "Ceil", "Round", "Lerp", "Abs", "Clamp", "Snap", "Fract", "Map", ];
+	
+	global.node_math_scroll   = array_create_ext(array_length(global.node_math_names), function(i) /*=>*/ {return new scrollItem(global.node_math_names[i], s_node_math_operators, i)});
+	
+	function Node_create_Math(_x, _y, _group = noone, _param = {}) {
+		var query = struct_try_get(_param, "query", "");
+		var node  = new Node_Math(_x, _y, _group);
+		node.skipDefault();
+	
+		var ind = array_find(global.node_math_keys, query);
+		if(ind != -1) node.inputs[0].setValue(global.node_math_keys_map[ind]);
+	
+		return node;
+	}
 
-function Node_Math(_x, _y, _group = -1) : Node(_x, _y, _group) constructor {
+	FN_NODE_CONTEXT_INVOKE {
+		addHotkey("Node_Math", "Type > Toggle",   "T", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[0].setValue((_n.inputs[0].getValue() + 1) % array_length(global.node_math_scroll)); });
+		addHotkey("Node_Math", "Type > Add",      "A", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[0].setValue(0); });
+		addHotkey("Node_Math", "Type > Subtract", "S", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[0].setValue(1); });
+		addHotkey("Node_Math", "Type > Multiply", "M", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[0].setValue(2); });
+		addHotkey("Node_Math", "Type > Divide",   "D", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[0].setValue(3); });
+		
+		addHotkey("Node_Math", "Angle Unit > Toggle", "N", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[3].setValue(!_n.inputs[3].setValue()); });
+		addHotkey("Node_Math", "To Integer > Toggle", "I", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[4].setValue(!_n.inputs[4].setValue()); });
+	});
+#endregion
+
+function Node_Math(_x, _y, _group = noone) : Node(_x, _y, _group) constructor {
 	name		= "Math";
 	color		= COLORS.node_blend_number;
-	previewable = false;
+	setDimension(96, 48);
 	
-	w = 96;
-	min_h = 0;
+	newInput(0, nodeValue_Enum_Scroll("Type", self, 0, global.node_math_scroll))
+		.rejectArray();
 	
-	inputs[| 0] = nodeValue(0, "Type", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0)
-		.setDisplay(VALUE_DISPLAY.enum_scroll, [ 
-			/* 0 -  9*/ "Add", "Subtract", "Multiply", "Divide", "Power", "Root", "Sin", "Cos", "Tan", "Modulo", 
-			/*10 - 12*/ "Floor", "Ceil", "Round" ]);
-	
-	inputs[| 1] = nodeValue(1, "a", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0)
+	newInput(1, nodeValue_Float("a", self, 0))
 		.setVisible(true, true);
-	inputs[| 2] = nodeValue(2, "b", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0)
+		
+	newInput(2, nodeValue_Float("b", self, 0))
 		.setVisible(true, true);
-	inputs[| 3] = nodeValue(3, "Degree angle", self, JUNCTION_CONNECT.input, VALUE_TYPE.boolean, true);
+		
+	newInput(3, nodeValue_Bool("Degree Angle", self, true));
 	
-	outputs[| 0] = nodeValue(0, "Math", self, JUNCTION_CONNECT.output, VALUE_TYPE.float, 0);
+	newInput(4, nodeValue_Bool("To integer", self, false));
 	
-	static _eval = function(mode, a, b, deg = true) {
-		switch(mode) {
-			case MATH_OPERATOR.add :		
-				if(is_real(a) && is_real(b))			return a + b;
-				else if(is_string(a) || is_string(b))	return string(a) + string(b);
+	newInput(5, nodeValue_Float("Amount", self, 0));
+	
+	newInput(6, nodeValue_Vec2("From", self, [ 0, 1 ]));
+	
+	newInput(7, nodeValue_Vec2("To",   self, [ 0, 1 ]));
+	
+	input_display_list = [ 0, 
+		["Values",   false], 1, 2, 5, 6, 7, 
+		["Settings", false], 3, 4, 
+	];
+		
+	newOutput(0, nodeValue_Output("Result", self, VALUE_TYPE.float, 0));
+	
+	use_mod = 0;
+	use_deg = false;
+	
+	static onValueUpdate = function(index = noone) {
+		if(index != 0) return;
+		
+		var _type = inputs[0].getValue();
+		setDisplayName(array_safe_get(global.node_math_names, _type, ""));
+	}
+	
+	static _eval = function(a, b, c = 0) {
+		switch(use_mod) {
+			case MATH_OPERATOR.add :		return a + b;    
+			case MATH_OPERATOR.subtract :	return a - b;
+			case MATH_OPERATOR.multiply :	return a * b;
+			case MATH_OPERATOR.divide :		return b == 0? 0 : a / b;
 				
-			case MATH_OPERATOR.subtract :	
-				if(is_real(a) && is_real(b))			return a - b;
-				else if(is_string(a) || is_string(b))	return string_replace(string(a), string(b), "");
-				
-			case MATH_OPERATOR.multiply :	
-				if(is_real(a) && is_real(b))			return a * b;
-				else if(is_string(a) || is_real(b))	{
-					var s = "";
-					repeat(b) s += a;
-					return s;
-				} else if(is_string(b) || is_real(a))	{
-					var s = "";
-					repeat(a) s += b;
-					return s;
-				}
-				
-			case MATH_OPERATOR.divide :	
-				if(is_real(a) && is_real(b))			return b == 0? 0 : a / b;
-				else if(is_string(a) || is_string(b))	return string_replace_all(string(a), string(b), "");
+			case MATH_OPERATOR.power :		return power(a, b);
+			case MATH_OPERATOR.root :		return b == 0? 0 : power(a, 1 / b);
 			
-			case MATH_OPERATOR.power :		if(is_real(a) && is_real(b)) return power(a, b);
-			case MATH_OPERATOR.root :		if(is_real(a) && is_real(b)) return b == 0? 0 : power(a, 1 / b);
+			case MATH_OPERATOR.sin :		return (use_deg? dsin(a) : sin(a)) * b;
+			case MATH_OPERATOR.cos :		return (use_deg? dcos(a) : cos(a)) * b;
+			case MATH_OPERATOR.tan :		return (use_deg? dtan(a) : tan(a)) * b;
+			case MATH_OPERATOR.modulo :		return safe_mod(a, b);
 			
-			case MATH_OPERATOR.sin :		if(is_real(a) && is_real(b)) return sin(degtorad(a)) * b;
-			case MATH_OPERATOR.cos :		if(is_real(a) && is_real(b)) return cos(degtorad(a)) * b;
-			case MATH_OPERATOR.tan :		if(is_real(a) && is_real(b)) return tan(degtorad(a)) * b;
-			case MATH_OPERATOR.modulo :		if(is_real(a) && is_real(b)) return safe_mod(a, b);
+			case MATH_OPERATOR.floor :		return floor(a);
+			case MATH_OPERATOR.ceiling :	return ceil(a);
+			case MATH_OPERATOR.round :		return round(a);
 			
-			case MATH_OPERATOR.floor :		if(is_real(a)) return floor(a);
-			case MATH_OPERATOR.ceiling :	if(is_real(a)) return ceil(a);
-			case MATH_OPERATOR.round :		if(is_real(a)) return round(a);
+			case MATH_OPERATOR.lerp :		return lerp(a, b, c);
+			case MATH_OPERATOR.abs :		return abs(a);
+			
+			case MATH_OPERATOR.clamp :		return clamp(a, b, c);
+			case MATH_OPERATOR.snap :		return value_snap(a, b);
+			case MATH_OPERATOR.fract :		return frac(a);
 		}
 		return 0;
 	}
 	
-	static step = function() {
-		var mode = inputs[| 0].getValue();
+	static _evalMap = function(a, fr, to) {
+		var _frMin = fr[0];
+		var _frMax = fr[1];
+		var _toMin = to[0];
+		var _toMax = to[1];
 		
-		switch(mode) {
+		return lerp(_toMin, _toMax, (a - _frMin) / (_frMax - _frMin));
+	}
+	
+	function evalArray(a, b, c = 0) {
+		var _as = is_array(a);
+		var _bs = is_array(b);
+		var _cs = is_array(c);
+		
+		if(!_as && !_bs && !_cs)
+			return _eval(a, b, c);
+		
+		if(!_as) a = [ a ];
+		if(!_bs) b = [ b ];
+		if(!_cs) c = [ c ];
+		
+		var al = array_length(a);
+		var bl = array_length(b);
+		var cl = array_length(c);
+		
+		var amo = max(al, bl, cl);
+		var val = array_create(amo);
+		
+		for( var i = 0; i < amo; i++ ) 
+			val[i] = evalArray( 
+				array_safe_get(a, i,, ARRAY_OVERFLOW.loop), 
+				array_safe_get(b, i,, ARRAY_OVERFLOW.loop),
+				array_safe_get(c, i,, ARRAY_OVERFLOW.loop),
+			);
+		
+		return val;
+	}
+	
+	__mode   = noone;
+	doUpdate = doUpdateLite;
+	static update = function(frame = CURRENT_FRAME) { 
+		
+		use_mod = inputs[0].getValue();
+		use_deg = inputs[3].getValue();
+		
+		var a  = inputs[1].getValue();
+		var b  = inputs[2].getValue();
+		var c  = inputs[5].getValue();
+		var val;
+		
+		fr = inputs[6].getValue();
+		to = inputs[7].getValue();
+		
+		switch(use_mod) {
+			case MATH_OPERATOR.map : 
+				if(is_array(a)) val = array_map_ext(a, function(v) /*=>*/ {return _evalMap(v, fr, to)});
+				else            val = _evalMap(a, fr, to); 
+				break;
+			
+			default :
+				val = evalArray(a, b, c);
+				break;
+		}
+		
+		outputs[0].setValue(val);
+		
+		if(__mode == use_mod) return;
+		__mode = use_mod;
+	
+		inputs[2].setVisible(false, false);
+		inputs[3].setVisible(false, false);
+		inputs[5].setVisible(false, false);
+		inputs[6].setVisible(false, false);
+		inputs[7].setVisible(false, false);
+		
+		switch(use_mod) {
 			case MATH_OPERATOR.sin :
 			case MATH_OPERATOR.cos :
 			case MATH_OPERATOR.tan :
-				inputs[| 3].setVisible(true);
+				inputs[3].setVisible(true);
 				break;
-			default:
-				inputs[| 3].setVisible(false);
+				
+			case MATH_OPERATOR.map :
+				inputs[6].setVisible(true, true);
+				inputs[7].setVisible(true, true);
 				break;
 		}
-	}
-	
-	function update() { 
-		var mode = inputs[| 0].getValue();
-		var a = inputs[| 1].getValue();
-		var b = inputs[| 2].getValue();
-		var deg = inputs[| 3].getValue();
-		var as = is_array(a);
-		var bs = is_array(b);
-		var al = as? array_length(a) : 0;
-		var bl = bs? array_length(b) : 0;
 		
-		switch(mode) {
+		switch(use_mod) {
+			case MATH_OPERATOR.round :
+			case MATH_OPERATOR.floor :
+			case MATH_OPERATOR.ceiling :
+				inputs[4].setVisible(true);
+				
+				var int = getInputData(4);
+				if(int) outputs[0].setType(VALUE_TYPE.integer);
+				else	outputs[0].setType(VALUE_TYPE.float);
+				break;
+				
+			default:
+				inputs[4].setVisible(false);
+				
+				outputs[0].setType(VALUE_TYPE.float);
+				break;
+		}
+		
+		switch(use_mod) {
 			case MATH_OPERATOR.add :
 			case MATH_OPERATOR.subtract :
 			case MATH_OPERATOR.multiply :
@@ -138,66 +253,59 @@ function Node_Math(_x, _y, _group = -1) : Node(_x, _y, _group) constructor {
 			case MATH_OPERATOR.power :
 			case MATH_OPERATOR.root :	
 			case MATH_OPERATOR.modulo :	
-				inputs[| 2].setVisible(true);
+				inputs[2].name = "b";
+				
+				inputs[2].setVisible(true, true);
 				break;
+				
 			case MATH_OPERATOR.sin :
 			case MATH_OPERATOR.cos :
 			case MATH_OPERATOR.tan :
-				inputs[| 2].setVisible(true);
-				inputs[| 2].name = "Amplitude";
+				inputs[2].name = "Amplitude";
+				
+				inputs[2].setVisible(true, true);
 				break;
-			case MATH_OPERATOR.floor :
-			case MATH_OPERATOR.ceiling :
-			case MATH_OPERATOR.round :
-				inputs[| 2].setVisible(false);
+				
+			case MATH_OPERATOR.lerp :
+				inputs[2].name = "To";
+				inputs[5].name = "Amount";
+				
+				inputs[2].setVisible(true, true);
+				inputs[5].setVisible(true, true);
 				break;
-			default: return;
+				
+			case MATH_OPERATOR.clamp :
+				inputs[2].name = "Min";
+				inputs[5].name = "Max";
+				
+				inputs[2].setVisible(true, true);
+				inputs[5].setVisible(true, true);
+				break;
+				
+			case MATH_OPERATOR.snap :
+				inputs[2].name = "Snap";
+				
+				inputs[2].setVisible(true, true);
+				break;
 		}
 		
-		var val = 0;
-		if(!as && !bs)
-			val = _eval(mode, a, b, deg);
-		else if(!as && bs) {
-			for( var i = 0; i < bl; i++ )
-				val[i] = _eval(mode, a, b[i], deg);
-		} else if(as && !bs) {
-			for( var i = 0; i < al; i++ )
-				val[i] = _eval(mode, a[i], b, deg);
-		} else {
-			for( var i = 0; i < max(al, bl); i++ ) 
-				val[i] = _eval(mode, array_safe_get(a, i), array_safe_get(b, i), deg);
-		}
-		
-		outputs[| 0].setValue(val);
 	}
 	
-	function onDrawNode(xx, yy, _mx, _my, _s) {
-		draw_set_text(f_h3, fa_center, fa_center, COLORS._main_text);
+	static onDrawNode = function(xx, yy, _mx, _my, _s, _hover, _focus) {
+		draw_set_text(f_sdf, fa_center, fa_center, COLORS._main_text);
 		var str = "";
-		switch(inputs[| 0].getValue()) {
+		var typ = getInputData(0);
+		
+		switch(typ) {
 			case MATH_OPERATOR.add :		str = "+"; break;
 			case MATH_OPERATOR.subtract :	str = "-"; break;
 			case MATH_OPERATOR.multiply :	str = "*"; break;
 			case MATH_OPERATOR.divide :		str = "/"; break;
-			case MATH_OPERATOR.power :		str = "pow"; break;
-			case MATH_OPERATOR.root :		str = "root"; break;
-			
-			case MATH_OPERATOR.sin :		str = "sin"; break;
-			case MATH_OPERATOR.cos :		str = "cos"; break;
-			case MATH_OPERATOR.tan :		str = "tan"; break;
-			case MATH_OPERATOR.modulo :		str = "mod"; break;
-			
-			case MATH_OPERATOR.floor :		str = "floor"; break;
-			case MATH_OPERATOR.ceiling :	str = "ceil"; break;
-			case MATH_OPERATOR.round :		str = "round"; break;
-			default: return;
+			default: str = string_lower(global.node_math_names[typ]);
 		}
 		
-		var _ss = min((w - 16) * _s / string_width(str), (h - 18) * _s / string_height(str));
-		
-		if(_s * w > 48)
-			draw_text_transformed(xx + w / 2 * _s, yy + 10 + h / 2 * _s, str, _ss, _ss, 0);
-		else 
-			draw_text_transformed(xx + w / 2 * _s, yy + h / 2 * _s, str, _ss, _ss, 0);
+		var bbox = drawGetBbox(xx, yy, _s);
+		var ss	= string_scale(str, bbox.w, bbox.h);
+		draw_text_transformed(bbox.xc, bbox.yc, str, ss * 0.8, ss * 0.8, 0);
 	}
 }

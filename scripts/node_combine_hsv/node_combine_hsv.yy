@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_combine_hsv",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_combine_hsv",
+  "parent":{
+    "name":"combine",
+    "path":"folders/nodes/data/filter/combine.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

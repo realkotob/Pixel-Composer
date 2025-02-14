@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"panel_keyframe_driver",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"panel_keyframe_driver",
+  "parent":{
+    "name":"animation",
+    "path":"folders/panels/animation.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

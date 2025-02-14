@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"panel_resource_monitor",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"panel_resource_monitor",
+  "parent":{
+    "name":"debug",
+    "path":"folders/panels/_others/debug.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_boolean",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_boolean",
+  "parent":{
+    "name":"bool",
+    "path":"folders/nodes/data/value/bool.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

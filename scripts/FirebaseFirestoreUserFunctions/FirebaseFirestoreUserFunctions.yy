@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"FirebaseFirestoreUserFunctions",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"FirebaseFirestoreUserFunctions",
+  "parent":{
+    "name":"FireBase",
+    "path":"folders/__extensions/FireBase.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

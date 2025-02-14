@@ -1,108 +1,166 @@
-function Node_Group_Output(_x, _y, _group = -1) : Node(_x, _y, _group) constructor {
-	name  = "Output";
-	color = COLORS.node_blend_collection;
-	previewable = false;
-	auto_height = false;
+function Node_Group_Output(_x, _y, _group = noone) : Node(_x, _y, _group) constructor {
+	name		= "Group Output";
+	color		= COLORS.node_blend_collection;
+	is_group_io = true;
+	destroy_when_upgroup = true;
 	
-	w = 96;
-	h = 32 + 24;
-	min_h = h;
+	skipDefault();
+	setDimension(96, 48);
 	
-	inputs[| 0] = nodeValue(0, "Value", self, JUNCTION_CONNECT.input, VALUE_TYPE.any, -1)
+	newInput(0, nodeValue("Value", self, CONNECT_TYPE.input, VALUE_TYPE.any, -1))
+		.uncache()
 		.setVisible(true, true);
+	inputs[0].onSetFrom = function(juncFrom) /*=>*/ { if(attributes.inherit_name && !LOADING && !APPENDING) setDisplayName(juncFrom.name); }
 	
-	inputs[| 1] = nodeValue(1, "Order", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0);
+	attributes.inherit_name = true;
+	outParent   			= undefined;
+	output_index			= -1;
 	
-	outParent = undefined;
-	output_index = -1;
+	onSetDisplayName = function() /*=>*/ { attributes.inherit_name = false; }
 	
-	static onValueUpdate = function(index) {
-		if(is_undefined(outParent)) return;
+	static setRenderStatus = function(result) {
+		if(rendered == result) return;
+		LOG_LINE_IF(global.FLAG.render == 1, $"Set render status for {INAME} : {result}");
 		
-		group.sortIO();
+		rendered = result;
+		if(group) group.setRenderStatus(result);
 	}
 	
-	static getNextNodes = function() {
-		group.setRenderStatus(true);
-		printIf(global.RENDER_LOG, "Value to amount " + string(ds_list_size(outParent.value_to)));
+	static onValueUpdate = function(index = 0) { if(is_undefined(outParent)) return; }
+	
+	static getNextNodes = function(checkLoop = false) {
+		if(checkLoop) return;
+		if(is_undefined(outParent)) return [];
 		
-		for(var j = 0; j < ds_list_size(outParent.value_to); j++) {
-			var _to = outParent.value_to[| j];
-			printIf(global.RENDER_LOG, "Value to " + _to.name);
+		LOG_BLOCK_START();
+		var nodes = [];
+		for(var j = 0; j < array_length(outParent.value_to); j++) {
+			var _to = outParent.value_to[j];
 			
-			if(!_to.node.active || _to.value_from == noone) {
-				printIf(global.RENDER_LOG, "no value from");
-				continue; 
-			}
+			if(!_to.node.isRenderActive())					continue;
+			if(!_to.node.active || _to.value_from == noone) continue;
+			if(_to.value_from.node != group)				continue;
 			
-			if(_to.value_from.node != group) {
-				printIf(global.RENDER_LOG, "value from not equal group");
-				continue; 
-			}
-				
-			printIf(global.RENDER_LOG, "Group output ready " + string(_to.node.isUpdateReady()));
-			
-			if(_to.node.isUpdateReady()) {
-				ds_stack_push(RENDER_STACK, _to.node);
-				printIf(global.RENDER_LOG, "Push node " + _to.node.name + " to stack");
-			}
+			array_push(nodes, _to.node);
+			LOG_IF(global.FLAG.render == 1, $"Check complete, push {_to.node.internalName} to queue.");
 		}
+		LOG_BLOCK_END();
+		
+		return nodes;
 	}
 	
-	static createOutput = function(override_order = true) {
-		if(group && is_struct(group)) {
-			if(override_order) {
-				output_index = ds_list_size(group.outputs);
-				inputs[| 1].setValue(output_index);
-			} else {
-				output_index = inputs[| 1].getValue();
-			}
+	static createOutput = function() {
+		if(group == noone)    return;
+		if(!is_struct(group)) return;
+		if(!is_undefined(outParent)) array_remove(group.outputs, outParent);
 			
-			outParent = nodeValue(ds_list_size(group.outputs), "Value", group, JUNCTION_CONNECT.output, VALUE_TYPE.any, -1)
-				.setVisible(true, true);
-			outParent.from = self;
-			
-			ds_list_add(group.outputs, outParent);
-			group.setHeight();
+		outParent = nodeValue("Value", group, CONNECT_TYPE.output, VALUE_TYPE.any, -1)
+			.uncache()
+			.setVisible(true, true);
+		
+		outParent.from  = self;
+		outParent.index = array_length(group.outputs);
+		
+		array_push(group.outputs, outParent);
+		if(is_array(group.output_display_list))
+			array_push(group.output_display_list, outParent.index);
+		
+		if(!LOADING && !APPENDING) {
+			group.refreshNodeDisplay();
 			group.sortIO();
-		
-			outParent.setFrom(inputs[| 0]);
+			group.setHeight();
 		}
-	}
-	
-	if(!LOADING && !APPENDING)
-		createOutput();
+		
+	} if(!LOADING && !APPENDING) createOutput();
 	
 	static step = function() {
 		if(is_undefined(outParent)) return;
-		
-		outParent.name = name; 
-		
-		inputs[| 0].type = VALUE_TYPE.any;
-		if(inputs[| 0].value_from != noone) {
-			inputs[| 0].type = inputs[| 0].value_from.type;
-			inputs[| 0].display_type = inputs[| 0].value_from.display_type;
-		} 
-		
-		outParent.type = inputs[| 0].type;
-		outParent.display_type = inputs[| 0].display_type;
+		outParent.name = display_name; 
 	}
 	
-	static triggerRender = function() {
-		if(is_undefined(outParent)) return;
+	static update = function() {
+		var _in0 = inputs[0];
+		var _pty = _in0.type;
+		var _typ = _in0.value_from == noone? VALUE_TYPE.any         : _in0.value_from.type;
+		var _dis = _in0.value_from == noone? VALUE_DISPLAY._default : _in0.value_from.display_type;
 		
-		for(var j = 0; j < ds_list_size(outParent.value_to); j++) {
-			if(outParent.value_to[| j].value_from == outParent)
-				outParent.value_to[| j].node.triggerRender();
-		}
+		_in0.setType(_typ);
+		_in0.display_type = _dis;
+		if(!is(outParent, NodeValue)) return;
+		
+		var ww = _typ == VALUE_TYPE.surface? 128 : 96;
+		var hh = _typ == VALUE_TYPE.surface? 128 : 56;
+		setDimension(ww, hh);
+		
+		outParent.setType(_in0.type);
+		outParent.display_type  = _in0.display_type;
+		outParent.color_display = _in0.color_display;
+		outParent.draw_bg       = _in0.draw_bg;
+		outParent.draw_fg       = _in0.draw_fg;
+		
+		if(group && _pty != _typ) group.setHeight();
+		
+		outParent.setValue(inputs[0].getValue());
 	}
 	
-	static postDeserialize = function() {
-		createOutput(false);
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	static getGraphPreviewSurface = function() { var _in = array_safe_get(inputs, 0, noone); return _in == noone? noone : _in.getValue(); }
+	static getPreviewValues       = function() { var _in = array_safe_get(inputs, 0, noone); return _in == noone? noone : _in.getValue(); }
+	
+	static drawNodeDef = drawNode;
+	
+	static drawNode = function(_draw, _x, _y, _mx, _my, _s, display_parameter = noone, _panel = noone) { 
+		if(_s >= .75) return drawNodeDef(_draw, _x, _y, _mx, _my, _s, display_parameter, _panel);
+		
+		var xx = x * _s + _x;
+		var yy = y * _s + _y;
+		
+		var _name = renamed? display_name : name;
+		var _ts   = _s * 0.5;
+		var _tx   = round(xx + 6 * _s + 2);
+		var _ty   = round(inputs[0].y);
+		
+		draw_set_text(f_sdf, fa_left, fa_center);
+		BLEND_ALPHA_MULP
+		
+		draw_set_color(0);					draw_text_transformed(_tx + 1, _ty + 1, _name, _ts, _ts, 0);
+		draw_set_color(COLORS._main_text);	draw_text_transformed(_tx, _ty, _name, _ts, _ts, 0);
+		
+		BLEND_NORMAL
+		
+		return _s > 0.5? drawJunctions(_draw, xx, yy, _mx, _my, _s) : drawJunctions_fast(_draw, xx, yy, _mx, _my, _s);
 	}
+	
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	static postDeserialize		  = function() { if(group == noone) return; createOutput(false); }
+	static postApplyDeserialize	  = function() {}
 	
 	static onDestroy = function() {
 		if(is_undefined(outParent)) return;
-		ds_list_delete(group.outputs, ds_list_find_index(group.outputs, outParent));
+		
+		array_remove(group.outputs, outParent);
+		group.sortIO();
+		group.refreshNodes();
+		
+		var _tos = outParent.getJunctionTo();
+		
+		for (var i = 0, n = array_length(_tos); i < n; i++) 
+			_tos[i].removeFrom();
+		
 	}
+	
+	static onUngroup = function() {
+		var fr = inputs[0].value_from;
+		
+		for( var i = 0; i < array_length(outParent.value_to); i++ ) {
+			var to = outParent.value_to[i];
+			if(to.value_from != outParent) continue;
+			
+			to.setFrom(fr);
+		}
+	}
+		
+	static onLoadGroup = function() { if(group == noone) destroy(); }
 }

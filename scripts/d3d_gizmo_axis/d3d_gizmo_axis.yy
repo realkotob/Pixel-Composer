@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"d3d_gizmo_axis",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"d3d_gizmo_axis",
+  "parent":{
+    "name":"gizmo",
+    "path":"folders/functions/3d/gizmo.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

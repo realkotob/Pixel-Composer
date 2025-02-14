@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_vignette",
+  "name":"sh_vignette",
+  "parent":{
+    "name":"effects",
+    "path":"folders/nodes/data/filter/effects.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

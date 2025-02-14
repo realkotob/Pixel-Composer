@@ -1,85 +1,78 @@
-//
-// Simple passthrough fragment shader
-//
+#pragma use(sampler_simple)
+
+#region -- sampler_simple -- [1729740692.1417658]
+    uniform int  sampleMode;
+    
+    vec4 sampleTexture( sampler2D texture, vec2 pos) {
+        if(pos.x >= 0. && pos.y >= 0. && pos.x <= 1. && pos.y <= 1.)
+            return texture2D(texture, pos);
+        
+             if(sampleMode <= 1) return vec4(0.);
+        else if(sampleMode == 2) return texture2D(texture, clamp(pos, 0., 1.));
+        else if(sampleMode == 3) return texture2D(texture, fract(pos));
+        else if(sampleMode == 4) return vec4(vec3(0.), 1.);
+        
+        return vec4(0.);
+    }
+#endregion -- sampler_simple --
+
 varying vec2 v_vTexcoord;
 varying vec4 v_vColour;
 
-uniform int useMask;
-uniform sampler2D mask;
-
 uniform vec2 dimension;
-uniform int horizontal;
+uniform int  horizontal;
 
-uniform float weight[32];
-uniform int size;
-uniform int clamp_border;
+uniform float weight[128];
+uniform int	  size;
+uniform float angle;
 
-//float weightTotal = 0.;
+uniform int  overrideColor;
+uniform vec4 overColor;
+
+uniform int  gamma;
+
+float wgh = 0.;
 
 vec4 sample(in vec2 pos, in int index) {
-	vec4 col = texture2D( gm_BaseTexture, pos );
-	//weightTotal += col.a * weight[index];
+	vec4 col = sampleTexture( gm_BaseTexture, pos );
+	if(gamma == 1) col.rgb = pow(col.rgb, vec3(2.2));
 	
-	return vec4(col.rgb * col.a, col.a) * weight[index];
+	col.rgb *= weight[index] * col.a;
+	wgh     += weight[index] * col.a;
+	
+	return col;
 }
 
 void main() {
-    vec2 tex_offset = 1.0 / dimension;
-    vec4 result = sample( v_vTexcoord, 0 );
-	vec4 samp;
+    vec2 tex_offset = 1.0 / dimension, pos;
+    vec4 result     = sample( v_vTexcoord, 0 );
+    mat2 rot        = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
 	
     if(horizontal == 1) {
-        for(int i = 1; i < 32; i++) {
-			if(i >= size) break;
+        for(int i = 1; i < size; i++) {
+			pos = rot * vec2(tex_offset.x * float(i), 0.0);
 			
-			vec2 pos = vec2(tex_offset.x * float(i), 0.0);
-			
-			vec2 s_pos = v_vTexcoord + pos;
-			if(s_pos.x <= 1.) {
-				samp = sample( s_pos, i );
-				result += samp;
-			} else if(clamp_border == 1) {
-				samp = sample( vec2(1., v_vTexcoord.y), i );
-				result += samp;
-			}
-			
-			s_pos = v_vTexcoord - pos;
-			if(s_pos.x >= 0.) {
-				samp = sample( s_pos, i );
-	            result += samp;
-			} else if(clamp_border == 1) {
-				samp = sample( vec2(0., v_vTexcoord.y), i );
-				result += samp;	
-			}
+			result += sample( v_vTexcoord + pos, i );
+			result += sample( v_vTexcoord - pos, i );
         }
     } else {
-        for(int i = 1; i < 32; i++) {
-			if(i >= size) break;
+        for(int i = 1; i < size; i++) {
+			pos = rot * vec2(0.0, tex_offset.y * float(i));
 			
-			vec2 pos = vec2(0.0, tex_offset.y * float(i));
-			
-			vec2 s_pos = v_vTexcoord + pos;
-			if(s_pos.y <= 1.) {
-				samp = sample( s_pos, i );
-	            result += samp;
-			} else if(clamp_border == 1) {
-				samp = sample( vec2(v_vTexcoord.x, 1.), i );
-				result += samp;	
-			}
-			
-			s_pos = v_vTexcoord - pos;
-			if(s_pos.y >= 0.) {
-				samp = sample( s_pos, i );
-	            result += samp;
-			} else if(clamp_border == 1) {
-				samp = sample( vec2(v_vTexcoord.x, 0.), i );
-				result += samp;	
-			}
+			result += sample( v_vTexcoord + pos, i );
+			result += sample( v_vTexcoord - pos, i );
         }
     }
 	
-	vec4 res = result;
+	result.rgb /=  wgh;
+	result.a    =  wgh;
 	
-    gl_FragColor = res;
+	if(gamma == 1) result.rgb = pow(result.rgb, vec3(1. / 2.2));
+	
+	gl_FragColor = result;
+	if(overrideColor == 1) {
+		gl_FragColor.rgb = overColor.rgb;
+		gl_FragColor.a  *= overColor.a;
+	}
 }
 

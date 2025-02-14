@@ -1,71 +1,141 @@
-function Node_create_Scale_Algo(_x, _y, _group = -1, _param = "") {
-	var node = new Node_Scale_Algo(_x, _y, _group);
-	//ds_list_add(PANEL_GRAPH.nodes_list, node);
-	
-	switch(_param) {
-		case "scale2x" : node.inputs[| 1].setValue(0); break;	
-		case "scale3x" : node.inputs[| 1].setValue(1); break;	
+#region
+	function Node_create_Scale_Algo(_x, _y, _group = noone, _param = {}) {
+		var query = struct_try_get(_param, "query", "");
+		var node  = new Node_Scale_Algo(_x, _y, _group);
+		node.skipDefault();
+		
+		switch(query) {
+			case "scale2x" :   node.inputs[1].setValue(0); break;	
+			case "scale3x" :   node.inputs[1].setValue(1); break;	
+			case "cleanedge" : node.inputs[1].setValue(2); break;	
+		}
+		
+		return node;
 	}
 	
-	return node;
-}
+	FN_NODE_CONTEXT_INVOKE {
+		addHotkey("Node_Scale_Algo", "Algorithm > Toggle", "A", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[1].setValue((_n.inputs[1].getValue() + 1) % 3); });
+	});
 
-function Node_Scale_Algo(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
-	name = "Scale Algo";
+#endregion
+
+function Node_Scale_Algo(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
+	name = "Scale Algorithm";
+	manage_atlas = false;
 	
-	uniform_dim = shader_get_uniform(sh_scale2x, "dimension");
+	newInput(0, nodeValue_Surface("Surface In", self));
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
-	
-	inputs[| 1] = nodeValue(1, "Algorithm", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0)
-		.setDisplay(VALUE_DISPLAY.enum_scroll, [ "Scale2x", "Scale3x" ]);
+	newInput(1, nodeValue_Enum_Scroll("Algorithm", self,  0, [ "Scale2x", "Scale3x", "CleanEdge" ]));
 		
-	inputs[| 2] = nodeValue(2, "Tolerance", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0)
-		.setDisplay(VALUE_DISPLAY.slider, [0, 1, 0.01]);
+	newInput(2, nodeValue_Float("Tolerance", self, 0))
+		.setDisplay(VALUE_DISPLAY.slider);
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(3, nodeValue_Bool("Active", self, true));
+		active_index = 3;
+		
+	newInput(4, nodeValue_Bool("Scale Atlas Position", self, true));
 	
-	static process_data = function(_outSurf, _data, _output_index) {
+	newInput(5, nodeValue_Float("Scale", self, 4));
+		
+	newInput(6, nodeValue_Rotation("Rotation", self, 0));
+		
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	input_display_list = [ 3,
+		["Surfaces", false], 0, 
+		["Scale",	 false], 1, 2, 4, 5, 6, 
+	]
+	
+	attribute_surface_depth();
+	
+	draw_transforms = [];
+	static drawOverlayTransform = function(_node) { return array_safe_get(draw_transforms, preview_index, noone); }
+	
+	static step = function() {
+		var _surf = getSingleValue(0);
+		var _type = getSingleValue(1);
+		
+		var _atlas = is_instanceof(_surf, SurfaceAtlas);
+		inputs[4].setVisible(_atlas);
+		inputs[5].setVisible(_type == 2);
+		inputs[6].setVisible(_type == 2);
+	}
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
 		var inSurf = _data[0];
-		var algo = _data[1];
-		var ww = surface_get_width(inSurf);
-		var hh = surface_get_height(inSurf);
-		var shader = sh_scale2x;
-		var sc = 2;
+		var algo   = _data[1];
+		var _atlS  = _data[4];
+		var _scal  = _data[5];
+		var _rota  = _data[6];
+		var ww     = surface_get_width_safe(inSurf);
+		var hh     = surface_get_height_safe(inSurf);
+		var cDep   = attrDepth();
+		var sc = 2, sw, sh;
+		var shader;
+		
+		var isAtlas = is_instanceof(_data[0], SurfaceAtlas);
+		if(isAtlas && !is_instanceof(_outSurf, SurfaceAtlas))
+			_outSurf = _data[0].clone(true);
+			
+		var _surf = isAtlas? _outSurf.getSurface() : _outSurf;
 		
 		switch(algo) {
 			case 0 :
 				shader = sh_scale2x;
 				sc = 2;
-				var sw = ww * 2;
-				var sh = hh * 2;
-				surface_size_to(_outSurf, sw, sh);
+				sw = ww * 2;
+				sh = hh * 2;
+				
+				_surf = surface_verify(_surf, sw, sh, cDep);
 				break;
+				
 			case 1 :
 				shader = sh_scale3x;
 				sc = 3;
-				var sw = ww * 3;
-				var sh = hh * 3;
-				surface_size_to(_outSurf, sw, sh);
+				sw = ww * 3;
+				sh = hh * 3;
+				
+				_surf = surface_verify(_surf, sw, sh, cDep);
 				break;
+				
+			case 2 :
+				shader = sh_scale_cleanedge;
+				sc  = _scal;
+				ww *= sc;
+				hh *= sc;
+				
+				_surf = surface_verify(_surf, ww, hh, cDep);
+				break;
+				
 		}
 		
-		
-		surface_set_target(_outSurf);
-		draw_clear_alpha(0, 0);
-		BLEND_ADD
-		
-		uniform_dim = shader_get_uniform(shader, "dimension");
-		uniform_tol = shader_get_uniform(shader, "tol");
-		
-		shader_set(shader);
-			shader_set_uniform_f_array(uniform_dim, [ ww, hh ]);
-			shader_set_uniform_f(uniform_tol, _data[2]);
+		surface_set_shader(_surf, shader);
+			shader_set_f("dimension",        [ ww, hh ]);
+			shader_set_f("tol",     		 _data[2]);
+			shader_set_f("similarThreshold", _data[2]);
+			shader_set_f("scale",   		 _scal);
+			shader_set_f("rotation",   		 degtorad(_rota));
+			
 			draw_surface_ext_safe(_data[0], 0, 0, sc, sc, 0, c_white, 1);
-		shader_reset();
+		surface_reset_shader();
+		gpu_set_texfilter(false);
 		
-		BLEND_NORMAL
-		surface_reset_target();
+		draw_transforms[_array_index] = [ 0, 0, sc, sc, 0 ];
+		
+		if(isAtlas) {
+			if(_atlS) {
+				_outSurf.x = _data[0].x * sc;
+				_outSurf.y = _data[0].y * sc;
+			} else {
+				_outSurf.x = _data[0].x;
+				_outSurf.y = _data[0].y;
+			}
+			
+			_outSurf.setSurface(_surf);
+			
+		} else {
+			_outSurf = _surf;
+		}
 		
 		return _outSurf;
 	}

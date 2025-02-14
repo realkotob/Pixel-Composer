@@ -2,6 +2,7 @@
 if !ready exit;
 
 #region dropper
+	selector.interactable = interactable;
 	if(selector.dropper_active) {
 		selector.drawDropper(self);
 		exit;
@@ -13,107 +14,178 @@ if !ready exit;
 	var presets_w  = ui(240);
 	
 	var content_x = dialog_x + presets_w + ui(16);
-	var content_w = dialog_w - presets_w - ui(16);
+	var content_w = ui(556);
 	
-	draw_sprite_stretched(THEME.dialog_bg, 0, presets_x, dialog_y, presets_w, dialog_h);
-	if(sFOCUS) draw_sprite_stretched_ext(THEME.dialog_active, 0, presets_x, dialog_y, presets_w, dialog_h, COLORS._main_accent, 1);
+	var palette_x  = content_x + content_w + ui(16);
+	var palette_w  = ui(240);
 	
-	draw_sprite_stretched(THEME.dialog_bg, 0, content_x, dialog_y, content_w, dialog_h);
-	if(sFOCUS) draw_sprite_stretched_ext(THEME.dialog_active, 0, content_x, dialog_y, content_w, dialog_h, COLORS._main_accent, 1);
+	var p  = DIALOG_PAD;
+	var p2 = DIALOG_PAD * 2;
 	
-	draw_set_text(f_p0, fa_left, fa_top, COLORS._main_text_title);
-	draw_text(presets_x + ui(24), dialog_y + ui(16), "Presets");
-	draw_text(content_x + ui(24), dialog_y + ui(16), name);
+	draw_sprite_stretched(THEME.dialog, 0, presets_x - p, dialog_y - p, presets_w + p2, dialog_h + p2);
+	if(sFOCUS) draw_sprite_stretched_ext(THEME.dialog, 1, presets_x - p, dialog_y - p, presets_w + p2, dialog_h + p2, COLORS._main_accent, 1);
+	
+	draw_sprite_stretched(THEME.dialog, 0, content_x - p, dialog_y - p, content_w + p2, dialog_h + p2);
+	if(sFOCUS) draw_sprite_stretched_ext(THEME.dialog, 1, content_x - p, dialog_y - p, content_w + p2, dialog_h + p2, COLORS._main_accent, 1);
+	
+	draw_sprite_stretched(THEME.dialog, 0, palette_x - p, dialog_y - p, presets_w + p2, dialog_h + p2);
+	if(sFOCUS) draw_sprite_stretched_ext(THEME.dialog, 1, palette_x - p, dialog_y - p, presets_w + p2, dialog_h + p2, COLORS._main_accent, 1);
+	
+	draw_set_text(f_p0, fa_left, fa_top, COLORS._main_text);
+	draw_text(presets_x + ui(24), dialog_y + ui(16), __txt("Presets"));
+	draw_text(content_x + (!interactable * ui(32)) + ui(24), dialog_y + ui(16), name);
+	if(!interactable)
+		draw_sprite_ui(THEME.lock, 0, content_x + ui(24 + 12), dialog_y + ui(16 + 12),,,, COLORS._main_icon);
+	draw_text(palette_x + ui(24), dialog_y + ui(16), __txt("Palettes"));
 #endregion
 
 #region presets
-	draw_sprite_stretched(THEME.ui_panel_bg, 0, presets_x + ui(16), dialog_y + ui(44), ui(240 - 32), dialog_h - ui(60));
+	draw_sprite_stretched(THEME.ui_panel_bg, 1, presets_x + pal_padding, dialog_y + ui(48), ui(240) - pal_padding * 2, dialog_h - ui(48) - pal_padding);
 	
-	sp_presets.active = sFOCUS;
-	sp_presets.draw(presets_x + ui(16 + 8), dialog_y + ui(44));
+	sp_presets.setFocusHover(sFOCUS, sHOVER);
+	sp_presets.draw(presets_x + pal_padding + ui(4), dialog_y + ui(48) + ui(4));
 	
 	var bx = presets_x + presets_w - ui(44);
 	var by = dialog_y + ui(12);
+	var bs = ui(28);
 	
-	var _b = buttonInstant(THEME.button_hide, bx, by, ui(28), ui(28), mouse_ui, sFOCUS, sHOVER);
-	if(_b) TOOLTIP = "Add to preset";
-	
-	if(_b == 2) {
+	if(buttonInstant(THEME.button_hide_fill, bx, by, bs, bs, mouse_ui, sHOVER, sFOCUS, __txtx("add_preset", "Add to preset"), THEME.add_20) == 2) {
 		var dia = dialogCall(o_dialog_file_name, mouse_mx + ui(8), mouse_my + ui(8));
 		dia.onModify = function (txt) {
 			var gradStr = "";
-			for(var i = 0; i < ds_list_size(gradient); i++) {
-				var gr = gradient[| i];
-				var cc = gr.value;
-				var tt = gr.time;
-				
-				gradStr += string(cc) + "," + string(tt) + "\n";
+			
+			for(var i = 0; i < array_length(gradient.keys); i++) {
+				var gr = gradient.keys[i];
+				gradStr += $"{gr.value},{gr.time}\n";
 			}
 			
-			var file = file_text_open_write(txt + ".txt");
-			file_text_write_string(file, gradStr);
-			file_text_close(file);
-			presetCollect();
+			file_text_write_all(txt + ".txt", gradStr);
+			__initGradient();
 		};
 		dia.path = DIRECTORY + "Gradients/"
 	}
-	draw_sprite_ui_uniform(THEME.add, 0, bx + ui(14), by + ui(14), 1, COLORS._main_icon);
 	bx -= ui(32);
 	
-	if(buttonInstant(THEME.button_hide, bx, by, ui(28), ui(28), mouse_ui, sFOCUS, sHOVER, "Refresh", THEME.refresh) == 2)
-		presetCollect();
+	if(buttonInstant(THEME.button_hide_fill, bx, by, bs, bs, mouse_ui, sHOVER, sFOCUS, __txt("Refresh"), THEME.refresh_20) == 2)
+		__initGradient();
 	bx -= ui(32);
 	
-	if(buttonInstant(THEME.button_hide, bx, by, ui(28), ui(28), mouse_ui, sFOCUS, sHOVER, "Open gradient folder", THEME.folder) == 2) {
-		var _realpath = environment_get_variable("LOCALAPPDATA") + "\\Pixels_Composer\\Gradients";
-		var _windir   = environment_get_variable("WINDIR") + "\\explorer.exe";
-		execute_shell_simple(_windir, _realpath);
+	if(buttonInstant(THEME.button_hide_fill, bx, by, bs, bs, mouse_ui, sHOVER, sFOCUS, __txtx("graident_editor_open_folder", "Open gradient folder"), THEME.path_open_20) == 2) {
+		var _realpath = DIRECTORY + "Gradients";
+		shellOpenExplorer(_realpath)
 	}
+	draw_sprite_ui_uniform(THEME.path_open_20, 1, bx + bs / 2, by + bs / 2, 1, c_white);
+	bx -= ui(32);
+#endregion
+
+#region palette
+	draw_sprite_stretched(THEME.ui_panel_bg, 1, palette_x + pal_padding, dialog_y + ui(48), ui(240) - pal_padding * 2, dialog_h - ui(48) - pal_padding);
+	
+	sp_palettes.setFocusHover(sFOCUS, sHOVER);
+	sp_palettes.draw(palette_x + pal_padding + ui(4), dialog_y + ui(48) + ui(4));
+	
+	var bx = palette_x + palette_w - ui(44);
+	var by = dialog_y + ui(12);
+	
+	if(buttonInstant(THEME.button_hide_fill, bx, by, ui(28), ui(28), mouse_ui, sHOVER, sFOCUS, __txt("Show on Selector"), THEME.display_palette, NODE_COLOR_SHOW_PALETTE, c_white) == 2)
+		NODE_COLOR_SHOW_PALETTE = !NODE_COLOR_SHOW_PALETTE;
 	bx -= ui(32);
 #endregion
 
 #region gradient
-	var gr_x = content_x + ui(22);
-	var gr_y = dialog_y + ui(54);
-	var gr_w = content_w - ui(44);
-	var gr_h = ui(20);
 	
 	#region tools
+		var _hov = sHOVER;
+		var _foc = interactable && sFOCUS;
+		
 		var bx = content_x + content_w - ui(50);
 		var by = dialog_y + ui(16);
 		
-		if(buttonInstant(THEME.button_hide, bx, by, ui(28), ui(28), mouse_ui, sFOCUS, sHOVER, "Key blending", THEME.grad_blend) == 2) {
-			if(grad_data != noone)
-				grad_data[| 0] = (grad_data[| 0] + 1) % 3;
+		if(buttonInstant(THEME.button_hide_fill, bx, by, ui(28), ui(28), mouse_ui, _hov, _foc, __txtx("gradient_editor_key_blend", "Key blending"), THEME.grad_blend) == 2) {
+			menuCall("gradient_window_blend_menu", [ 
+				menuItem(__txtx("gradient_editor_blend_hard",  "Solid"),  function() { gradient.type = 1; onApply(gradient); }), 
+				menuItem(__txtx("gradient_editor_blend_RGB",   "RGB"),    function() { gradient.type = 0; onApply(gradient); }), 
+				menuItem(__txtx("gradient_editor_blend_HSV",   "HSV"),    function() { gradient.type = 2; onApply(gradient); }), 
+				menuItem(__txtx("gradient_editor_blend_OKLAB", "OKLAB"),  function() { gradient.type = 3; onApply(gradient); }), 
+			], bx + ui(32), by, fa_left, gradient);
+		}
+		bx -= ui(32);
+		
+		if(buttonInstant(THEME.button_hide_fill, bx, by, ui(28), ui(28), mouse_ui, _hov, _foc, __txtx("gradient_editor_reverse", "Reverse"), THEME.reverse) == 2) {
+			for( var i = 0, n = array_length(gradient.keys); i < n; i++ )
+				gradient.keys[i].time = 1 - gradient.keys[i].time;
+			gradient.keys = array_reverse(gradient.keys);
+			onApply(gradient);
+		}
+		bx -= ui(32);
+		
+		if(buttonInstant(THEME.button_hide_fill, bx, by, ui(28), ui(28), mouse_ui, _hov, _foc, __txt("Distribute"), THEME.obj_distribute_h) == 2) {
+			var _stp = 1 / (array_length(gradient.keys) - (gradient.type != 1));
+			
+			for( var i = 0, n = array_length(gradient.keys); i < n; i++ )
+				gradient.keys[i].time = _stp * i;
+			onApply(gradient);
 		}
 		bx -= ui(32);
 	#endregion
 	
+	var gr_x = content_x + ui(22);
+	var gr_y = dialog_y + ui(54);
+	var gr_w = content_w - ui(44);
+	var gr_h = ui(20);
+	draw_sprite_stretched(THEME.textbox, 3, gr_x - ui(6), gr_y - ui(6), gr_w + ui(12), gr_h + ui(12));
 	draw_sprite_stretched(THEME.textbox, 0, gr_x - ui(6), gr_y - ui(6), gr_w + ui(12), gr_h + ui(12));
-	draw_gradient(gr_x, gr_y, gr_w, gr_h, gradient, grad_data[| 0]);
+	gradient.draw(gr_x, gr_y, gr_w, gr_h);
+	draw_sprite_stretched_add(THEME.ui_panel, 1, gr_x, gr_y, gr_w, gr_h, c_white, 0.25);
 	
 	var hover = noone;
-	for(var i = 0; i < ds_list_size(gradient); i++) {
-		var _k  = gradient[| i];
+	
+	for(var i = 0; i < array_length(gradient.keys); i++) {
+		var _k  = gradient.keys[i];
 		var _c  = _k.value;
 		var _kx = gr_x + _k.time * gr_w; 
+		var _ky = gr_y + gr_h / 2;
 		var _in = _k == key_selecting? 1 : 0;
 		
-		draw_sprite_ui_uniform(THEME.prop_gradient, _in, _kx, gr_y + gr_h / 2, 1, _c);
+		var _hov  = sHOVER && point_in_rectangle(mouse_mx, mouse_my, _kx - ui(6), gr_y, _kx + ui(6), gr_y + gr_h);
+		    _hov |= key_dragging == _k;
+		_k._hover = lerp_float(_k._hover, _hov, 5);
 		
-		if(sHOVER && point_in_rectangle(mouse_mx, mouse_my, _kx - ui(6), gr_y, _kx + ui(6), gr_y + gr_h)) {
-			draw_sprite_ui_uniform(THEME.prop_gradient, _in, _kx, gr_y + gr_h / 2, 1.2, _c);
-			hover = _k;
+		var _kw = ui(12);
+		var _kh = lerp(ui(24), ui(32), _k._hover);
+		
+		var _kdx = _kx - _kw / 2;
+		var _kdy = _ky - _kh / 2;
+		var _aa  = key_dragging == _k && key_deleting? 0.3 : 1;
+		
+		draw_sprite_stretched_ext(THEME.prop_gradient, 0, _kdx, _kdy, _kw, _kh, _c, _aa);
+		
+		if(key_selecting == _k || key_dragging == _k) {
+			draw_sprite_stretched_ext(THEME.prop_gradient, 1, _kdx, _kdy, _kw, _kh, COLORS._main_accent, _aa);
+			
+		} else {
+			if(_color_get_light(_c) < 0.75) draw_sprite_stretched_ext(THEME.prop_gradient, 1, _kdx, _kdy, _kw, _kh, c_white, _aa);
+			else                            draw_sprite_stretched_ext(THEME.prop_gradient, 1, _kdx, _kdy, _kw, _kh, c_black, _aa);
 		}
+		
+		if(_hov) hover = _k;
 	}
 	
 	if(key_dragging) {
-		var tt = clamp((mouse_mx - gr_x) / gr_w, 0, 1);
-		setKeyPosition(key_dragging, tt);
+		if(abs(mouse_mx - key_drag_mx) > 4)
+			key_drag_dead = false;
+		key_deleting = abs(mouse_my - key_drag_my) > ui(32) && array_length(gradient.keys) > 1;
+		
+		if(!key_drag_dead && !key_deleting) {
+			var newT = clamp(key_drag_sx + (mouse_mx - key_drag_mx) / gr_w, 0, 1);
+			setKeyPosition(key_dragging, newT);
+		}
 		
 		if(mouse_release(mb_left)) {
-			removeKeyOverlap(key_dragging);
-			key_dragging = noone;	
+			if(key_deleting) array_remove(gradient.keys, key_dragging);
+			else             removeKeyOverlap(key_dragging);
+			
+			key_dragging = noone;
 		}
 	}
 	
@@ -124,56 +196,77 @@ if !ready exit;
 	
 	if(sHOVER && point_in_rectangle(mouse_mx, mouse_my, _x0, _y0, _x1, _y1)) {
 		if(mouse_press(mb_left, sFOCUS)) {
+			widget_clear();
+			
 			if(hover) {
 				key_selecting = hover;
-				key_dragging  = hover;
+				if(interactable) {
+					key_dragging  = hover;
+					key_drag_dead = true;
+					key_deleting  = false;
 					
-				selector.setColor(key_dragging.value);
-			} else {
+					key_drag_sx	  = hover.time;
+					key_drag_mx	  = mouse_mx;
+					key_drag_my	  = mouse_my;
+				}
+				
+				selector.setColor(hover.value);
+				
+			} else if(interactable) {
 				key_selecting = noone;
 				
 				var tt = clamp((mouse_mx - gr_x) / gr_w, 0, 1);
-				var cc = gradient_eval(gradient, tt);
-				var _newkey = new valueKey(tt, cc);
-				gradient_add(gradient, _newkey, true);
-					
-				key_selecting  = _newkey;
-				key_dragging   = _newkey;
-					
+				var cc = cola(surface_getpixel(gradient.surf, gr_w * tt, gr_h / 2), 1);
+				
+				var _newkey = new gradientKey(tt, cc);
+				gradient.add(_newkey, true);
+				
+				key_selecting = _newkey;
+				key_dragging  = _newkey;
+				key_drag_dead = true;
+				key_deleting  = false;
+				
+				key_drag_sx	  = tt;
+				key_drag_mx	  = mouse_mx;
+				key_drag_my	  = mouse_my;
+				
 				selector.setColor(key_dragging.value);
 			}
 		}
 			
-		if(mouse_press(mb_right, sFOCUS) && hover && ds_list_size(gradient) > 1) {
-			var _index = ds_list_find_index(gradient, hover);
-			ds_list_delete(gradient, _index);
-		}
+		if(mouse_press(mb_right, interactable && sFOCUS) && hover && array_length(gradient.keys) > 1)
+			array_remove(gradient.keys, hover);
 	}
 	
 	var op_x = content_x + ui(20);
 	var op_y = gr_y + gr_h + ui(12);
 	
-	draw_set_text(f_p0, fa_left, fa_center, COLORS._main_text_sub);
-	draw_text(op_x, op_y + TEXTBOX_HEIGHT / 2, "Position")
-	
-	var txt = key_selecting? key_selecting.time * 100 : "-";
-	sl_position.active = sFOCUS;
-	sl_position.hover  = sHOVER;
-	sl_position.draw(op_x + ui(100), op_y, ui(content_w - 140), TEXTBOX_HEIGHT, txt, mouse_ui);
+	var txt = key_selecting? key_selecting.time * 100 : 0;
+	sl_position.setFocusHover(sFOCUS, sHOVER);
+	sl_position.register();
+	sl_position.setFont(f_p2);
+	sl_position.draw(op_x, op_y, ui(content_w - 40), ui(24), txt, mouse_ui);
 #endregion
 
 #region selector
 	var col_x = content_x + ui(20);
-	var col_y = dialog_y + ui(136);
+	var col_y = dialog_y + ui(128);
 	
+	if(palette_selecting > -1)
+		selector.palette = PALETTES[palette_selecting].palette;
 	selector.draw(col_x, col_y, sFOCUS, sHOVER);
 #endregion
 
 #region controls
 	var bx = content_x + content_w - ui(36);
 	var by = dialog_y + dialog_h - ui(36);
-	if(buttonInstant(THEME.button_lime, bx - ui(18), by - ui(18), ui(36), ui(36), mouse_ui, sFOCUS, sHOVER, "", THEME.accept, 0, COLORS._main_icon_dark) == 2) {
-		onApply();
-		instance_destroy();
-	}
+	
+	b_apply.register();
+	b_apply.setFocusHover(sFOCUS, sHOVER);
+	b_apply.draw(bx - ui(18), by - ui(18), ui(36), ui(36), mouse_ui, THEME.button_lime);
+	
+	bx -= ui(48);
+	b_cancel.register();
+	b_cancel.setFocusHover(sFOCUS, sHOVER);
+	b_cancel.draw(bx - ui(18), by - ui(18), ui(36), ui(36), mouse_ui, THEME.button_hide_fill);
 #endregion

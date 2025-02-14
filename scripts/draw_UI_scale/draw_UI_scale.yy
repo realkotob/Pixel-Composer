@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "draw_UI_scale",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "draw",
-    "path": "folders/functions/draw.yy",
+  "$GMScript":"v1",
+  "%Name":"draw_UI_scale",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"draw_UI_scale",
+  "parent":{
+    "name":"draw",
+    "path":"folders/functions/draw.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

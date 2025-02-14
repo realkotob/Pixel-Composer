@@ -1,10 +1,12 @@
 {
-  "resourceType": "GMShader",
-  "resourceVersion": "1.0",
-  "name": "sh_remove_black",
-  "type": 1,
-  "parent": {
-    "name": "filter",
-    "path": "folders/shader/filter.yy",
+  "$GMShader":"",
+  "%Name":"sh_remove_black",
+  "name":"sh_remove_black",
+  "parent":{
+    "name":"filter",
+    "path":"folders/shader/filter.yy",
   },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
 }

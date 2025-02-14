@@ -1,32 +1,128 @@
-function Node_Padding(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
+#region
+	FN_NODE_CONTEXT_INVOKE {
+		addHotkey("Node_Padding", "Fill Method > Toggle", "F", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[2].setValue((_n.inputs[2].getValue() + 1) % 2); });
+	});
+#endregion
+
+function Node_Padding(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
 	name = "Padding";
+	dimension_index = -1;
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
+	newInput(0, nodeValue_Surface("Surface In", self));
 	
-	inputs[| 1] = nodeValue(1, "Padding", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, [0, 0, 0, 0])
-		.setDisplay(VALUE_DISPLAY.padding);
+	newInput(1, nodeValue_Padding("Padding", self, [0, 0, 0, 0]))
+		.setUnitRef(function(i) /*=>*/ {return getDimension(i)});
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(2, nodeValue_Enum_Scroll("Fill Method", self,  0, [ "Empty", "Solid" ]));
 	
-	static process_data = function(_outSurf, _data, _output_index) {
+	newInput(3, nodeValue_Color("Fill Color", self, cola(c_black)));
+	
+	newInput(4, nodeValue_Bool("Active", self, true));
+		active_index = 4;
+		
+	newInput(5, nodeValue_Enum_Button("Pad Mode", self,  0, [ "Pad out", "Pad to size" ]));
+	
+	newInput(6, nodeValue_Vec2("Target Dimension", self, DEF_SURF))
+	
+	newInput(7, nodeValue_Enum_Button("Horizontal Alignment", self,  0 , [ THEME.inspector_surface_halign, THEME.inspector_surface_halign, THEME.inspector_surface_halign]));
+	
+	newInput(8, nodeValue_Enum_Button("Vertical Alignment", self,  0 , [ THEME.inspector_surface_valign, THEME.inspector_surface_valign, THEME.inspector_surface_valign ]));
+		
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	input_display_list = [ 4, 
+		["Surfaces", true], 0, 
+		["Padding", false], 5, 1, 6, 7, 8, 
+		["Filling", false], 2, 3, 
+	];
+	
+	attribute_surface_depth();
+	
+	draw_transforms = [];
+	static drawOverlayTransform = function(_node) { return array_safe_get(draw_transforms, preview_index, noone); }
+	
+	static step = function() {
+		var mode = getInputData(5);
+		
+		inputs[1].setVisible(mode == 0);
+		
+		inputs[6].setVisible(mode == 1);
+		inputs[7].setVisible(mode == 1);
+		inputs[8].setVisible(mode == 1);
+	}
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
+		var mode = _data[5];
+		
+		var surf    = _data[0];
 		var padding	= _data[1];
 		
-		var ww	= surface_get_width(_data[0]);
-		var hh	= surface_get_height(_data[0]);
+		var dim 	= _data[6];
+		var halign	= _data[7];
+		var valign	= _data[8];
 		
-		var sw	= ww + padding[0] + padding[2];
-		var sh	= hh + padding[1] + padding[3];
+		var fill	= _data[2];
+		var fillClr = _data[3];
+		var cDep    = attrDepth();
 		
-		if(sw > 1 && sh > 1) { 
-			surface_size_to(_outSurf, sw, sh);
+		inputs[3].setVisible(fill);
+		
+		var ww	= surface_get_width_safe(surf);
+		var hh	= surface_get_height_safe(surf);
+		
+		if(mode == 0) {
+			var sw	= ww + padding[0] + padding[2];
+			var sh	= hh + padding[1] + padding[3];
+		
+			if(sw > 1 && sh > 1) { 
+				_outSurf = surface_verify(_outSurf, sw, sh, cDep);
+			
+				surface_set_target(_outSurf);
+					if(fill == 0) {
+						DRAW_CLEAR
+						BLEND_OVERRIDE
+					} else if(fill == 1)
+						draw_clear_alpha(fillClr, 1);
+				
+					draw_surface_safe(surf, padding[2], padding[1]);
+					BLEND_NORMAL
+				surface_reset_target();
+			}
+			
+			draw_transforms[_array_index] = [ padding[2], padding[1], 1, 1, 0];
+			
+		} else if(mode == 1) { 
+			_outSurf = surface_verify(_outSurf, dim[0], dim[1], cDep);
 			
 			surface_set_target(_outSurf);
-				draw_clear_alpha(0, 0);
-				BLEND_ADD
-				draw_surface_safe(_data[0], padding[2], padding[1]);
-				BLEND_NORMAL
+			if(fill == 0) {
+				DRAW_CLEAR
+				BLEND_OVERRIDE
+			} else if(fill == 1)
+				draw_clear(fillClr);
+			
+			var sx = 0;
+			var sy = 0;
+			
+			switch(halign) {
+				case fa_left :   sx = 0;				 break;
+				case fa_center : sx = (dim[0] - ww) / 2; break;
+				case fa_right :  sx =  dim[0] - ww;		 break;
+			}
+			
+			switch(valign) {
+				case fa_top :    sy = 0;				 break;
+				case fa_center : sy = (dim[1] - hh) / 2; break;
+				case fa_bottom:  sy =  dim[1] - hh;		 break;
+			}
+			
+			draw_surface_safe(surf, sx, sy);
+			BLEND_NORMAL
 			surface_reset_target();
+			
+			draw_transforms[_array_index] = [ sx, sy, 1, 1, 0 ];
 		}
+		
 		return _outSurf;
 	}
 }

@@ -1,102 +1,200 @@
-function Node_Grid(_x, _y, _group = -1) : Node(_x, _y, _group) constructor {
+#region
+	FN_NODE_CONTEXT_INVOKE {
+		addHotkey("Node_Grid", "Render Type > Toggle", "R", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[10].setValue((_n.inputs[10].getValue() + 1) % 5); });
+	});
+#endregion
+
+function Node_Grid(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
 	name = "Grid";
 	
-	shader = sh_grid;
-	uniform_pos = shader_get_uniform(shader, "position");
-	uniform_dim = shader_get_uniform(shader, "dimension");
-	uniform_sca = shader_get_uniform(shader, "scale");
-	uniform_wid = shader_get_uniform(shader, "width");
-	uniform_ang = shader_get_uniform(shader, "angle");
-	uniform_shf = shader_get_uniform(shader, "shift");
-	uniform_shx = shader_get_uniform(shader, "shiftAxis");
-	uniform_hgt = shader_get_uniform(shader, "height");
+	newInput(0, nodeValue_Dimension(self));
 	
-	uniform_col1 = shader_get_uniform(shader, "col1");
-	uniform_col2 = shader_get_uniform(shader, "col2");
-	uniform_sam = shader_get_uniform(shader, "useSampler");
+	newInput(1, nodeValue_Vec2("Position", self, [ 0, 0 ]))
+		.setUnitRef(function(index) { return getDimension(index); });
 	
-	inputs[| 0] = nodeValue(0, "Dimension", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, def_surf_size2 )
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(2, nodeValue_Vec2("Grid Size", self, [ 8, 8 ]))
+		.setMappable(13);
 	
-	inputs[| 1] = nodeValue(1, "Position", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [ 0, 0 ])
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(3, nodeValue_Float("Gap", self, 0.2))
+		.setDisplay(VALUE_DISPLAY.slider, { range: [0, 0.5, 0.001] })
+		.setMappable(14);
 	
-	inputs[| 2] = nodeValue(2, "Scale", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [ 4, 4 ])
-		.setDisplay(VALUE_DISPLAY.vector);
-	
-	inputs[| 3] = nodeValue(3, "Gap", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0.02)
-		.setDisplay(VALUE_DISPLAY.slider, [0, 0.5, 0.01]);
-	
-	inputs[| 4] = nodeValue(4, "Angle", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0)
-		.setDisplay(VALUE_DISPLAY.rotation);
+	newInput(4, nodeValue_Rotation("Angle", self, 0))
+		.setMappable(15);
 		
-	inputs[| 5] = nodeValue(5, "Color 1", self, JUNCTION_CONNECT.input, VALUE_TYPE.color, c_white);
-	inputs[| 6] = nodeValue(6, "Color 2", self, JUNCTION_CONNECT.input, VALUE_TYPE.color, c_black);
-	
-	inputs[| 7] = nodeValue(7, "Texture", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
-	
-	inputs[| 8] = nodeValue(8, "Shift", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0)
-		.setDisplay(VALUE_DISPLAY.slider, [-0.5, 0.5, 0.01]);
+	newInput(5, nodeValue_Gradient("Tile Color", self, new gradientObject(cola(c_white))))
+		.setMappable(20);
 		
-	inputs[| 9] = nodeValue(9, "Shift axis", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0)
-		.setDisplay(VALUE_DISPLAY.enum_button, ["X", "Y"]);
+	newInput(6, nodeValue_Color("Gap Color",  self, cola(c_black)));
+	
+	newInput(7, nodeValue_Surface("Texture", self));
+	
+	newInput(8, nodeValue_Float("Shift", self, 0))
+		.setDisplay(VALUE_DISPLAY.slider, { range: [-0.5, 0.5, 0.01] })
+		.setMappable(16);
 		
-	inputs[| 10] = nodeValue(10, "Height", self, JUNCTION_CONNECT.input, VALUE_TYPE.boolean, false);
+	newInput(9, nodeValue_Enum_Button("Shift Axis", self,  0, ["X", "Y"]));
+		
+	newInput(10, nodeValue_Enum_Scroll("Render Type", self,  0, ["Colored tile", "Colored tile (Accurate)", "Height map", "Texture grid", "Texture sample"]));
+		
+	newInput(11, nodeValueSeed(self));
+	
+	newInput(12, nodeValue_Bool("Anti-aliasing", self, false));
+	
+		newInput(13, nodeValueMap("Scale Map", self));
+	
+		newInput(14, nodeValueMap("Gap Map", self));
+	
+		newInput(15, nodeValueMap("Angle Map", self));
+	
+		newInput(16, nodeValueMap("Shift Map", self));
+	
+	newInput(17, nodeValue_Bool("Truchet", self, false));
+	
+	newInput(18, nodeValue_Int("Truchet Seed", self, seed_random()));
+	
+	newInput(19, nodeValue_Float("Flip Horizontal", self, 0.5))
+		.setDisplay(VALUE_DISPLAY.slider);
+	
+		newInput(20, nodeValueMap("Gradient Map", self));
+	
+		newInput(21, nodeValueGradientRange("Gradient Map Range", self, inputs[5]));
+	
+	newInput(22, nodeValue_Float("Flip Vertical", self, 0.5))
+		.setDisplay(VALUE_DISPLAY.slider);
+	
+	newInput(23, nodeValue_Rotation_Range("Texture Angle", self, [ 0, 0 ]));
+		
+	newInput(24, nodeValue_Slider_Range("Level", self, [ 0, 1 ]));
+	
+	newInput(25, nodeValue_Bool("Use Texture Dimension", self, false));
+	
+	newInput(26, nodeValue_Float("Gap Width", self, 1));
+	
+	newInput(27, nodeValue_Bool("Diagonal", self, false));
+	
+	newInput(28, nodeValue_Bool("Uniform Gap", self, true));
+	
+	newInput(29, nodeValue_Float("Secondary Scale", self, 0));
+	
+	newInput(30, nodeValue_Float("Secondary Shift", self, 0))
+		.setDisplay(VALUE_DISPLAY.slider);
+	
+	newInput(31, nodeValue_Float("Random Shift", self, 0))
+		.setDisplay(VALUE_DISPLAY.slider);
+	
+	newInput(32, nodeValueSeed(self, VALUE_TYPE.float, "Shift Seed"));
+	
+	newInput(33, nodeValue_Float("Random Scale", self, 0))
+		.setDisplay(VALUE_DISPLAY.slider);
+	
+	newInput(34, nodeValueSeed(self, VALUE_TYPE.float, "Scale Seed"));
 	
 	input_display_list = [
-		["Output",  false], 0,
-		["Pattern",	false], 1, 4, 2, 3, 9, 8,
-		["Render",	false], 5, 6, 7, 10
+		["Output",    false],  0,
+		["Pattern",	  false],  1,  4, 15,  2, 13, 28,  3, 26, 27, 14, 
+		["Shift",	  false],  9,  8, 16, 31, 32, 30, 
+		["Scale",     false], 33, 34, 29, 
+		["Render",	  false], 10, 11,  5, 20,  6,  7, 25, 12, 24, 
+		["Truchet",    true, 17], 18, 19, 22, 23, 
 	];
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
 	
-	static drawOverlay = function(active, _x, _y, _s, _mx, _my) {
-		inputs[| 1].drawOverlay(active, _x, _y, _s, _mx, _my);
+	attribute_surface_depth();
+	
+	static drawOverlay = function(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) {
+		var hov = false;
+		var pos = getSingleValue(1);
+		
+		var hv = inputs[ 1].drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny);                                active &= !hv; hov |= bool(hv);
+		var hv = inputs[ 2].drawOverlay(hover, active, _x + pos[0] * _s, _y + pos[1] * _s, _s, _mx, _my, _snx, _sny, 1); active &= !hv; hov |= bool(hv);
+		var hv = inputs[ 4].drawOverlay(hover, active, _x + pos[0] * _s, _y + pos[1] * _s, _s, _mx, _my, _snx, _sny);    active &= !hv; hov |= bool(hv);
+		var hv = inputs[21].drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny, getSingleValue(0));             active &= !hv; hov |= bool(hv);
+		
+		return hov;
 	}
 	
-	static update = function() {
-		var _dim = inputs[| 0].getValue();
-		var _pos = inputs[| 1].getValue();
-		var _sca = inputs[| 2].getValue();
-		var _wid = inputs[| 3].getValue();
-		var _ang = inputs[| 4].getValue();
-		var _sam = inputs[| 7].getValue();
-		var _shf = inputs[| 8].getValue();
-		var _shx = inputs[| 9].getValue();
-		var _hgt = inputs[| 10].getValue();
+	static step = function() {
+		inputs[2].mappableStep();
+		inputs[3].mappableStep();
+		inputs[4].mappableStep();
+		inputs[5].mappableStep();
+		inputs[8].mappableStep();
+	}
+	
+	static getDimension = function(_arr = 0) {
+		var _dim = getSingleValue( 0, _arr);
+		var _sam = getSingleValue( 7, _arr);
+		var _mod = getSingleValue(10, _arr);
+		var _txd = getSingleValue(25, _arr);
+		var _tex = _mod == 3 || _mod == 4;
 		
-		var _col1 = inputs[| 5].getValue();
-		var _col2 = inputs[| 6].getValue();
+		if(is_surface(_sam) && _tex && _txd) 
+			return surface_get_dimension(_sam);
+		return _dim;
+	}
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
+		var _dim  = surface_get_dimension(_outSurf);
+		var _pos  = _data[ 1];
+		var _sam  = _data[ 7];
+		var _mode = _data[10];
 		
-		var _outSurf = outputs[| 0].getValue();
-		if(!is_surface(_outSurf)) {
-			_outSurf =  surface_create_valid(_dim[0], _dim[1]);
-			outputs[| 0].setValue(_outSurf);
-		} else
-			surface_size_to(_outSurf, _dim[0], _dim[1]);
+		var _col_gap  = _data[6];
+		var _tex_mode = _mode == 3 || _mode == 4;
 		
-		surface_set_target(_outSurf);
-		draw_clear_alpha(0, 0);
-		shader_set(shader);
-			shader_set_uniform_f(uniform_pos, _pos[0] / _dim[0], _pos[1] / _dim[1]);
-			shader_set_uniform_f(uniform_dim, _dim[0], _dim[1]);
-			shader_set_uniform_f_array(uniform_sca, _sca);
-			shader_set_uniform_f(uniform_wid, _wid);
-			shader_set_uniform_f(uniform_ang, degtorad(_ang));
-			shader_set_uniform_f(uniform_sam, is_surface(_sam));
-			shader_set_uniform_f(uniform_shf, _shf);
-			shader_set_uniform_i(uniform_shx, _shx);
-			shader_set_uniform_i(uniform_hgt, _hgt);
-			shader_set_uniform_f_array(uniform_col1, colToVec4(_col1));
-			shader_set_uniform_f_array(uniform_col2, colToVec4(_col2));
+		inputs[ 5].setVisible(_mode == 0 || _mode == 1);
+		inputs[ 3].setVisible(_mode == 0 || _mode == 3 || _mode == 4);
+		inputs[24].setVisible(_mode == 2);
+		inputs[26].setVisible(_mode == 1);
+		
+		inputs[ 4].setVisible(_mode != 1);
+		inputs[ 8].setVisible(_mode != 1);
+		inputs[ 9].setVisible(_mode != 1);
+		inputs[27].setVisible(_mode == 1);
+		
+		inputs[ 7].setVisible(_tex_mode, _tex_mode);
+		inputs[25].setVisible(_tex_mode, _tex_mode);
+		
+		surface_set_shader(_outSurf, sh_grid);
+			shader_set_f("position",	_pos[0] / _dim[0], _pos[1] / _dim[1]);
+			shader_set_f("dimension",	_dim[0], _dim[1]);
 			
-			if(is_surface(_sam))
-				draw_surface_stretched(_sam, 0, 0, _dim[0], _dim[1]);
-			else
-				draw_sprite_ext(s_fx_pixel, 0, 0, 0, _dim[0], _dim[1], 0, c_white, 1);
-		shader_reset();
-		surface_reset_target();
+			shader_set_f_map("scale",	_data[ 2], _data[13], inputs[2]);
+			shader_set_f_map("width",	_data[ 3], _data[14], inputs[3]);
+			shader_set_f_map("angle",	_data[ 4], _data[15], inputs[4]);
+			shader_set_f_map("shift",	_data[ 8], _data[16], inputs[8]);
+			
+			shader_set_i("mode",		   _mode);
+			shader_set_f("seed", 		   _data[11]);
+			shader_set_i("shiftAxis",	   _data[ 9]);
+			shader_set_i("aa",			   _data[12]);
+			shader_set_i("textureTruchet", _data[17]);
+			shader_set_f("truchetSeed",    _data[18]);
+			shader_set_f("truchetThresX",  _data[19]);
+			shader_set_f("truchetThresY",  _data[22]);
+			shader_set_2("truchetAngle",   _data[23]);
+			shader_set_2("level",          _data[24]);
+			shader_set_f("gapAcc",         _data[26]);
+			shader_set_i("diagonal",       _data[27]);
+			shader_set_i("uniformSize",    _data[28]);
+			shader_set_f("secScale", 	   _data[29]);
+			shader_set_f("secShift", 	   _data[30]);
+			
+			shader_set_f("randShift", 	   _data[31]);
+			shader_set_f("randShiftSeed",  _data[32]);
+			shader_set_f("randScale", 	   _data[33]);
+			shader_set_f("randScaleSeed",  _data[34]);
+			
+			shader_set_color("gapCol", _col_gap);
+			
+			shader_set_gradient(_data[5], _data[20], _data[21], inputs[5]);
+			
+			if(is_surface(_sam))	draw_surface_stretched_safe(_sam, 0, 0, _dim[0], _dim[1]);
+			else					draw_sprite_ext(s_fx_pixel, 0, 0, 0, _dim[0], _dim[1], 0, c_white, 1);
+		surface_reset_shader();
+		
+		return _outSurf;
 	}
-	doUpdate();
 }

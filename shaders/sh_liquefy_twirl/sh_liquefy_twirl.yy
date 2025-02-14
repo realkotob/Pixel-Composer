@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_liquefy_twirl",
+  "name":"sh_liquefy_twirl",
+  "parent":{
+    "name":"liquefy",
+    "path":"folders/nodes/data/filter/warps/liquefy.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

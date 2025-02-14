@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"globalvar_drawer",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"globalvar_drawer",
+  "parent":{
+    "name":"components",
+    "path":"folders/panels/inspectors/components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

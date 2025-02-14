@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"panel_node_canvas_pressure",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"panel_node_canvas_pressure",
+  "parent":{
+    "name":"nodes",
+    "path":"folders/panels/nodes.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

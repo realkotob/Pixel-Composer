@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"panel_graph_export_image_dialog",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"panel_graph_export_image_dialog",
+  "parent":{
+    "name":"graph",
+    "path":"folders/panels/graph.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

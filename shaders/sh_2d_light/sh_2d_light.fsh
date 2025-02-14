@@ -1,30 +1,23 @@
-//
-// Simple passthrough fragment shader
-//
-//varying vec2 v_vTexcoord;
+varying vec2 v_vTexcoord;
 varying vec4 v_vColour;
 
-uniform vec3 color;
+uniform vec4  color;
 uniform float intensity;
 uniform float band;
-uniform float atten;
+
+uniform int   atten;
+uniform float exponent;
 
 void main() {
-	float bright = dot(v_vColour.rgb, vec3(0.2126, 0.7152, 0.0722));
-	bright = min(max(bright, 0.), 1.);
+	vec4  samp   = texture2D( gm_BaseTexture, v_vTexcoord);
+	float bright = (samp.r + samp.b + samp.g) / 3.;
 	
-	if(atten == 0.)
-		bright = bright * bright;
-	else if(atten == 1.)
-		bright = 1. - (bright - 1.) * (bright - 1.);
-	else if(atten == 2.)
-		bright = bright;
-	
+		 if(atten == 0) bright = pow(bright, exponent);
+	else if(atten == 1) bright = 1. - pow(1. - bright, exponent);
+	else if(atten == 2) bright = bright;
 	bright *= intensity;
 		
-	if(band > 0.)
-		bright = ceil(bright * band) / band;
+	if(band > 0.) bright = ceil(bright * band) / band;
 	
-	vec4 col = vec4(color, bright);
-    gl_FragColor = col;
+    gl_FragColor = vec4(color.rgb * bright, 1.);
 }

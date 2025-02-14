@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "panel_animation",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "data",
-    "path": "folders/panels/data.yy",
+  "$GMScript":"v1",
+  "%Name":"panel_animation",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"panel_animation",
+  "parent":{
+    "name":"animation",
+    "path":"folders/panels/animation.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

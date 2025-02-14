@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_collection_inline",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_collection_inline",
+  "parent":{
+    "name":"collections",
+    "path":"folders/nodes/__base__/collections.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

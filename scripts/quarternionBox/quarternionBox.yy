@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"quarternionBox",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"quarternionBox",
+  "parent":{
+    "name":"text",
+    "path":"folders/widgets/text.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "surface_functions",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "string",
-    "path": "folders/functions/string.yy",
+  "$GMScript":"v1",
+  "%Name":"surface_functions",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"surface_functions",
+  "parent":{
+    "name":"surface",
+    "path":"folders/functions/surface.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

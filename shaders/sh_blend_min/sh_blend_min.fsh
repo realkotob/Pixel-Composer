@@ -8,9 +8,16 @@ uniform vec2 dimension;
 uniform int tile_type;
 
 uniform int useMask;
+uniform int preserveAlpha;
 uniform sampler2D mask;
 uniform sampler2D fore;
 uniform float opacity;
+
+float sampleMask() {
+	if(useMask == 0) return 1.;
+	vec4 m = texture2D( mask, v_vTexcoord );
+	return (m.r + m.g + m.b) / 3. * m.a;
+}
 
 void main() {
 	vec4 _col0 = texture2D( gm_BaseTexture, v_vTexcoord );
@@ -23,19 +30,14 @@ void main() {
 	}
 	
 	vec4 _col1 = texture2D( fore, fore_tex );
-	
-	float o = opacity;
-	if(useMask == 1) {
-		vec3 m = texture2D( mask, v_vTexcoord ).rgb;
-		o *= (m.r + m.g + m.b) / 3.;
-	}
-	_col1 *= o;
+	_col1 *= opacity * sampleMask();
 	
 	vec4 res;
 	res.r = min(_col0.r, _col1.r);
 	res.g = min(_col0.g, _col1.g);
 	res.b = min(_col0.b, _col1.b);
 	res.a = min(_col0.a, _col1.a);
+	if(preserveAlpha == 1) res.a = _col0.a;
 	
     gl_FragColor = res;
 }

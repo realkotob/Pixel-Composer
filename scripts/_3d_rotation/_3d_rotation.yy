@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"_3d_rotation",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"_3d_rotation",
+  "parent":{
+    "name":"util",
+    "path":"folders/functions/3d/util.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

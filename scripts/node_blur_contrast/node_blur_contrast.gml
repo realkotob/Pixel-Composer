@@ -1,55 +1,73 @@
-function Node_Blur_Contrast(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
-	name = "Blur contrast";
+#region
+	FN_NODE_CONTEXT_INVOKE {
+		addHotkey("Node_Blur_Contrast", "Size > Set",  KEY_GROUP.numeric, MOD_KEY.none, function(val) /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[1].setValue(toNumber(chr(keyboard_key))); });
+	});
+#endregion
+
+function Node_Blur_Contrast(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
+	name = "Contrast Blur";
 	
-	uniform_dim = shader_get_uniform(sh_blur_box_contrast, "dimension");
-	uniform_siz = shader_get_uniform(sh_blur_box_contrast, "size");
-	uniform_tes = shader_get_uniform(sh_blur_box_contrast, "treshold");
-	uniform_dir = shader_get_uniform(sh_blur_box_contrast, "direction");
+	newInput(0, nodeValue_Surface("Surface In", self));
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
-	inputs[| 1] = nodeValue(1, "Size", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 3)
-		.setDisplay(VALUE_DISPLAY.slider, [1, 32, 1]);
+	newInput(1, nodeValue_Float("Size", self, 3))
+		.setValidator(VV_min(0))
+		.setUnitRef(function(index) /*=>*/ {return getDimension(index)});
 	
-	inputs[| 2] = nodeValue(2, "Treshold", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0.2)
-		.setDisplay(VALUE_DISPLAY.slider, [0, 1, 0.01]);
+	newInput(2, nodeValue_Float("Threshold", self, 0.2, "Brightness different to be blur together."))
+		.setDisplay(VALUE_DISPLAY.slider);
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(3, nodeValue_Surface("Mask", self));
 	
-	pass = PIXEL_SURFACE;
+	newInput(4, nodeValue_Float("Mix", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider);
 	
-	static process_data = function(_outSurf, _data, _output_index) {
+	newInput(5, nodeValue_Bool("Active", self, true));
+		active_index = 5;
+	
+	newInput(6, nodeValue_Toggle("Channel", self, 0b1111, { data: array_create(4, THEME.inspector_channel) }));
+		
+	__init_mask_modifier(3); // inputs 7, 8
+	
+	newInput(9, nodeValue_Bool("Gamma Correction", self, false));
+	
+	input_display_list = [ 5, 6, 
+		["Surfaces", true], 0, 3, 4, 7, 8, 
+		["Blur",	false], 1, 2, 9, 
+	]
+	
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	temp_surface = [ surface_create(1, 1) ];
+	
+	attribute_surface_depth();
+	
+	static step = function() {
+		__step_mask_modifier();
+	}
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
 		var _surf = _data[0];
 		var _size = _data[1];
 		var _tres = _data[2];
+		var _mask = _data[3];
+		var _mix  = _data[4];
+		var _gam  = _data[9];
 		
-		var ww = surface_get_width(_surf);
-		var hh = surface_get_height(_surf);
+		var ww = surface_get_width_safe(_surf);
+		var hh = surface_get_height_safe(_surf);
 		
-		if(is_surface(pass)) surface_size_to(pass, ww, hh);
-		else pass = surface_create_valid(ww, hh);
+		surface_set_shader(_outSurf, sh_blur_box_contrast);
+			shader_set_f("dimension", [ ww, hh ]);
+			shader_set_f("size",      _size);
+			shader_set_f("treshold",  _tres);
+			shader_set_i("gamma",     _gam);
+			
+			draw_surface_safe(_surf);
+		surface_reset_shader();
 		
-		surface_set_target(pass);
-		draw_clear_alpha(0, 0);
-		BLEND_ADD
-			shader_set(sh_blur_box_contrast);
-			shader_set_uniform_f_array(uniform_dim, [ ww, hh ]);
-			shader_set_uniform_f(uniform_siz, _size);
-			shader_set_uniform_f(uniform_tes, _tres);
-			shader_set_uniform_i(uniform_dir, 0);
-			draw_surface_safe(_surf, 0, 0);
-			shader_reset();
-		BLEND_NORMAL
-		surface_reset_target();
-		
-		surface_set_target(_outSurf);
-		draw_clear_alpha(0, 0);
-		BLEND_ADD
-			shader_set(sh_blur_box_contrast);
-			shader_set_uniform_i(uniform_dir, 1);
-			draw_surface_safe(pass, 0, 0);
-			shader_reset();
-		BLEND_NORMAL
-		surface_reset_target();
+		__process_mask_modifier(_data);
+		_outSurf = mask_apply(_data[0], _outSurf, _mask, _mix);
+		_outSurf = channel_apply(_data[0], _outSurf, _data[6]);
 		
 		return _outSurf;
 	}

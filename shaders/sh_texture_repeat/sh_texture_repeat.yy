@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_texture_repeat",
+  "name":"sh_texture_repeat",
+  "parent":{
+    "name":"generator",
+    "path":"folders/nodes/data/generator.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

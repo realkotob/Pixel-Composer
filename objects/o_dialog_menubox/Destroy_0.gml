@@ -1,4 +1,6 @@
-/// @description 
 event_inherited();
 
-ds_list_destroy(children);
+if(instance_exists(submenu)) 
+	instance_destroy(submenu);
+
+if(FOCUS == noone && instance_number(o_dialog_menubox) == 1) FOCUS = FOCUS_BEFORE;

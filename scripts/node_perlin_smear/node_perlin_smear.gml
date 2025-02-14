@@ -1,53 +1,57 @@
-function Node_Perlin_Smear(_x, _y, _group = -1) : Node(_x, _y, _group) constructor {
+function Node_Perlin_Smear(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
 	name = "Smear noise";
 	
-	shader = sh_perlin_smear;
-	uniform_dim = shader_get_uniform(shader, "u_resolution");
-	uniform_pos = shader_get_uniform(shader, "position");
-	uniform_sca = shader_get_uniform(shader, "scale");
-	uniform_ite = shader_get_uniform(shader, "iteration");
-	uniform_bri = shader_get_uniform(shader, "bright");
+	newInput(0, nodeValue_Dimension(self));
 	
-	inputs[| 0] = nodeValue(0, "Dimension", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, def_surf_size2 )
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(1, nodeValue_Vec2("Position", self, [ 0, 0 ]))
+		.setUnitRef(function(index) { return getDimension(index); });
 	
-	inputs[| 1] = nodeValue(1, "Position", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [ 0, 0 ])
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(2, nodeValue_Vec2("Scale", self, [ 4, 6 ]));
 	
-	inputs[| 2] = nodeValue(2, "Scale", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [ 4, 6])
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(3, nodeValue_Int("Iteration", self, 3));
 	
-	inputs[| 3] = nodeValue(3, "Iteration", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 3);
+	newInput(4, nodeValue_Float("Brightness", self, 0.5))
+		.setDisplay(VALUE_DISPLAY.slider);
 	
-	inputs[| 4] = nodeValue(4, "Brightness", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0.5)
-		.setDisplay(VALUE_DISPLAY.slider, [ 0, 1, 0.01]);
-	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
-	
-	static update = function() {
-		var _dim = inputs[| 0].getValue();
-		var _pos = inputs[| 1].getValue();
-		var _sca = inputs[| 2].getValue();
-		var _ite = inputs[| 3].getValue();
-		var _bri = inputs[| 4].getValue();
+	newInput(5, nodeValue_Rotation("Rotation", self, 0));
 		
-		var _outSurf = outputs[| 0].getValue();
-		if(!is_surface(_outSurf)) {
-			_outSurf =  surface_create_valid(_dim[0], _dim[1]);
-			outputs[| 0].setValue(_outSurf);
-		} else
-			surface_size_to(_outSurf, _dim[0], _dim[1]);
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	input_display_list = [
+		["Output",		false], 0, 
+		["Noise",		false], 1, 5, 2, 3, 4,
+	];
+	
+	attribute_surface_depth();
+	
+	static drawOverlay = function(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) {
+		var _hov = false;
+		var  hv  = inputs[1].drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny); _hov |= hv;
 		
-		surface_set_target(_outSurf);
-		shader_set(shader);
-			shader_set_uniform_f_array(uniform_dim, _dim);
-			shader_set_uniform_f_array(uniform_pos, _pos);
-			shader_set_uniform_f_array(uniform_sca, _sca);
-			shader_set_uniform_f(uniform_bri, _bri);
-			shader_set_uniform_i(uniform_ite, _ite);
-			draw_sprite_ext(s_fx_pixel, 0, 0, 0, _dim[0], _dim[1], 0, c_white, 1);
-		shader_reset();
-		surface_reset_target();
+		return _hov;
 	}
-	doUpdate();
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
+		var _dim = _data[0];
+		var _pos = _data[1];
+		var _sca = _data[2];
+		var _ite = _data[3];
+		var _bri = _data[4];
+		var _rot = _data[5];
+		
+		_outSurf = surface_verify(_outSurf, _dim[0], _dim[1], attrDepth());
+		
+		surface_set_shader(_outSurf, sh_perlin_smear);
+			shader_set_f("dimension", _dim);
+			shader_set_2("position",  _pos);
+			shader_set_2("scale",	  _sca);
+			shader_set_f("bright",	  _bri);
+			shader_set_i("iteration", _ite);
+			shader_set_f("rotation",  degtorad(_rot));
+			
+			draw_sprite_ext(s_fx_pixel, 0, 0, 0, _dim[0], _dim[1], 0, c_white, 1);
+		surface_reset_shader();
+		
+		return _outSurf;
+	}
 }

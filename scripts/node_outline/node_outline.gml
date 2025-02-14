@@ -1,72 +1,139 @@
-function Node_Outline(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
+#region
+	FN_NODE_CONTEXT_INVOKE {
+		addHotkey("Node_Outline", "Width > Set", KEY_GROUP.numeric, MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[1].setValue(toNumber(chr(keyboard_key))); });
+		addHotkey("Node_Outline", "Position > Toggle",         "S", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[ 5].setValue((_n.inputs[ 5].getValue() + 1) % 2); });
+		addHotkey("Node_Outline", "Blend > Toggle",            "B", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[ 3].setValue((_n.inputs[ 3].getValue() + 1) % 2); });
+		addHotkey("Node_Outline", "Profile > Toggle",          "P", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[18].setValue((_n.inputs[18].getValue() + 1) % 3); });
+		addHotkey("Node_Outline", "Anti-aliasing > Toggle",    "A", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[ 6].setValue((_n.inputs[ 6].getValue() + 1) % 2); });
+	});
+#endregion
+
+function Node_Outline(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
 	name = "Outline";
+	batch_output = false;
 	
-	uniform_dim          = shader_get_uniform(sh_outline, "dimension");
-	uniform_border_size  = shader_get_uniform(sh_outline, "borderSize");
-	uniform_border_color = shader_get_uniform(sh_outline, "borderColor");
+	attributes.filter = array_create(9, 1);
+	filtering_vl = false;
 	
-	uniform_blend		= shader_get_uniform(sh_outline, "is_blend");
-	uniform_blend_alpha = shader_get_uniform(sh_outline, "blend_alpha");
+	filter_button = new buttonAnchor(noone, function(ind) {
+		if(mouse_press(mb_left))
+			filtering_vl = !attributes.filter[ind];
+		attributes.filter[ind] = filtering_vl;
+		triggerRender();
+	});
 	
-	uniform_side		= shader_get_uniform(sh_outline, "side");
-	uniform_aa  		= shader_get_uniform(sh_outline, "is_aa");
+	newInput(0, nodeValue_Surface("Surface In", self));
 	
-	uniform_out_only	= shader_get_uniform(sh_outline, "outline_only");
+	newInput(1, nodeValue_Int("Width",   self, 0))
+		.setDisplay(VALUE_DISPLAY._default, { front_button : filter_button })
+		.setValidator(VV_min(0))
+		.setMappable(15);
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
-	inputs[| 1] = nodeValue(1, "Width",   self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0);
-	inputs[| 2] = nodeValue(2, "Color",   self, JUNCTION_CONNECT.input, VALUE_TYPE.color, c_white);
+	newInput(2, nodeValue_Color("Color",   self, cola(c_white)));
 	
-	inputs[| 3] = nodeValue(3, "Blend",   self, JUNCTION_CONNECT.input, VALUE_TYPE.boolean, 0);
+	newInput(3, nodeValue_Bool("Blend",   self, false, "Blend outline color with the original color."));
 	
-	inputs[| 4] = nodeValue(4, "Blend alpha",   self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 1)
-		.setDisplay(VALUE_DISPLAY.slider, [0, 1, 0.01]);
+	newInput(4, nodeValue_Float("Blend alpha",   self, 1))
+		.setDisplay(VALUE_DISPLAY.slider)
+		.setMappable(16);
 	
-	inputs[| 5] = nodeValue(5, "Position",   self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 1)
-		.setDisplay(VALUE_DISPLAY.enum_button, ["Inside", "Outside"]);
+	newInput(5, nodeValue_Enum_Button("Position",   self,  1, ["Inside", "Outside"]));
 	
-	inputs[| 6] = nodeValue(6, "Anti alising",   self, JUNCTION_CONNECT.input, VALUE_TYPE.boolean, 0);
+	newInput(6, nodeValue_Bool("Anti-aliasing",   self, 0));
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
-	outputs[| 1] = nodeValue(1, "Outline", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(7, nodeValue_Enum_Scroll("Oversample mode", self,  0, [ "Empty", "Clamp", "Repeat" ]))
+		.setTooltip("How to deal with pixel outside the surface.\n    - Empty: Use empty pixel\n    - Clamp: Repeat edge pixel\n    - Repeat: Repeat texture.");
+		
+	newInput(8, nodeValue_Int("Start", self, 0, "Shift outline inside, outside the shape."))
+		.setMappable(17);
 	
-	static process_data = function(_outSurf, _data, _output_index) {
-		var ww = surface_get_width(_data[0]);
-		var hh = surface_get_height(_data[0]);
-		var wd = _data[1];
+	newInput(9, nodeValue_Surface("Mask", self));
+	
+	newInput(10, nodeValue_Float("Mix", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider);
+	
+	newInput(11, nodeValue_Bool("Active", self, true));
+		active_index = 11;
+	
+	newInput(12, nodeValue_Bool("Crop border", self, false));
+	
+	__init_mask_modifier(9); // inputs 13, 14
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(15, nodeValueMap("Width map", self));
+	
+	newInput(16, nodeValueMap("Blend alpha map", self));
+	
+	newInput(17, nodeValueMap("Start map", self));
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(18, nodeValue_Enum_Scroll("Profile", self,  0, [ "Circle", "Square", "Diamond" ]));
+	
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	newOutput(1, nodeValue_Output("Outline", self, VALUE_TYPE.surface, noone));
+	
+	input_display_list = [ 11, 
+		["Surfaces", true], 0, 9, 10, 13, 14, 
+		["Outline",	false], 18, 1, 15, 5, 8, 17, 12, 
+		["Render",	false], 2, 6,
+		["Blend",	 true, 3], 4, 16,
+	];
+	
+	attribute_surface_depth();
+	attribute_oversample();
+	
+	static step = function() {
+		var _wid  = getInputData(1);
+		var _side = getInputData(5);
+		
+		inputs[12].setVisible(_side == 0);
+		
+		__step_mask_modifier();
+		
+		inputs[1].mappableStep();
+		inputs[4].mappableStep();
+		inputs[8].mappableStep();
+		
+		filter_button.index = attributes.filter;
+	}
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
+		var ww = surface_get_width_safe(_data[0]);
+		var hh = surface_get_height_safe(_data[0]);
 		var cl = _data[2];
 		
 		var blend = _data[3];
-		var alpha = _data[4];
 		var side  = _data[5];
 		var aa    = _data[6];
+		var sam   = getAttribute("oversample");
+		var _crop = _data[12];
 		
-		surface_set_target(_outSurf);
-			draw_clear_alpha(0, 0);
-			BLEND_ADD
+		surface_set_shader(_outSurf, sh_outline);
+			shader_set_f("dimension",       ww, hh);
+			shader_set_f_map("borderSize",  _data[1], _data[15], inputs[1]);
+			shader_set_f_map("borderStart", _data[8], _data[17], inputs[8]);
+			shader_set_color("borderColor", cl);
+			
+			shader_set_i("profile",         _data[18]);
+			shader_set_i("side",            side);
+			shader_set_i("highRes",         0);
+			shader_set_i("is_aa",           aa);
+			shader_set_i("outline_only",    _output_index);
+			shader_set_i("is_blend",        blend);
+			shader_set_f_map("blend_alpha", _data[4], _data[16], inputs[4]);
+			shader_set_i("sampleMode",      sam);
+			shader_set_i("crop_border",     _crop);
+			shader_set_i("filter",          attributes.filter);
+			
+			draw_surface_safe(_data[0]);
+		surface_reset_shader();
 		
-			shader_set(sh_outline);
-			shader_set_uniform_f_array(uniform_dim, [ww, hh]);
-			shader_set_uniform_f(uniform_border_size, wd);
-			shader_set_uniform_f_array(uniform_border_color, [color_get_red(cl) / 255, color_get_green(cl) / 255, color_get_blue(cl) / 255, 1.0]);
-			
-			shader_set_uniform_i(uniform_side, side);
-			shader_set_uniform_i(uniform_aa, aa);
-			shader_set_uniform_i(uniform_out_only, _output_index);
-			shader_set_uniform_i(uniform_blend, blend);
-			shader_set_uniform_f(uniform_blend_alpha, alpha);
-			
-			draw_surface_safe(_data[0], 0, 0);
-			shader_reset();
-			
-			BLEND_NORMAL
-		surface_reset_target();
+		__process_mask_modifier(_data);
+		_outSurf = mask_apply(_data[0], _outSurf, _data[9], _data[10]);
 		
-		return _outSurf; 
-	}
-	
-	static step = function() {
-		var blend = inputs[| 3].getValue();
-		inputs[| 4].setVisible(blend);
+		return _outSurf;  
 	}
 }

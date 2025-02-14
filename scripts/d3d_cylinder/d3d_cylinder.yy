@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"d3d_cylinder",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"d3d_cylinder",
+  "parent":{
+    "name":"cylinder",
+    "path":"folders/nodes/data/3D/d3d_mesh/cylinder.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

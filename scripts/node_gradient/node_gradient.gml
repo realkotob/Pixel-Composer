@@ -1,118 +1,154 @@
-function Node_Gradient(_x, _y, _group = -1) : Node(_x, _y, _group) constructor {
-	name = "Gradient";
-	
-	uniform_grad_blend = shader_get_uniform(sh_gradient, "gradient_blend");
-	uniform_grad = shader_get_uniform(sh_gradient, "gradient_color");
-	uniform_grad_time = shader_get_uniform(sh_gradient, "gradient_time");
-	uniform_grad_key = shader_get_uniform(sh_gradient, "gradient_keys");
-	uniform_grad_loop = shader_get_uniform(sh_gradient, "gradient_loop");
-	
-	uniform_type = shader_get_uniform(sh_gradient, "type");
-	uniform_center = shader_get_uniform(sh_gradient, "center");
-	
-	uniform_angle = shader_get_uniform(sh_gradient, "angle");
-	uniform_radius = shader_get_uniform(sh_gradient, "radius");
-	uniform_radius_shf = shader_get_uniform(sh_gradient, "shift");
-	
-	inputs[| 0] = nodeValue(0, "Dimension", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, def_surf_size2 )
-		.setDisplay(VALUE_DISPLAY.vector);
-	
-	inputs[| 1] = nodeValue(1, "Gradient", self, JUNCTION_CONNECT.input, VALUE_TYPE.color, c_white)
-		.setDisplay(VALUE_DISPLAY.gradient);
-	
-	inputs[| 2] = nodeValue(2, "Type", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0)
-		.setDisplay(VALUE_DISPLAY.enum_scroll, [ "Linear", "Circular", "Radial" ]);
-	
-	inputs[| 3] = nodeValue(3, "Angle", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0)
-		.setDisplay(VALUE_DISPLAY.rotation);
+#region create
 
-	inputs[| 4] = nodeValue(4, "Radius", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, .5);
+	FN_NODE_CONTEXT_INVOKE {
+		addHotkey("Node_Gradient", "Type > Toggle",     "T", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[2].setValue((_n.inputs[2].getValue() + 1) % 3); });
+		addHotkey("Node_Gradient", "Angle > Rotate CCW","R", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[3].setValue((_n.inputs[3].getValue() + 90) % 360); });
+		addHotkey("Node_Gradient", "Gradient > Invert", "I", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR 
+			var _grad = _n.inputs[1].getValue();
+			var _k = [];
+			for( var i = 0, n = array_length(_grad.keys); i < n; i++ ) {
+				_k[i] = _grad.keys[n - i - 1];
+				_k[i].time = 1 - _k[i].time;
+			}
+			_grad.keys = _k;
+			_grad.refresh();
+			_n.triggerRender();
+		});
+	});
+	
+#endregion
+
+function Node_Gradient(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
+	name = "Draw Gradient";
+	
+	newInput(0, nodeValue_Dimension(self));
+	
+	newInput(1, nodeValue_Gradient("Gradient", self, new gradientObject([ cola(c_black), cola(c_white) ])))
+		.setMappable(15);
+	
+	newInput(2, nodeValue_Enum_Scroll("Type", self,  0, [ new scrollItem("Linear",   s_node_gradient_type, 0),
+												          new scrollItem("Circular", s_node_gradient_type, 1),
+												          new scrollItem("Radial",   s_node_gradient_type, 2) ]));
+	
+	newInput(3, nodeValue_Rotation("Angle", self, 0))
+		.setMappable(10);
+
+	newInput(4, nodeValue_Float("Radius", self, .5))
+		.setMappable(11);
 		
-	inputs[| 5] = nodeValue(5, "Shift", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0)
-		.setDisplay(VALUE_DISPLAY.slider, [-2, 2, 0.01]);
+	newInput(5, nodeValue_Float("Shift", self, 0))
+		.setDisplay(VALUE_DISPLAY.slider, { range: [-2, 2, 0.01] })
+		.setMappable(12);
 	
-	inputs[| 6] = nodeValue(6, "Center", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [def_surf_size / 2, def_surf_size / 2])
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(6, nodeValue_Vec2("Center", self, [ 0.5, 0.5 ]))
+		.setUnitRef(function(index) { return getDimension(index); }, VALUE_UNIT.reference);
 	
-	inputs[| 7] = nodeValue(7, "Loop", self, JUNCTION_CONNECT.input, VALUE_TYPE.boolean, false);
+	newInput(7, nodeValue_Enum_Button("Loop", self,  0, [ "None", "Loop", "Pingpong" ]));
 	
-	inputs[| 8] = nodeValue(8, "Mask", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, noone);
+	newInput(8, nodeValue_Surface("Mask", self));
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(9, nodeValue_Float("Scale", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider, { range: [0, 5, 0.01] })
+		.setMappable(13);
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(10, nodeValueMap("Angle map", self));
+	
+	newInput(11, nodeValueMap("Radius map", self));
+	
+	newInput(12, nodeValueMap("Shift map", self));
+	
+	newInput(13, nodeValueMap("Scale map", self));
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(14, nodeValue_Bool("Uniform ratio", self, true));
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(15, nodeValueMap("Gradient map", self));
+	
+	newInput(16, nodeValueGradientRange("Gradient map range", self, inputs[1]));
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(17, nodeValue_Vec2("Shape", self, [ 1, 1 ]))
+	
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
 	
 	input_display_list = [
 		["Output",		true],	0, 8, 
-		["Gradient",	false], 1, 5, 7,
-		["Shape",		false], 2, 3, 4, 6
+		["Gradient",	false], 1, 15, 5, 12, 9, 13, 7, 
+		["Shape",		false], 2, 3, 10, 4, 11, 6, 17, 14, 
 	];
 	
-	static drawOverlay = function(active, _x, _y, _s, _mx, _my) {
-		inputs[| 6].drawOverlay(active, _x, _y, _s, _mx, _my);
+	attribute_surface_depth();
+	
+	static drawOverlay = function(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) {
+		PROCESSOR_OVERLAY_CHECK
+		var _hov = false;
+		var  typ = getSingleValue(2);
+		var  pos = getSingleValue(6);
+		
+		var a = inputs[ 6].drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny);                  active &= !a; _hov |= a;
+		var a = inputs[16].drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny, current_data[0]); active &= !a; _hov |= a;
+		
+		if(typ != 1) {
+			var _px = _x + pos[0] * _s;
+			var _py = _y + pos[1] * _s;
+			var a = inputs[ 3].drawOverlay(hover, active, _px, _py, _s, _mx, _my, _snx, _sny);                active &= !a; _hov |= a;
+		}
+		
+		return _hov;
 	}
 	
-	static update = function() {
-		var _dim = inputs[| 0].getValue();
+	static step = function() {
+		var _typ = getInputData(2);
 		
-		var _outSurf = outputs[| 0].getValue();
-		if(!is_surface(_outSurf)) {
-			_outSurf =  surface_create_valid(_dim[0], _dim[1]);
-			outputs[| 0].setValue(_outSurf);
-		} else
-			surface_size_to(_outSurf, _dim[0], _dim[1]);
-			
-		var _gra = inputs[| 1].getValue();
-		var _gra_data = inputs[| 1].getExtraData();
+		inputs[ 3].setVisible(_typ != 1);
+		inputs[ 4].setVisible(_typ == 1);
+		inputs[14].setVisible(_typ);
+		inputs[17].setVisible(_typ == 1);
 		
-		var _typ = inputs[| 2].getValue();
-		var _ang = inputs[| 3].getValue();
-		var _rad = inputs[| 4].getValue();
-		var _shf = inputs[| 5].getValue();
-		var _cnt = inputs[| 6].getValue();
-		var _lop = inputs[| 7].getValue();
-		var _msk = inputs[| 8].getValue();
-		var _grad_color = [];
-		var _grad_time  = [];
-		
-		for(var i = 0; i < ds_list_size(_gra); i++) {
-			_grad_color[i * 4 + 0] = color_get_red(_gra[| i].value) / 255;
-			_grad_color[i * 4 + 1] = color_get_green(_gra[| i].value) / 255;
-			_grad_color[i * 4 + 2] = color_get_blue(_gra[| i].value) / 255;
-			_grad_color[i * 4 + 3] = 1;
-			_grad_time[i]  = _gra[| i].time;
-		}
-		
-		if(_typ == 0 || _typ == 2) {
-			inputs[| 3].setVisible(true);
-			inputs[| 4].setVisible(false);
-		} else if(_typ == 1) {
-			inputs[| 3].setVisible(false);
-			inputs[| 4].setVisible(true);
-		}
-		
-		surface_set_target(_outSurf);
-		draw_clear_alpha(0, 0);
-		shader_set(sh_gradient);
-			shader_set_uniform_i(uniform_grad_blend, ds_list_get(_gra_data, 0));
-			shader_set_uniform_f_array(uniform_grad, _grad_color);
-			shader_set_uniform_f_array(uniform_grad_time, _grad_time);
-			shader_set_uniform_i(uniform_grad_key, ds_list_size(_gra));
-			shader_set_uniform_i(uniform_grad_loop, _lop);
-			
-			shader_set_uniform_f_array(uniform_center, [_cnt[0] / _dim[0], _cnt[1] / _dim[1]]);
-			shader_set_uniform_i(uniform_type, _typ);
-			
-			shader_set_uniform_f(uniform_angle, degtorad(_ang));
-			shader_set_uniform_f(uniform_radius, _rad * sqrt(2));
-			shader_set_uniform_f(uniform_radius_shf, _shf);
-			
-			BLEND_ADD
-			if(is_surface(_msk))
-				draw_surface_stretched_ext(_msk, 0, 0, _dim[0], _dim[1], c_white, 1);
-			else
-				draw_sprite_stretched_ext(s_fx_pixel, 0, 0, 0, _dim[0], _dim[1], c_white, 1);
-			BLEND_NORMAL
-		shader_reset();
-		surface_reset_target();
+		inputs[1].mappableStep();
+		inputs[3].mappableStep();
+		inputs[4].mappableStep();
+		inputs[5].mappableStep();
+		inputs[9].mappableStep();
 	}
-	doUpdate();
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
+		var _dim  = _data[0];
+		var _typ  = _data[2];
+		var _cnt  = _data[6];
+		var _lop  = _data[7];
+		var _msk  = _data[8];
+		var _uni  = _data[14];
+		var _csca = _data[17];
+		
+		_outSurf = surface_verify(_outSurf, _dim[0], _dim[1], attrDepth());
+		
+		surface_set_shader(_outSurf, sh_gradient);
+			shader_set_gradient(_data[1], _data[15], _data[16], inputs[1]);
+			
+			shader_set_f("dimension",  _dim);
+			
+			shader_set_i("gradient_loop",  _lop);
+			shader_set_f("center",   _cnt[0] / _dim[0], _cnt[1] / _dim[1]);
+			shader_set_i("type",     _typ);
+			shader_set_i("uniAsp",   _uni);
+			shader_set_2("cirScale", _csca);
+			
+			shader_set_f_map("angle",  _data[3], _data[10], inputs[3]);
+			shader_set_f_map("radius", _data[4], _data[11], inputs[4]);
+			shader_set_f_map("shift",  _data[5], _data[12], inputs[5]);
+			shader_set_f_map("scale",  _data[9], _data[13], inputs[9]);
+			
+			if(is_surface(_msk)) draw_surface_stretched_ext(_msk, 0, 0, _dim[0], _dim[1], c_white, 1);
+			else                 draw_sprite_stretched_ext(s_fx_pixel, 0, 0, 0, _dim[0], _dim[1], c_white, 1);
+		surface_reset_shader();
+		
+		return _outSurf;
+	}
 }

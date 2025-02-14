@@ -1,21 +1,45 @@
-function Node_Invert(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
+function Node_Invert(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
 	name = "Invert";
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
+	newInput(0, nodeValue_Surface("Surface In", self));
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(1, nodeValue_Surface("Mask", self));
 	
-	static process_data = function(_outSurf, _data, _output_index) {
-		surface_set_target(_outSurf);
-		draw_clear_alpha(0, 0);
-		BLEND_ADD
+	newInput(2, nodeValue_Float("Mix", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider);
+	
+	newInput(3, nodeValue_Bool("Active", self, true));
+		active_index = 3;
+	
+	newInput(4, nodeValue_Toggle("Channel", self, 0b1111, { data: array_create(4, THEME.inspector_channel) }));
 		
-		shader_set(sh_invert);
-			draw_surface_safe(_data[0], 0, 0);
-		shader_reset();
+	__init_mask_modifier(1); // inputs 5, 6
+	
+	newInput(7, nodeValue_Bool("Include Alpha", self, false));
+	
+	input_display_list = [ 3, 4, 7, 
+		["Surfaces",	 true], 0, 1, 2, 5, 6, 
+	]
+	
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	attribute_surface_depth();
+	
+	static step = function() {
+		__step_mask_modifier();
+	}
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {	
+	
+		surface_set_shader(_outSurf, sh_invert);
+			shader_set_i("alpha", _data[7]);
+			
+			draw_surface_safe(_data[0]);
+		surface_reset_shader();
 		
-		BLEND_NORMAL
-		surface_reset_target();
+		__process_mask_modifier(_data);
+		_outSurf = mask_apply(_data[0], _outSurf, _data[1], _data[2]);
+		_outSurf = channel_apply(_data[0], _outSurf, _data[4]);
 		
 		return _outSurf;
 	}

@@ -1,10 +1,12 @@
 {
-  "resourceType": "GMShader",
-  "resourceVersion": "1.0",
-  "name": "sh_blur_box_contrast",
-  "type": 1,
-  "parent": {
-    "name": "filter",
-    "path": "folders/shader/filter.yy",
+  "$GMShader":"",
+  "%Name":"sh_blur_box_contrast",
+  "name":"sh_blur_box_contrast",
+  "parent":{
+    "name":"blur",
+    "path":"folders/nodes/data/filter/blur.yy",
   },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
 }

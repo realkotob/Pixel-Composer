@@ -1,22 +1,38 @@
-function Node_Mirror(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
+#region
+	FN_NODE_CONTEXT_INVOKE {
+		addHotkey("Node_Mirror", "Angle > Rotate CCW", "R", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[2].setValue((_n.inputs[2].getValue() + 90) % 360); });
+	});
+#endregion
+
+function Node_Mirror(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
 	name = "Mirror";
+	batch_output = false;
 	
-	uniform_dim = shader_get_uniform(sh_mirror, "dimension");
-	uniform_pos = shader_get_uniform(sh_mirror, "position");
-	uniform_ang = shader_get_uniform(sh_mirror, "angle");
+	newInput(0, nodeValue_Surface("Surface In", self));
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
-	inputs[| 1] = nodeValue(1, "Position", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [ 0, 0 ])
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(1, nodeValue_Vec2("Position", self, [ 0.5, 0.5 ])).setUnitRef(function(i) /*=>*/ {return getDimension(i)}, VALUE_UNIT.reference);
 	
-	inputs[| 2] = nodeValue(2, "Angle", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0)
-		.setDisplay(VALUE_DISPLAY.rotation);
+	newInput(2, nodeValue_Rotation("Angle", self, 0));
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(3, nodeValue_Bool("Active", self, true));
+		active_index = 3;
 	
-	static drawOverlay = function(active, _x, _y, _s, _mx, _my) {
-		var _pos   = inputs[| 1].getValue();
-		var _ang   = inputs[| 2].getValue();
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	newOutput(1, nodeValue_Output("Mirror mask", self, VALUE_TYPE.surface, noone));
+	
+	input_display_list = [ 3,
+		["Surfaces", false], 0, 
+		["Mirror",	 false], 1, 2, 
+	]
+	
+	attribute_surface_depth();
+	
+	static drawOverlay = function(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) {
+		PROCESSOR_OVERLAY_CHECK
+		
+		var _pos   = current_data[1];
+		var _ang   = current_data[2];
 		var _posx = _pos[0] * _s + _x;
 		var _posy = _pos[1] * _s + _y;
 		
@@ -28,28 +44,27 @@ function Node_Mirror(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) const
 		draw_set_color(COLORS._main_accent);
 		draw_line(dx0, dy0, dx1, dy1);
 		
-		inputs[| 1].drawOverlay(active, _x, _y, _s, _mx, _my);
-		inputs[| 2].drawOverlay(active, _posx, _posy, _s, _mx, _my);
+		var _hov = false;
+		var  hv  = inputs[1].drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny);		active &= !hv; _hov |= hv;
+		var  hv  = inputs[2].drawOverlay(hover, active, _posx, _posy, _s, _mx, _my, _snx, _sny);  active &= !hv; _hov |= hv;
+		
+		return _hov;
 	}
 	
-	static process_data = function(_outSurf, _data, _output_index) {
-		var _dim = [ surface_get_width(_data[0]), surface_get_height(_data[0]) ];
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
+		var _suf = _data[0];
 		var _pos = _data[1];
 		var _ang = _data[2];
 		
-		surface_set_target(_outSurf);
-			draw_clear_alpha(0, 0);
-			BLEND_ADD
+		var _dim = surface_get_dimension(_suf);
+		
+		surface_set_shader(_outSurf, _output_index? sh_mirror_mask : sh_mirror);
+			shader_set_f("dimension", _dim);
+			shader_set_2("position",  _pos);
+			shader_set_f("angle",     degtorad(_ang));
 			
-			shader_set(sh_mirror);
-			shader_set_uniform_f_array(uniform_dim, _dim);
-			shader_set_uniform_f_array(uniform_pos, _pos);
-			shader_set_uniform_f(uniform_ang, degtorad(_ang));
-			draw_surface_safe(_data[0], 0, 0);
-			shader_reset();
-			
-			BLEND_NORMAL
-		surface_reset_target();
+			draw_surface_safe(_suf);
+		surface_reset_shader();
 		
 		return _outSurf;
 	}

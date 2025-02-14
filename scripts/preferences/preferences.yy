@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "preferences",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "scritps",
-    "path": "folders/main/scritps.yy",
+  "$GMScript":"v1",
+  "%Name":"preferences",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"preferences",
+  "parent":{
+    "name":"components",
+    "path":"folders/main/components.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

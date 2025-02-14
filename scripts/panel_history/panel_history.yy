@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"panel_history",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"panel_history",
+  "parent":{
+    "name":"_others",
+    "path":"folders/panels/_others.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

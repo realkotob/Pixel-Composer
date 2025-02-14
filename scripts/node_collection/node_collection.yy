@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "node_collection",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "__base__",
-    "path": "folders/nodes/data/__base__.yy",
+  "$GMScript":"v1",
+  "%Name":"node_collection",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_collection",
+  "parent":{
+    "name":"collections",
+    "path":"folders/nodes/__base__/collections.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

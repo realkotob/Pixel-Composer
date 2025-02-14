@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_trail_filler",
+  "name":"sh_trail_filler",
+  "parent":{
+    "name":"trail",
+    "path":"folders/nodes/data/filter/effects/trail.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

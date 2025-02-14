@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_VCT",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_VCT",
+  "parent":{
+    "name":"VCT",
+    "path":"folders/__extensions/VCT.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

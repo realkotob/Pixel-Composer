@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"migration_function",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"migration_function",
+  "parent":{
+    "name":"compat",
+    "path":"folders/functions/compat.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

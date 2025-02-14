@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_rate_remap",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_rate_remap",
+  "parent":{
+    "name":"animation",
+    "path":"folders/nodes/data/animation.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

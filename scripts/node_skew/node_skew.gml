@@ -1,66 +1,88 @@
-function Node_Skew(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
+function Node_Skew(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
 	name = "Skew";
 	
-	shader = sh_skew;
-	uniform_dim = shader_get_uniform(shader, "dimension");
-	uniform_cen = shader_get_uniform(shader, "center");
-	uniform_axs = shader_get_uniform(shader, "axis");
-	uniform_amo = shader_get_uniform(shader, "amount");
-	uniform_wrp = shader_get_uniform(shader, "wrap");
+	newInput(0, nodeValue_Surface("Surface In", self));
+	newInput(1, nodeValue_Enum_Button("Axis", self,  0, ["x", "y"]));
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
-	inputs[| 1] = nodeValue(1, "Axis", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0)
-		.setDisplay(VALUE_DISPLAY.enum_button, ["x", "y"]);
-	
-	inputs[| 2] = nodeValue(2, "Amount", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0)
-		.setDisplay(VALUE_DISPLAY.slider, [-1, 1, 0.01]);
+	newInput(2, nodeValue_Float("Strength", self, 0))
+		.setDisplay(VALUE_DISPLAY.slider, { range: [-1, 1, 0.01] })
+		.setMappable(12);
 		
-	inputs[| 3] = nodeValue(3, "Wrap", self, JUNCTION_CONNECT.input, VALUE_TYPE.boolean, false);
+	newInput(3, nodeValue_Bool("Wrap", self, false));
 	
-	inputs[| 4] = nodeValue(4, "Center", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, [0, 0] )
-		.setDisplay(VALUE_DISPLAY.vector, button(function() { centerAnchor(); })
-												.setIcon(THEME.anchor)
-												.setTooltip("Set to center"));
+	newInput(4, nodeValue_Vec2("Center", self, [0, 0] , { side_button : button(function() { centerAnchor(); }).setIcon(THEME.anchor).setTooltip(__txt("Set to center")) }));
 	
-	input_display_list = [
-		0, 4, 1, 2, 3
+	newInput(5, nodeValue_Enum_Scroll("Oversample mode", self,  0, [ "Empty", "Clamp", "Repeat" ]))
+		.setTooltip("How to deal with pixel outside the surface.\n    - Empty: Use empty pixel\n    - Clamp: Repeat edge pixel\n    - Repeat: Repeat texture.");
+	
+	newInput(6, nodeValue_Surface("Mask", self));
+	
+	newInput(7, nodeValue_Float("Mix", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider);
+	
+	newInput(8, nodeValue_Bool("Active", self, true));
+		active_index = 8;
+	
+	newInput(9, nodeValue_Toggle("Channel", self, 0b1111, { data: array_create(4, THEME.inspector_channel) }));
+	
+	__init_mask_modifier(6); // inputs 10, 11
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(12, nodeValueMap("Strength map", self));
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	input_display_list = [ 8, 9, 
+		["Surfaces", true],	0, 6, 7, 10, 11, 
+		["Skew",	false],	1, 2, 12, 4,
 	]
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	attribute_surface_depth();
+	attribute_oversample();
+	attribute_interpolation();
 	
 	static centerAnchor = function() {
 		if(!is_surface(current_data[0])) return;
-		var ww = surface_get_width(current_data[0]);
-		var hh = surface_get_height(current_data[0]);
+		var ww = surface_get_width_safe(current_data[0]);
+		var hh = surface_get_height_safe(current_data[0]);
 		
-		inputs[| 4].setValue([ww / 2, hh / 2]);
+		inputs[4].setValue([ww / 2, hh / 2]);
 	}
 	
-	static drawOverlay = function(active, _x, _y, _s, _mx, _my) {
-		inputs[| 4].drawOverlay(active, _x, _y, _s, _mx, _my);
+	static drawOverlay = function(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) {
+		PROCESSOR_OVERLAY_CHECK
+		
+		var _hov = false;
+		var  hv  = inputs[4].drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny); _hov |= hv;
+		
+		return _hov;
 	}
 	
-	static process_data = function(_outSurf, _data, _output_index) {
-		var _axis = _data[1];
-		var _amou = _data[2];
-		var _wrap = _data[3];
-		var _cent = _data[4];
+	static step = function() {
+		__step_mask_modifier();
 		
-		surface_set_target(_outSurf);
-			draw_clear_alpha(0, 0);
-			BLEND_ADD
-			
-			shader_set(shader);
-			shader_set_uniform_f(uniform_dim, surface_get_width(_data[0]), surface_get_height(_data[0]));
-			shader_set_uniform_f(uniform_cen, _cent[0], _cent[1]);
-			shader_set_uniform_i(uniform_axs, _axis);
-			shader_set_uniform_f(uniform_amo, _amou);
-			shader_set_uniform_i(uniform_wrp, _wrap);
-			draw_surface_safe(_data[0], 0, 0);
-			shader_reset();
-			
-			BLEND_NORMAL
-		surface_reset_target();
+		inputs[2].mappableStep();
+	}
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
+		var _samp = getAttribute("oversample");
+		
+		surface_set_shader(_outSurf, sh_skew);
+		shader_set_interpolation(_data[0]);
+			shader_set_dim("dimension",	_data[0]);
+			shader_set_2("center",		_data[4]);
+			shader_set_i("axis",		_data[1]);
+			shader_set_f_map("amount",  _data[2], _data[12], inputs[2]);
+			shader_set_i("sampleMode",	_samp);
+			draw_surface_safe(_data[0]);
+		surface_reset_shader();
+		
+		__process_mask_modifier(_data);
+		_outSurf = mask_apply(_data[0], _outSurf, _data[6], _data[7]);
+		_outSurf = channel_apply(_data[0], _outSurf, _data[9]);
 		
 		return _outSurf;
 	}

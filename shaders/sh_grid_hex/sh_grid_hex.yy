@@ -1,10 +1,12 @@
 {
-  "resourceType": "GMShader",
-  "resourceVersion": "1.0",
-  "name": "sh_grid_hex",
-  "type": 1,
-  "parent": {
-    "name": "generator",
-    "path": "folders/shader/generator.yy",
+  "$GMShader":"",
+  "%Name":"sh_grid_hex",
+  "name":"sh_grid_hex",
+  "parent":{
+    "name":"pattern",
+    "path":"folders/nodes/data/generator/pattern.yy",
   },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
 }

@@ -1,30 +1,14 @@
-function draw_text_cut(x, y, str, w, scale = 1) {
-	draw_text_transformed(x, y, string_cut(str, w,, scale), scale, scale, 0);
-}
-
 function string_cut(str, w, tail = "...", scale = 1) {
-	var ww  = 0;
-	var ind = 1;
-	var ss  = "";
-	var tw = string_width(tail);
-	if(string_width(str) <= w) return str;
+	if(string_width(str) * scale <= w) return str;
 	
-	while(ind <= string_length(str)) {
-		var ch = string_char_at(str, ind);
-		var _w = string_width(ch) * scale;
+	for( var i = string_length(str) - 1; i > 0; i-- ) {
+		var subS = string_copy(str, 1, i) + tail;
 		
-		if(ww + _w + tw >= w) {
-			ss += tail;
-			break;
-		} else
-			ss += ch;
-		
-		ww += _w;
-		
-		ind++;
+		if(string_width(subS) * scale <= w)
+			return subS;
 	}
 	
-	return ss;
+	return "";
 }
 
 function string_cut_line(str, w) {
@@ -46,4 +30,14 @@ function string_cut_line(str, w) {
 	}
 	
 	return ss;
+}
+
+function string_reduce(str) { 
+	str = string_lower(str);
+	str = string_replace_all(str, " ", "_"); 
+	str = string_replace_all(str, "\\", ""); 
+	str = string_replace_all(str, "/", ""); 
+	str = string_replace_all(str, "'", ""); 
+	
+	return str;
 }

@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"instance_variable_set",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"instance_variable_set",
+  "parent":{
+    "name":"variables",
+    "path":"folders/functions/variables.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

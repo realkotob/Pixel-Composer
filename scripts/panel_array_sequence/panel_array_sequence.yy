@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"panel_array_sequence",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"panel_array_sequence",
+  "parent":{
+    "name":"inspectors",
+    "path":"folders/panels/inspectors.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

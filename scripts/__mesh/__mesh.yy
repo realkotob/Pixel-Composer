@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"__mesh",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"__mesh",
+  "parent":{
+    "name":"geometry",
+    "path":"folders/functions/geometry.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

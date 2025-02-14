@@ -1,10 +1,12 @@
 {
-  "resourceType": "GMShader",
-  "resourceVersion": "1.0",
-  "name": "sh_dilate",
-  "type": 1,
-  "parent": {
-    "name": "warp",
-    "path": "folders/shader/warp.yy",
+  "$GMShader":"",
+  "%Name":"sh_dilate",
+  "name":"sh_dilate",
+  "parent":{
+    "name":"warps",
+    "path":"folders/nodes/data/filter/warps.yy",
   },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
 }

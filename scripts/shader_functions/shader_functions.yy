@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"shader_functions",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"shader_functions",
+  "parent":{
+    "name":"shader",
+    "path":"folders/functions/shader.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

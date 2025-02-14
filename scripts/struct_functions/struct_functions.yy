@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"struct_functions",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"struct_functions",
+  "parent":{
+    "name":"ds",
+    "path":"folders/functions/ds.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

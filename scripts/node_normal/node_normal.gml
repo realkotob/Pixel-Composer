@@ -1,30 +1,48 @@
-function Node_Normal(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
+function Node_Normal(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
 	name = "Normal";
 	
-	uniform_dim = shader_get_uniform(sh_normal, "dimension");
-	uniform_hei = shader_get_uniform(sh_normal, "height");
+	newInput(0, nodeValue_Surface("Surface In", self));
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
-	inputs[| 1] = nodeValue(1, "Height", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 1);
+	newInput(1, nodeValue_Float("Height", self, 1));
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(2, nodeValue_Float("Smooth", self, 0, "Include diagonal pixel in normal calculation, which leads to smoother output."))
+		.setDisplay(VALUE_DISPLAY.slider, { range : [ 0, 4, 0.1] });
 	
-	static process_data = function(_outSurf, _data, _output_index) {
+	newInput(3, nodeValue_Bool("Active", self, true));
+		active_index = 3;
+	
+	newInput(4, nodeValue_Bool("Normalize", self, true));
+	
+	newInput(5, nodeValue_Bool("Flip X", self, true));
+		
+	input_display_list = [ 3,
+		["Surfaces", false], 0,
+		["Normal",	 false], 1, 2, 5, 4, 
+	]
+	
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	attribute_surface_depth();
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
 		var _hei = _data[1];
+		var _smt = _data[2];
+		var _nor = _data[4];
+		var _swx = _data[5];
 		
-		surface_set_target(_outSurf);
-		draw_clear_alpha(0, 0);
-		BLEND_ADD
-		
-		shader_set(sh_normal);
-			shader_set_uniform_f(uniform_hei, _hei);
-			shader_set_uniform_f_array(uniform_dim, [ surface_get_width(_data[0]), surface_get_height(_data[0]) ]);
+		surface_set_shader(_outSurf, sh_normal);
+			gpu_set_texfilter(true);
 			
-			draw_surface_safe(_data[0], 0, 0);
-		shader_reset();
-		
-		BLEND_NORMAL
-		surface_reset_target();
+			shader_set_f("dimension", surface_get_dimension(_data[0]), surface_get_height_safe(_data[0]));
+			shader_set_f("height",    _hei);
+			shader_set_f("smooth",    _smt);
+			shader_set_i("normal",    _nor);
+			shader_set_i("swapx",     _swx);
+			
+			draw_surface_safe(_data[0]);
+			
+			gpu_set_texfilter(false);
+		surface_reset_shader();
 		
 		return _outSurf;
 	}

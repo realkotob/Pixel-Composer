@@ -1,10 +1,12 @@
 {
-  "resourceType": "GMShader",
-  "resourceVersion": "1.0",
-  "name": "sh_greyscale",
-  "type": 1,
-  "parent": {
-    "name": "filter",
-    "path": "folders/shader/filter.yy",
+  "$GMShader":"",
+  "%Name":"sh_greyscale",
+  "name":"sh_greyscale",
+  "parent":{
+    "name":"colors",
+    "path":"folders/nodes/data/filter/colors.yy",
   },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
 }

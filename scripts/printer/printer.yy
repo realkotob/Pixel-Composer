@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"printer",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"printer",
+  "parent":{
+    "name":"debug",
+    "path":"folders/functions/debug.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

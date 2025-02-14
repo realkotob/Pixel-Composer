@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "node_normal_light",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "3D",
-    "path": "folders/nodes/data/3D.yy",
+  "$GMScript":"v1",
+  "%Name":"node_normal_light",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_normal_light",
+  "parent":{
+    "name":"2d_effects",
+    "path":"folders/nodes/data/3D/2d_effects.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

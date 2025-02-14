@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_3d_repeat",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_3d_repeat",
+  "parent":{
+    "name":"d3d_compose",
+    "path":"folders/nodes/data/3D/d3d_compose.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

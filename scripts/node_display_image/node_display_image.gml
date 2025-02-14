@@ -1,49 +1,86 @@
-function Node_create_Display_Image(_x, _y, _group = -1) {
+function Node_create_Display_Image(_x, _y, _group = noone) {
 	var path = "";
-	if(!LOADING && !APPENDING) {
-		path = get_open_filename(".png", "");
+	if(NODE_NEW_MANUAL) {
+		path = get_open_filename_pxc("image|*.png;*.jpg", "");
+		key_release();
 		if(path == "") return noone;
 	}
 	
 	var node = new Node_Display_Image(_x, _y, _group);
-	node.inputs[| 0].setValue(path);
+	node.skipDefault();
+	node.inputs[0].setValue(path);
 	node.doUpdate();
-	
-	//ds_list_add(PANEL_GRAPH.nodes_list, node);
 	return node;
 }
 
 function Node_create_Display_Image_path(_x, _y, path) {
-	if(!file_exists(path)) return noone;
+	if(!file_exists_empty(path)) return noone;
 	
-	var node = new Node_Display_Image(_x, _y);
-	node.inputs[| 0].setValue(path);
+	var node = new Node_Display_Image(_x, _y, PANEL_GRAPH.getCurrentContext());
+	node.skipDefault();
+	node.inputs[0].setValue(path);
 	node.doUpdate();
-	
-	//ds_list_add(PANEL_GRAPH.nodes_list, node);
-	return node;	
+	return node;
 }
 
-function Node_Display_Image(_x, _y, _group = -1) : Node(_x, _y, _group) constructor {
-	name			= "";
-	always_output   = true;
-	auto_height		= false;
+function Node_Display_Image(_x, _y, _group = noone) : Node(_x, _y, _group) constructor {
+	name		= "Display Image";
+	auto_height	= false;
 	
-	inputs[| 0]  = nodeValue(0, "Path", self, JUNCTION_CONNECT.input, VALUE_TYPE.path, "")
-		.setDisplay(VALUE_DISPLAY.path_load, ["*.png", ""]);
+	newInput(0, nodeValue_Path("Path", self, ""))
+		.setVisible(false)
+		.setDisplay(VALUE_DISPLAY.path_load, { filter: "image|*.png;*.jpg" })
+		.rejectArray();
+	
+	newInput(1, nodeValue_Vec2("Position", self, [ x, y ]))
+		.rejectArray();
+	
+	newInput(2, nodeValue_Vec2("Scale", self, [ 1, 1 ]))
+		.rejectArray();
+	
+	newInput(3, nodeValue_Bool("Smooth transform", self, true))
+		.rejectArray();
+	
+	input_display_list = [ 0,
+		["Display", false], 1, 2, 3, 
+	]
 	
 	spr = noone;
 	path_current = "";
 	
 	first_update = false;
 	
-	function updatePaths(path) {
-		if(path_current == path) return false;
+	smooth = true;
+	pos_x  = x;
+	pos_y  = y;
+	sca_x  = 1;
+	sca_y  = 1;
+	sca_dx = 1;
+	sca_dy = 1;
+	
+	static move = function(_x, _y, _s) {
+		if(x == _x && y == _y) return;
+		if(!LOADING) PROJECT.modified = true;
 		
-		path = try_get_path(path);
+		x = _x;
+		y = _y;
+		
+		if(inputs[1].setValue([ _x, _y ]))
+			UNDO_HOLDING = true;
+	}
+	
+	setTrigger(1,,, function() /*=>*/ {
+		var path = getInputData(0);
+		if(path == "") return;
+		updatePaths(path);
+		update(); 
+	});
+	
+	function updatePaths(path) {
+		path = path_get(path);
 		if(path == -1) return false;
 		
-		var ext = filename_ext(path);
+		var ext = string_lower(filename_ext(path));
 		var _name = string_replace(filename_name(path), filename_ext(path), "");
 		
 		switch(ext) {
@@ -65,17 +102,22 @@ function Node_Display_Image(_x, _y, _group = -1) : Node(_x, _y, _group) construc
 		return false;
 	}
 	
-	static update = function() {
-		var path = inputs[| 0].getValue();
+	static update = function(frame = CURRENT_FRAME) {
+		var path = getInputData(0);
+		var posi = getInputData(1);
+		var scal = getInputData(2);
+		smooth   = getInputData(3);
+		
 		if(path == "") return;
-		updatePaths(path);
+		if(path_current != path) updatePaths(path);
 		
 		if(!spr || !sprite_exists(spr)) return;
 		
-		w = sprite_get_width(spr);
-		h = sprite_get_height(spr);
+		pos_x = posi[0];
+		pos_y = posi[1];
+		sca_x = scal[0];
+		sca_y = scal[1];
 	}
-	doUpdate();
 	
 	static drawNodeBase = function(xx, yy, _s) {
 		if(!spr || !sprite_exists(spr)) return;
@@ -83,14 +125,24 @@ function Node_Display_Image(_x, _y, _group = -1) : Node(_x, _y, _group) construc
 		draw_sprite_uniform(spr, 0, xx, yy, _s);
 	}
 	
-	static drawNode = function(_x, _y, _mx, _my, _s) {
+	static drawNode = function(_draw, _x, _y, _mx, _my, _s) {
+		if(!_draw || spr == noone) return noone;
+		
+		x = smooth? lerp_float(x, pos_x, 4) : pos_x;
+		y = smooth? lerp_float(y, pos_y, 4) : pos_y;
+		
+		sca_dx = smooth? lerp_float(sca_dx, sca_x, 4) : sca_x;
+		sca_dy = smooth? lerp_float(sca_dy, sca_y, 4) : sca_y;
+		
+		w = sprite_get_width(spr)  * sca_dx;
+		h = sprite_get_height(spr) * sca_dy;
+		
 		var xx = x * _s + _x;
 		var yy = y * _s + _y;
-		
-		drawNodeBase(xx, yy, _s);
+		draw_sprite_stretched_ext(spr, 0, xx, yy, w * _s, h * _s, c_white, 1);
 		
 		if(active_draw_index > -1) {
-			draw_sprite_stretched_ext(bg_sel_spr, 0, xx, yy, w * _s, h * _s, COLORS._main_accent, 1);
+			draw_sprite_stretched_ext(bg_spr, 1, xx, yy, w * _s, h * _s, COLORS._main_accent, 1);
 			active_draw_index = -1;
 		}
 		return noone;

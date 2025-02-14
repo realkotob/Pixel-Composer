@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"vct_toggle",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"vct_toggle",
+  "parent":{
+    "name":"widget",
+    "path":"folders/__extensions/VCT/widget.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

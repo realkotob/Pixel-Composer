@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_struct",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_struct",
+  "parent":{
+    "name":"struct",
+    "path":"folders/nodes/data/value/struct.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

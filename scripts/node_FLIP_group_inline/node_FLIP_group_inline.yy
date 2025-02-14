@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_FLIP_group_inline",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_FLIP_group_inline",
+  "parent":{
+    "name":"FLIP",
+    "path":"folders/nodes/data/simulation/FLIP.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

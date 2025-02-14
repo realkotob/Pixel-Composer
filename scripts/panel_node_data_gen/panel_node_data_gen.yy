@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"panel_node_data_gen",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"panel_node_data_gen",
+  "parent":{
+    "name":"debug",
+    "path":"folders/panels/_others/debug.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

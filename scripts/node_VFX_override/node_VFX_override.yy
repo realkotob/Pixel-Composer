@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_VFX_override",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_VFX_override",
+  "parent":{
+    "name":"VFX",
+    "path":"folders/nodes/data/simulation/VFX.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

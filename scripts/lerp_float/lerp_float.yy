@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "lerp_float",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "value",
-    "path": "folders/functions/value.yy",
+  "$GMScript":"v1",
+  "%Name":"lerp_float",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"lerp_float",
+  "parent":{
+    "name":"math",
+    "path":"folders/functions/math.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

@@ -1,10 +1,12 @@
 {
-  "resourceType": "GMShader",
-  "resourceVersion": "1.0",
-  "name": "sh_draw_normal",
-  "type": 1,
-  "parent": {
-    "name": "blend",
-    "path": "folders/shader/blend.yy",
+  "$GMShader":"",
+  "%Name":"sh_draw_normal",
+  "name":"sh_draw_normal",
+  "parent":{
+    "name":"draw",
+    "path":"folders/shader/draw.yy",
   },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
 }

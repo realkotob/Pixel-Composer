@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_dust",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_dust",
+  "parent":{
+    "name":"drawer",
+    "path":"folders/nodes/data/generator/drawer.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

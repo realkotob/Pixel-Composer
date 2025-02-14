@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_warp_4points",
+  "name":"sh_warp_4points",
+  "parent":{
+    "name":"transform",
+    "path":"folders/nodes/data/transform.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

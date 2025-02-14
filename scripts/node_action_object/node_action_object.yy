@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_action_object",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_action_object",
+  "parent":{
+    "name":"action",
+    "path":"folders/functions/action.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

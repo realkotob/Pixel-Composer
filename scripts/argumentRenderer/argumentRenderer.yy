@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"argumentRenderer",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"argumentRenderer",
+  "parent":{
+    "name":"lua",
+    "path":"folders/functions/lua.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

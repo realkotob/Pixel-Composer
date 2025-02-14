@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"d3d_vertex",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"d3d_vertex",
+  "parent":{
+    "name":"util",
+    "path":"folders/functions/3d/util.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

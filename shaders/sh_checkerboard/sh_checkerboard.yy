@@ -1,10 +1,12 @@
 {
-  "resourceType": "GMShader",
-  "resourceVersion": "1.0",
-  "name": "sh_checkerboard",
-  "type": 1,
-  "parent": {
-    "name": "generator",
-    "path": "folders/shader/generator.yy",
+  "$GMShader":"",
+  "%Name":"sh_checkerboard",
+  "name":"sh_checkerboard",
+  "parent":{
+    "name":"pattern",
+    "path":"folders/nodes/data/generator/pattern.yy",
   },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
 }

@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_iterator_each_size",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_iterator_each_size",
+  "parent":{
+    "name":"for_each",
+    "path":"folders/nodes/data/iterate/_legacy/for_each.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

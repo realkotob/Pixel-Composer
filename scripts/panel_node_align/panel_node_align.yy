@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"panel_node_align",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"panel_node_align",
+  "parent":{
+    "name":"graph",
+    "path":"folders/panels/graph.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

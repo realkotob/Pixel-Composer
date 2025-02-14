@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_PCX_fn_random",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_PCX_fn_random",
+  "parent":{
+    "name":"value",
+    "path":"folders/nodes/data/PCX/value.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

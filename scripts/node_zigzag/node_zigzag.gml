@@ -1,67 +1,90 @@
-function Node_Zigzag(_x, _y, _group = -1) : Node(_x, _y, _group) constructor {
+#region
+	FN_NODE_CONTEXT_INVOKE {
+		addHotkey("Node_Zigzag", "Amount > Set", KEY_GROUP.numeric, MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[1].setValue(toNumber(chr(keyboard_key))); });
+		addHotkey("Node_Zigzag", "Type > Toggle",              "T", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[5].setValue((_n.inputs[5].getValue() + 1) % 3); });
+	});
+#endregion
+
+function Node_Zigzag(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
 	name = "Zigzag";
 	
-	shader = sh_zigzag;
-	uniform_pos = shader_get_uniform(shader, "position");
-	uniform_amo = shader_get_uniform(shader, "amount");
-	uniform_bnd = shader_get_uniform(shader, "blend");
+	newInput(0, nodeValue_Dimension(self));
 	
-	uniform_col1 = shader_get_uniform(shader, "col1");
-	uniform_col2 = shader_get_uniform(shader, "col2");
-	
-	inputs[| 0] = nodeValue(0, "Dimension", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, def_surf_size2 )
-		.setDisplay(VALUE_DISPLAY.vector);
-	
-	inputs[| 1] = nodeValue(1, "Amount", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 1)
-		.setDisplay(VALUE_DISPLAY.slider, [1, 16, 0.1]);
+	newInput(1, nodeValue_Int("Amount", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider, { range: [1, 16, 0.1] })
+		.setMappable(6);
 		
-	inputs[| 2] = nodeValue(2, "Position", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, [0, 0] )
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(2, nodeValue_Vec2("Position", self, [0, 0] ))
+		.setUnitRef(function(index) { return getDimension(index); });
 	
-	inputs[| 3] = nodeValue(3, "Color 1", self, JUNCTION_CONNECT.input, VALUE_TYPE.color, c_white);
-	inputs[| 4] = nodeValue(4, "Color 2", self, JUNCTION_CONNECT.input, VALUE_TYPE.color, c_black);
+	newInput(3, nodeValue_Color("Color 1", self, cola(c_white)));
 	
-	inputs[| 5] = nodeValue(5, "Smooth", self, JUNCTION_CONNECT.input, VALUE_TYPE.boolean, false);
+	newInput(4, nodeValue_Color("Color 2", self, cola(c_black)));
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(5, nodeValue_Enum_Button("Type", self,  0, [ "Solid", "Smooth", "AA" ]));
+	
+	//////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(6, nodeValueMap("Amount map", self));
+	
+	newInput(7, nodeValueMap("Angle map", self));
+	
+	//////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(8, nodeValue_Rotation("Angle", self, 0))
+		.setMappable(7);
+		
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
 	
 	input_display_list = [
 		["Output",  false], 0,
-		["Pattern",	false], 1, 2,
-		["Render",	false], 3, 4, 5,
+		["Pattern",	false], 1, 6, 2, 8, 
+		["Render",	false], 5, 3, 4, 
 	];
 	
-	static drawOverlay = function(active, _x, _y, _s, _mx, _my) {
-		inputs[| 2].drawOverlay(active, _x, _y, _s, _mx, _my);
+	attribute_surface_depth();
+	
+	static drawOverlay = function(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) {
+		PROCESSOR_OVERLAY_CHECK
+		
+		var pos  = current_data[2];
+		var px   = _x + pos[0] * _s;
+		var py   = _y + pos[1] * _s;
+		var _hov = false;
+		
+		var  hv  = inputs[2].drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny); _hov |= hv;
+		var  hv  = inputs[8].drawOverlay(hover, active, px, py, _s, _mx, _my, _snx, _sny); _hov |= hv;
+		
+		return _hov;
 	}
 	
-	static update = function() {
-		var _dim = inputs[| 0].getValue();
-		var _amo = inputs[| 1].getValue();
-		var _pos = inputs[| 2].getValue();
+	static step = function() { #region
+		inputs[1].mappableStep();
+		inputs[8].mappableStep();
+	} #endregion
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
+		var _dim = _data[0];
+		var _pos = _data[2];
 		
-		var _col1 = inputs[| 3].getValue();
-		var _col2 = inputs[| 4].getValue();
-		var _bnd  = inputs[| 5].getValue();
+		var _col1 = _data[3];
+		var _col2 = _data[4];
+		var _bnd  = _data[5];
 		
-		var _outSurf = outputs[| 0].getValue();
-		if(!is_surface(_outSurf)) {
-			_outSurf =  surface_create_valid(_dim[0], _dim[1]);
-			outputs[| 0].setValue(_outSurf);
-		} else
-			surface_size_to(_outSurf, _dim[0], _dim[1]);
+		_outSurf = surface_verify(_outSurf, _dim[0], _dim[1], attrDepth());
+		
+		surface_set_shader(_outSurf, sh_zigzag);
+			shader_set_f("dimension",   _dim);
+			shader_set_f("position",   _pos[0] / _dim[0], _pos[1] / _dim[1]);
+			shader_set_f_map("amount", _data[1], _data[6], inputs[1]);
+			shader_set_f_map("angle",  _data[8], _data[7], inputs[8]);
+			shader_set_i("blend",      _bnd);
+			shader_set_color("col1",   _col1);
+			shader_set_color("col2",   _col2);
 			
-		surface_set_target(_outSurf);
-		draw_clear_alpha(0, 0);
-			shader_set(shader);
-			shader_set_uniform_f(uniform_pos, _pos[0] / _dim[0], _pos[1] / _dim[1]);
-			shader_set_uniform_f(uniform_amo, _amo);
-			shader_set_uniform_f_array(uniform_col1, colToVec4(_col1));
-			shader_set_uniform_f_array(uniform_col2, colToVec4(_col2));
-			shader_set_uniform_i(uniform_bnd, _bnd);
-				draw_sprite_ext(s_fx_pixel, 0, 0, 0, _dim[0], _dim[1], 0, c_white, 1);
-			shader_reset();
-		surface_reset_target();
+			draw_sprite_ext(s_fx_pixel, 0, 0, 0, _dim[0], _dim[1], 0, c_white, 1);
+		surface_reset_shader();
+		
+		return _outSurf;
 	}
-	doUpdate();
 }

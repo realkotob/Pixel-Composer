@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_flood_fill",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_flood_fill",
+  "parent":{
+    "name":"regions",
+    "path":"folders/nodes/data/generator/regions.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

@@ -1,27 +1,81 @@
-function Node_De_Corner(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
+function Node_De_Corner(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
 	name = "De-Corner";
 	
-	uniform_dim = shader_get_uniform(sh_de_corner, "dimension");
-	uniform_sol = shader_get_uniform(sh_de_corner, "solid");
-	uniform_tol = shader_get_uniform(sh_de_corner, "tolerance");
+	newInput(0, nodeValue_Surface("Surface In", self));
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
+	newInput(1, nodeValue_Bool("Active", self, true));
+		active_index = 1;
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(2, nodeValue_Float("Tolerance", self, 0))
+		.setDisplay(VALUE_DISPLAY.slider);
 	
-	static process_data = function(_outSurf, _data, _output_index) {
-		surface_set_target(_outSurf);
-		draw_clear_alpha(0, 0);
-		BLEND_ADD
+	newInput(3, nodeValue_Int("Iteration", self, 2))
+	
+	newInput(4, nodeValue_Enum_Button("Type", self,  0, [ "Double", "Diagonal" ]));
+	
+	newInput(5, nodeValue_Surface("Mask", self));
+	
+	newInput(6, nodeValue_Float("Mix", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider);
+	
+	__init_mask_modifier(5); // inputs 7, 8, 
+	
+	newInput(9, nodeValue_Toggle("Include", self, 0b11, { data: [ "Inner", "Side" ] }));
+	
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	input_display_list = [ 1, 
+		["Surfaces",  true], 0, 5, 6, 7, 8, 
+		["Effect",	 false], 4, 9, 2, 3, 
+	]
+	
+	attribute_surface_depth();
+	
+	temp_surface = [ noone, noone ];
+	
+	static step = function() {
+		__step_mask_modifier();
+	}
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
+		var surf = _data[0];
+		var _tol = _data[2];
+		var _itr = _data[3];
+		var _str = _data[4];
+		var _inn = _data[9];
 		
-		shader_set(sh_de_corner);
-			shader_set_uniform_f_array(uniform_dim, [ surface_get_width(_data[0]), surface_get_height(_data[0]) ]);
-			draw_surface_safe(_data[0], 0, 0);
-		shader_reset();
+		var _sw  = surface_get_width_safe(surf);
+		var _sh  = surface_get_height_safe(surf);
 		
-		BLEND_NORMAL
-		surface_reset_target();
+		for( var i = 0; i < 2; i++ ) temp_surface[i] = surface_verify(temp_surface[i], _sw, _sh);
+		
+		var _bg = 0;
+		surface_set_shader(temp_surface[1]);
+			draw_surface_safe(surf);
+		surface_reset_shader();
+		
+		repeat(_itr) {
+			surface_set_shader(temp_surface[_bg], sh_de_corner);
+				shader_set_f("dimension", _sw, _sh);
+				shader_set_f("tolerance", _tol);
+				shader_set_i("strict",    _str);
+				shader_set_i("inner",     bool(_inn & 0b01));
+				shader_set_i("side",      bool(_inn & 0b10));
+			
+				draw_surface_safe(temp_surface[!_bg]);
+			surface_reset_shader();
+		
+			_bg = !_bg;
+		}
+		
+		surface_set_shader(_outSurf);
+			draw_surface_safe(temp_surface[!_bg]);
+		surface_reset_shader();
+		
+		__process_mask_modifier(_data);
+		_outSurf = mask_apply(_data[0], _outSurf, _data[5], _data[6]);
 		
 		return _outSurf;
 	}
+	
 }

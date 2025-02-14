@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_local_analyze",
+  "name":"sh_local_analyze",
+  "parent":{
+    "name":"effects",
+    "path":"folders/nodes/data/filter/effects.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

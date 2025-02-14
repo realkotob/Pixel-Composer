@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_to_number",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_to_number",
+  "parent":{
+    "name":"number",
+    "path":"folders/nodes/data/value/number.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_to_text",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_to_text",
+  "parent":{
+    "name":"text",
+    "path":"folders/nodes/data/value/text.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

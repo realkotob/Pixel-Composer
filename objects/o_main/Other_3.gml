@@ -1,4 +1,5 @@
 /// @description 
-#region log
-	log_message("SESSION", "Ended");
-#endregion
+log_message("SESSION", "Ended");
+PREF_SAVE();
+
+if(STEAM_ENABLED) steam_shutdown();

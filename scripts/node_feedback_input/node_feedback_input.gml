@@ -1,26 +1,28 @@
-function Node_Feedback_Input(_x, _y, _group = -1) : Node_Group_Input(_x, _y, _group) constructor {
-	name  = "Input";
-	color = COLORS.node_blend_feedback;
+function Node_Feedback_Input(_x, _y, _group = noone) : Node_Group_Input(_x, _y, _group) constructor {
+	name        = "Feedback Input";
+	color       = COLORS.node_blend_feedback;
+	is_group_io = true;
+	setDimension(96, 48);
 	
-	w = 96;
-	h = 32 + 24 * 2;
-	min_h = h;
+	feedbackOut = noone;
 	
-	outputs[| 0].getValueRecursive = function(_time) {
-		var _node_output = noone;
-		for( var i = 0; i < ds_list_size(outputs[| 1].value_to); i++ ) {
-			var vt = outputs[| 1].value_to[| i];
-			if(vt.value_from == outputs[| 1])
-				_node_output = vt;
+	outputs[0].getValueDefault = method(outputs[0], outputs[0].getValueRecursive); //Get value from outside loop
+	outputs[0].getValueRecursive = function(arr, _time) {
+		if(!is(feedbackOut, NodeValue)) return;
+		
+		var _vto  = feedbackOut.getJunctionTo();
+		var _jout = array_safe_get(_vto, 0, noone);
+		if(_jout == noone) return;
+		
+		if(CURRENT_FRAME > 0 && _jout.node.cache_value != noone) { //use cache from output 
+			arr[@ 0] = _jout.node.cache_value;
+			arr[@ 1] = inParent;
+			return;
 		}
 		
-		if(ANIMATOR.current_frame > 1 && _node_output != noone)
-			return [ _node_output.node.cache_value, inputs[| 2].getValue() ];
-		
-		if(inParent.value_from == noone)
-			return [ -1, VALUE_TYPE.any ];
-		return inParent.value_from.getValueRecursive(_time); 
+		outputs[0].getValueDefault(arr);
 	}
 	
-	outputs[| 1] = nodeValue(1, "Feedback loop", self, JUNCTION_CONNECT.output, VALUE_TYPE.node, 0);
+	newOutput(1, nodeValue_Output("Feedback loop", self, VALUE_TYPE.node, 0).nonForward());
+	feedbackOut = outputs[1];
 }

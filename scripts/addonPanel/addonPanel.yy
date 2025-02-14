@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"addonPanel",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"addonPanel",
+  "parent":{
+    "name":"custom",
+    "path":"folders/addons/custom.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"string_functions",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"string_functions",
+  "parent":{
+    "name":"string",
+    "path":"folders/functions/string.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

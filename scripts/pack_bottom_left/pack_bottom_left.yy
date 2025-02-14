@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"pack_bottom_left",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"pack_bottom_left",
+  "parent":{
+    "name":"packing",
+    "path":"folders/functions/packing.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"fft_functions",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"fft_functions",
+  "parent":{
+    "name":"audio",
+    "path":"folders/functions/audio.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

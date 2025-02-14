@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_PCX_equation",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_PCX_equation",
+  "parent":{
+    "name":"PCX",
+    "path":"folders/nodes/data/PCX.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

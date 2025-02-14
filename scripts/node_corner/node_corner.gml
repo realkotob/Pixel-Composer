@@ -1,69 +1,68 @@
-function Node_Corner(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
-	name = "Round corner";
+#region
+	FN_NODE_CONTEXT_INVOKE {
+		addHotkey("Node_Corner", "Radius > Set", KEY_GROUP.numeric, MOD_KEY.none, function(val) /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[1].setValue(toNumber(chr(keyboard_key))); });
+	});
+#endregion
+
+function Node_Corner(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
+	name = "Round Corner";
 	
-	uniform_er_dim   = shader_get_uniform(sh_erode, "dimension");
-	uniform_er_size  = shader_get_uniform(sh_erode, "size");
-	uniform_er_bor   = shader_get_uniform(sh_erode, "border");
+	newInput(0, nodeValue_Surface("Surface In", self));
 	
-	uniform_dim          = shader_get_uniform(sh_outline, "dimension");
-	uniform_border_size  = shader_get_uniform(sh_outline, "borderSize");
-	uniform_border_color = shader_get_uniform(sh_outline, "borderColor");
+	newInput(1, nodeValue_Float("Radius", self, 2))
+		.setDisplay(VALUE_DISPLAY.slider, { range: [2, 16, 0.1] });
 	
-	uniform_blend		= shader_get_uniform(sh_outline, "is_blend");
-	uniform_blend_alpha = shader_get_uniform(sh_outline, "blend_alpha");
+	newInput(2, nodeValue_Surface("Mask", self));
 	
-	uniform_side		= shader_get_uniform(sh_outline, "side");
-	uniform_aa  		= shader_get_uniform(sh_outline, "is_aa");
+	newInput(3, nodeValue_Float("Mix", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider);
 	
-	uniform_out_only	= shader_get_uniform(sh_outline, "outline_only");
+	newInput(4, nodeValue_Bool("Active", self, true));
+		active_index = 4;
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
+	newInput(5, nodeValue_Toggle("Channel", self, 0b1111, { data: array_create(4, THEME.inspector_channel) }));
 	
-	inputs[| 1] = nodeValue(1, "Radius", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 2)
-		.setDisplay(VALUE_DISPLAY.slider, [1, 16, 1]);
+	__init_mask_modifier(2); // inputs 6, 7
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	input_display_list = [ 4, 5, 
+		["Surfaces", true], 0, 2, 3, 6, 7, 
+		["Corner",	false], 1,
+	]
 	
-	static process_data = function(_outSurf, _data, _output_index) {
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	attribute_surface_depth();
+	
+	static step = function() { #region
+		__step_mask_modifier();
+	} #endregion
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
 		var wd = _data[1];
 		
-		var temp = surface_create_valid(surface_get_width(_data[0]), surface_get_height(_data[0]));
+		var temp = surface_create_valid(surface_get_width_safe(_data[0]), surface_get_height_safe(_data[0]), attrDepth());
 		
-		surface_set_target(temp);
-			draw_clear_alpha(0, 0);
-			BLEND_ADD
+		surface_set_shader(temp, sh_corner_erode);
+			shader_set_f("dimension", [surface_get_width_safe(_data[0]), surface_get_height_safe(_data[0])]);
+			shader_set_f("size",      wd);
 			
-			shader_set(sh_erode);
-			shader_set_uniform_f_array(uniform_er_dim, [surface_get_width(_data[0]), surface_get_height(_data[0])]);
-			shader_set_uniform_f(uniform_er_size, wd);
-			shader_set_uniform_i(uniform_er_bor, 1);
-			draw_surface_safe(_data[0], 0, 0);
-			
-			BLEND_NORMAL
-			shader_reset();
-		surface_reset_target();
+			draw_surface_safe(_data[0]);
+		surface_reset_shader();
 		
-		surface_set_target(_outSurf);
-			draw_clear_alpha(0, 0);
-			BLEND_ADD
+		surface_set_shader(_outSurf, sh_corner);
+			shader_set_f("dimension", [surface_get_width_safe(_data[0]), surface_get_height_safe(_data[0])]);
+			shader_set_f("rad",       wd);
+			shader_set_surface("original", _data[0]);
 			
-			shader_set(sh_outline);
-			shader_set_uniform_f_array(uniform_dim, [surface_get_width(_data[0]), surface_get_height(_data[0])]);
-			shader_set_uniform_f(uniform_border_size, wd);
-			shader_set_uniform_f_array(uniform_border_color, [0, 0, 0 ]);
-			
-			shader_set_uniform_i(uniform_side, 1);
-			shader_set_uniform_i(uniform_aa, 0);
-			shader_set_uniform_i(uniform_out_only, 0);
-			shader_set_uniform_i(uniform_blend, 1);
-			shader_set_uniform_f(uniform_blend_alpha, 0);
-			draw_surface_safe(temp, 0, 0);
-			
-			BLEND_NORMAL
-		shader_reset();
-		surface_reset_target();
+			draw_surface_safe(temp);
+		surface_reset_shader();
 		
 		surface_free(temp);
+		
+		__process_mask_modifier(_data);
+		_outSurf = mask_apply(_data[0], _outSurf, _data[2], _data[3]);
+		_outSurf = channel_apply(_data[0], _outSurf, _data[5]);
+		
 		return _outSurf;
 	}
 }

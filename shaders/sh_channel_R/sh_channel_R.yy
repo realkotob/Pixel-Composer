@@ -1,10 +1,12 @@
 {
-  "resourceType": "GMShader",
-  "resourceVersion": "1.0",
-  "name": "sh_channel_R",
-  "type": 1,
-  "parent": {
-    "name": "filter",
-    "path": "folders/shader/filter.yy",
+  "$GMShader":"",
+  "%Name":"sh_channel_R",
+  "name":"sh_channel_R",
+  "parent":{
+    "name":"rgb channel",
+    "path":"folders/nodes/data/filter/conversion/rgb channel.yy",
   },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
 }

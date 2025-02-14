@@ -1,31 +1,41 @@
-function Node_Iterator_Input(_x, _y, _group = -1) : Node_Group_Input(_x, _y, _group) constructor {
-	name  = "Input";
+function Node_Iterator_Input(_x, _y, _group = noone) : Node_Group_Input(_x, _y, _group) constructor {
+	name  = "Loop Input";
 	color = COLORS.node_blend_loop;
-	
+	is_group_io  = true;
 	local_output = noone;
 	
-	w = 96;
-	h = 32 + 24 * 2;
-	min_h = h;
+	manual_ungroupable	 = false;
+	setDimension(96, 48);
 	
-	outputs[| 0].getValueDefault = method(outputs[| 0], outputs[| 0].getValueRecursive); //Get value from outside loop
-	outputs[| 0].getValueRecursive = function() {
-		//show_debug_message("iteration " + string(group.iterated));
-		if(!variable_struct_exists(group, "iterated"))
-			return outputs[| 0].getValueDefault();
-			
-		var _node_output = noone;
-		for( var i = 0; i < ds_list_size(outputs[| 1].value_to); i++ ) {
-			var vt = outputs[| 1].value_to[| i];
-			if(vt.value_from == outputs[| 1])
-				_node_output = vt;
+	outputs[0].getValueDefault = method(outputs[0], outputs[0].getValueRecursive); //Get value from outside loop
+	
+	outputs[0].getValueRecursive = function(arr) {
+		if(!struct_has(group, "iterated"))
+			return outputs[0].getValueDefault(arr);
+		
+		var _to = outputs[1].getJunctionTo();
+		
+		// Not connect to any loop output
+		if(array_empty(_to)) {
+			arr[@ 0] = noone;
+			arr[@ 1] = inParent;
+			return;
 		}
 		
-		if(_node_output == noone || group.iterated == 0)
-			return outputs[| 0].getValueDefault();
+		var _node_output = _to[0];
 		
-		return [ _node_output.node.cache_value, inputs[| 2].getValue() ];
+		// First iteration, get value from outside
+		if(_node_output == noone || group.iterated == 0) {
+			outputs[0].getValueDefault(arr);
+			arr[@ 0] = variable_clone(arr[@ 0]);
+			return;
+		}
+		
+		// Later iteration, get value from output
+		arr[@ 0] = _node_output.node.cache_value;
+		arr[@ 1] = inParent;
 	}
 	
-	outputs[| 1] = nodeValue(1, "Loop entrance", self, JUNCTION_CONNECT.output, VALUE_TYPE.node, 0);
+	newOutput(1, nodeValue_Output("Loop entrance", self, VALUE_TYPE.node, 0))
+		.nonForward();
 }

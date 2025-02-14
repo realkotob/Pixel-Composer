@@ -1,53 +1,104 @@
-function surface_apply_gaussian(surface, size, bg = false, bg_c = c_white, clamp_border = false) {
-	static uni_bor = shader_get_uniform(sh_blur_gaussian, "clamp_border");
-	static uni_dim = shader_get_uniform(sh_blur_gaussian, "dimension");
-	static uni_hor = shader_get_uniform(sh_blur_gaussian, "horizontal");
-	static uni_wei = shader_get_uniform(sh_blur_gaussian, "weight");
-	static uni_sze = shader_get_uniform(sh_blur_gaussian, "size");
-	
-	var hori = surface_create_valid(surface_get_width(surface), surface_get_height(surface));	
-	var vert = surface_create_valid(surface_get_width(surface), surface_get_height(surface));	
-	
+globalvar GAUSSIAN_COEFF;
+GAUSSIAN_COEFF = {};
+
+function surface_blur_init() {
+	__blur_hori = surface_create(1, 1);
+	__blur_vert = surface_create(1, 1);
+}
+
+function __gaussian_get_kernel(size) {
 	size = max(1, round(size));
+	if(struct_has(GAUSSIAN_COEFF, size)) return GAUSSIAN_COEFF[$ size];
+	
 	var gau_array = array_create(size);
-	var we = 0;
-	var b  = 0.3 * ((size - 1) * 0.5 - 1) + 0.8;
+	var we        = 0;
+	var b         = 0.3 * ((size - 1) * 0.5 - 1) + 0.8;
+	
 	for(var i = 0; i < size; i++) {
 		var _x = i * .5;
 		
 		gau_array[i] = (1 / sqrt(2 * pi * b)) * exp( -sqr(_x) / (2 * sqr(b)) );
 		we += i? gau_array[i] * 2 : gau_array[i];
 	}
-	for(var i = 0; i < size; i++) {
+	
+	for(var i = 0; i < size; i++)
 		gau_array[i] /= we;
-	}
 	
-	surface_set_target(hori);
+	GAUSSIAN_COEFF[$ size] = gau_array;
+	return gau_array;
+}
+
+function surface_apply_gaussian(surface, size, bg = false, bg_c = c_white, sampleMode = 0, overColor = noone, gamma = false, ratio = 1, angle = 0) {
+	var format = surface_get_format(surface);
+	var _sw    = surface_get_width_safe(surface);
+	var _sh    = surface_get_height_safe(surface);
+	
+	__blur_hori = surface_verify(__blur_hori, _sw, _sh, format);	
+	__blur_vert = surface_verify(__blur_vert, _sw, _sh, format);	
+	
+	size = min(size, 128);
+	var gau_array = __gaussian_get_kernel(size);
+	
+	BLEND_OVERRIDE
+	gpu_set_tex_filter(true);
+	surface_set_target(__blur_hori);
 		draw_clear_alpha(bg_c, bg);
 		
 		shader_set(sh_blur_gaussian);
-		shader_set_uniform_f_array(uni_dim, [ surface_get_width(surface), surface_get_height(surface) ]);
-		shader_set_uniform_f_array(uni_wei, gau_array);
+		shader_set_f("dimension", [ _sw, _sh ]);
+		shader_set_f("weight",    gau_array);
 		
-		shader_set_uniform_i(uni_bor, clamp_border? 1 : 0);
-		shader_set_uniform_i(uni_sze, size);
-		shader_set_uniform_i(uni_hor, 1);
+		shader_set_i("sampleMode", sampleMode);
+		shader_set_i("size",       size);
+		shader_set_i("horizontal", 1);
+		shader_set_i("gamma",      gamma);
+		shader_set_f("angle",      degtorad(angle));
 		
-		draw_surface_safe(surface, 0, 0);
+		shader_set_i("overrideColor", overColor != noone);
+		shader_set_f("overColor",     colToVec4(overColor));
+		
+		draw_surface_safe(surface);
 		shader_reset();
 	surface_reset_target();
 	
-	surface_set_target(vert);
+	surface_set_target(__blur_vert);
 		draw_clear_alpha(bg_c, bg);
-		
+		var _size_v = round(size * ratio);
+			
 		shader_set(sh_blur_gaussian);
-		shader_set_uniform_i(uni_hor, 0);
-		
-		draw_surface_safe(hori, 0, 0);
+		shader_set_f("weight",    __gaussian_get_kernel(_size_v));
+		shader_set_i("size",       _size_v);
+		shader_set_i("horizontal", 0);
+			
+		draw_surface_safe(__blur_hori);
 		shader_reset();
 	surface_reset_target();
+	gpu_set_tex_filter(false);
+	BLEND_NORMAL
 	
-	surface_free(hori);
+	return __blur_vert;
+}
+
+
+function surface_apply_blur_zoom(surface, size, origin_x, origin_y, blurMode = 0, sampleMode = 0) {
+	var format = surface_get_format(surface);
+	var _sw    = surface_get_width_safe(surface);
+	var _sh    = surface_get_height_safe(surface);
 	
-	return vert;
+	__blur_hori = surface_verify(__blur_hori, _sw, _sh, format);
+	
+	size = min(size, 128) / 128;
+	var gau_array = __gaussian_get_kernel(size);
+	
+	surface_set_shader(__blur_hori, sh_blur_zoom);
+		shader_set_f("center",       origin_x / _sw, origin_y / _sh);
+		shader_set_f_map("strength", size);
+		shader_set_i("blurMode",     blurMode);
+		shader_set_i("sampleMode",   sampleMode);
+		shader_set_i("gamma",        0);
+		
+		draw_surface_safe(surface);
+	surface_reset_shader();
+	
+	return __blur_hori;
 }

@@ -1,69 +1,140 @@
-function Node_Particle(_x, _y, _group = -1) : Node_VFX_Spawner_Base(_x, _y, _group) constructor {
+function Node_Particle(_x, _y, _group = noone) : Node_VFX_Spawner_Base(_x, _y, _group) constructor {
 	name = "Particle";
-	auto_update = false;
-	use_cache = true;
+	use_cache = CACHE_USE.auto;
+
+	onSurfaceSize = function() /*=>*/ {return getInputData(input_len, DEF_SURF)};
 	
-	inputs[| input_len + 0] = nodeValue(input_len + 0, "Output dimension", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, def_surf_size2)
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(input_len + 0, nodeValue_Vec2("Output dimension", self, DEF_SURF));
 		
-	inputs[| input_len + 1] = nodeValue(input_len + 1, "Round position", self, JUNCTION_CONNECT.input, VALUE_TYPE.boolean, true );
+	newInput(input_len + 1, nodeValue_Bool("Round position", self, true, "Round position to the closest integer value to avoid jittering."));
 	
-	inputs[| input_len + 2] = nodeValue(input_len + 2, "Blend mode", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0 )
-		.setDisplay(VALUE_DISPLAY.enum_scroll, [ "Normal", "Additive" ]);
+	newInput(input_len + 2, nodeValue_Enum_Scroll("Blend mode", self,  0 , [ "Normal", "Alpha", "Additive" ]));
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(input_len + 3, nodeValue_Surface("Background", self));
 	
-	array_insert(input_display_list, 0, ["Output", true], input_len + 0);
-	array_push(input_display_list, input_len + 1, input_len + 2);
+	newInput(input_len + 4, nodeValue_Enum_Button("Render Type", self,  PARTICLE_RENDER_TYPE.surface , [ "Surface", "Line" ]));
 	
-	def_surface = -1;
+	newInput(input_len + 5, nodeValue_Int("Line life", self, 4 ));
+	
+	inputs[3].setUnitRef(onSurfaceSize, VALUE_UNIT.reference);
+	inputs[3].setDefValue( DEF_AREA_REF );
+	
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	for(var i = input_len, n = array_length(inputs); i < n; i++) inputs[i].rejectArray();
+	
+	attribute_surface_depth();
+	attribute_interpolation();
+	
+	array_insert(        input_display_list, 0,  ["Output", true], input_len + 3, input_len + 0);
+	array_push(          input_display_list,     input_len + 1, input_len + 2);
+	array_insert_before( input_display_list, 21, [ input_len + 4, input_len + 5 ]);
+	
+	def_surface    = -1;
+	curr_dimension = [ 0, 0 ];
+	render_amount  = 0;
+	
+	setTrigger(2, "Clear cache", [ THEME.cache, 0, COLORS._main_icon ]);
+	
+	static onInspector2Update = function() /*=>*/ { clearCache(); }
+	
+	static onValueUpdate = function(index = 0) {
+		if(index == input_len + 0) {
+			var _dim		= getInputData(input_len + 0);
+			var _outSurf	= outputs[0].getValue();
+			
+			_outSurf = surface_verify(_outSurf, array_safe_get_fast(_dim, 0, 1), array_safe_get_fast(_dim, 1, 1), attrDepth());
+			outputs[0].setValue(_outSurf);
+		}
+		
+		if(IS_PLAYING) clearCache();
+	}
+	
+	static reLoop = function() {
+		var _loop = getInputData(21);
+		var _type = getInputData(input_len + 4);
+		
+		if(!_loop) return;
+		
+		for(var i = 0; i < TOTAL_FRAMES; i++) {
+			runVFX(i, _type);
+			updateParticleForward();
+		}
+		
+		seed = getInputData(32);
+	}
 	
 	static onStep = function() {
-		if(!ANIMATOR.frame_progress) return;
+		var _dim = getInputData(input_len + 0);
+		var _typ = getInputData(input_len + 4);
 		
-		if(recoverCache()) {
-			triggerRender();
-			return;
-		}
+		inputs[input_len + 5].setVisible(_typ == PARTICLE_RENDER_TYPE.line);
 		
-		if(!ANIMATOR.is_playing) return;
+		if(curr_dimension[0] != _dim[0] || curr_dimension[1] != _dim[1]) {
+			clearCache();
 			
-		if(ANIMATOR.current_frame == 0) {
-			reset();
-			runVFX(ANIMATOR.current_frame);
-		} else if(cached_output[ANIMATOR.current_frame - 1] != 0) {
-			runVFX(ANIMATOR.current_frame);
+			curr_dimension[0] = _dim[0];
+			curr_dimension[1] = _dim[1];
 		}
 	}
 	
-	function render(_time = ANIMATOR.current_frame) {
-		var _dim		= inputs[| input_len + 0].getValue(_time);
-		var _exact 		= inputs[| input_len + 1].getValue(_time);
-		var _blend 		= inputs[| input_len + 2].getValue(_time);
+	static onUpdate = function(frame = CURRENT_FRAME) {
+		var _inSurf  = getInputData(0);
+		var _dim	 = getInputData(input_len + 0);
+		var _bg 	 = getInputData(input_len + 3);
+		var _outSurf = outputs[0].getValue();
 		
-		var _outSurf	= outputs[| 0].getValue();
+		if(is_surface(_bg)) _dim = surface_get_dimension(_bg)
 		
-		if(is_surface(_outSurf)) 
-			surface_size_to(_outSurf, _dim[0], _dim[1]);
-		else {
-			_outSurf = surface_create_valid(_dim[0], _dim[1]);
-			outputs[| 0].setValue(_outSurf);
+		_outSurf = surface_verify(_outSurf, _dim[0], _dim[1], attrDepth());
+		render_amount = 0;		
+		
+		outputs[0].setValue(_outSurf);
+		
+		if(IS_FIRST_FRAME) {
+			reset();
+			// if(IS_PLAYING)
+			reLoop();
 		}
 		
-		surface_set_target(_outSurf);
-			draw_clear_alpha(c_white, 0);
+		// if(IS_PLAYING) 
+		runVFX(frame);
+	}
+	
+	function render(_time = CURRENT_FRAME) {
+		var _dim   = inputs[input_len + 0].getValue(_time);
+		var _exact = inputs[input_len + 1].getValue(_time);
+		var _blend = inputs[input_len + 2].getValue(_time);
+		var _bg    = inputs[input_len + 3].getValue(_time);
+		
+		var _type  = inputs[input_len + 4].getValue(_time);
+		var _llife = inputs[input_len + 5].getValue(_time);
+		
+		var _outSurf = outputs[0].getValue();
+		
+		if(is_surface(_bg)) _dim = surface_get_dimension(_bg)
+		
+		surface_set_shader(_outSurf, _type == PARTICLE_RENDER_TYPE.surface? sh_sample : noone);
+			if(is_surface(_bg))  draw_surface_safe(_bg);
 			
 			switch(_blend) {
-				case PARTICLE_BLEND_MODE.normal :	gpu_set_blendmode(bm_normal);	break;
-				case PARTICLE_BLEND_MODE.additive : gpu_set_blendmode(bm_add);		break;
+				case PARTICLE_BLEND_MODE.normal:   BLEND_NORMAL break;
+				case PARTICLE_BLEND_MODE.alpha:    BLEND_ALPHA  break;
+				case PARTICLE_BLEND_MODE.additive: BLEND_ADD    break;
 			}
 			
-			for(var i = 0; i < PREF_MAP[? "part_max_amount"]; i++)
-				parts[| i].draw(_exact);
+			if(_type == PARTICLE_RENDER_TYPE.surface)
+				shader_set_interpolation(_outSurf);
 			
-			gpu_set_blendmode(bm_normal);
-		surface_reset_target();
+			for(var i = 0; i < attributes.part_amount; i++) {
+				parts[i].render_type = _type;
+				parts[i].line_draw   = _llife;
+				
+				if(parts[i].active || _type) parts[i].draw(_exact, _dim[0], _dim[1]);
+			}
+		surface_reset_shader();	
 		
-		cacheCurrentFrame(_outSurf);
-	}
+		if(PROJECT.animator.is_playing)
+			cacheCurrentFrame(_outSurf);
+	}	
 }

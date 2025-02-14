@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "array_functions",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "ds",
-    "path": "folders/functions/ds.yy",
+  "$GMScript":"v1",
+  "%Name":"array_functions",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"array_functions",
+  "parent":{
+    "name":"ds",
+    "path":"folders/functions/ds.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

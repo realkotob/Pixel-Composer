@@ -1,135 +1,190 @@
-function Node_create_Image(_x, _y, _group = -1) {
+function Node_create_Image(_x, _y, _group = noone) {
 	var path = "";
-	if(!LOADING && !APPENDING) {
-		path = get_open_filename(".png", "");
+	if(NODE_NEW_MANUAL) {
+		path = get_open_filename_pxc("image|*.png;*.jpg", "");
+		key_release();
 		if(path == "") return noone;
 	}
 	
 	var node = new Node_Image(_x, _y, _group);
-	node.inputs[| 0].setValue(path);
-	node.doUpdate();
+	node.skipDefault();
+	node.inputs[0].setValue(path);
+	if(NODE_NEW_MANUAL) node.doUpdate();
 	
-	//ds_list_add(PANEL_GRAPH.nodes_list, node);
 	return node;
 }
 
 function Node_create_Image_path(_x, _y, path) {
-	if(!file_exists(path)) return noone;
+	if(!file_exists_empty(path)) return noone;
 	
-	var node = new Node_Image(_x, _y);
-	node.inputs[| 0].setValue(path);
+	var node = new Node_Image(_x, _y, PANEL_GRAPH.getCurrentContext());
+	node.skipDefault();
+	node.inputs[0].setValue(path);
 	node.doUpdate();
-	
-	//ds_list_add(PANEL_GRAPH.nodes_list, node);
 	return node;	
 }
 
-function Node_Image(_x, _y, _group = -1) : Node(_x, _y, _group) constructor {
-	name			= "";
-	color			= COLORS.node_blend_input;
-	always_output   = true;
+function Node_Image(_x, _y, _group = noone) : Node(_x, _y, _group) constructor {
+	name  = "Image";
+	color = COLORS.node_blend_input;
 	
-	inputs[| 0]  = nodeValue(0, "Path", self, JUNCTION_CONNECT.input, VALUE_TYPE.path, "")
-		.setDisplay(VALUE_DISPLAY.path_load, ["*.png", ""]);
+	newInput(0, nodeValue_Path("Path", self, ""))
+		.setDisplay(VALUE_DISPLAY.path_load, { filter: "image|*.png;*.jpg" })
+		.rejectArray();
 		
-	inputs[| 1]  = nodeValue(1, "Padding", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, [0, 0, 0, 0])
-		.setDisplay(VALUE_DISPLAY.padding);
+	newInput(1, nodeValue_Padding("Padding", self, [0, 0, 0, 0]));
 		
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
-	outputs[| 1] = nodeValue(1, "Path", self, JUNCTION_CONNECT.output, VALUE_TYPE.path, "")
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	newOutput(1, nodeValue_Output("Path", self, VALUE_TYPE.path, ""))
 		.setVisible(true, true);
 	
-	spr = noone;
-	path_current = "";
+	attribute_surface_depth();
 	
-	first_update = false;
+	spr       = noone;
+	edit_time = 0;
 	
-	on_dragdrop_file = function(path) {
-		if(updatePaths(path)) {
-			doUpdate();
-			return true;
-		}
-		
+	attributes.check_splice = true;
+	attributes.file_checker = true;
+	array_push(attributeEditors, [ "File Watcher", function() /*=>*/ {return attributes.file_checker}, new checkBox(function() /*=>*/ { attributes.file_checker = !attributes.file_checker; }) ]);
+	
+	static on_drop_file = function(path) {
+		inputs[0].setValue(path);
+		if(updatePaths(path)) { doUpdate(); return true; }
 		return false;
 	}
 	
-	function updatePaths(path) {
-		if(path_current == path) return false;
+	static createSprite = function(path) {
+		if(!file_exists(path)) 
+			return noone;
 		
-		path = try_get_path(path);
-		if(path == -1) return false;
-		
-		var ext = filename_ext(path);
-		var _name = string_replace(filename_name(path), filename_ext(path), "");
+		var ext   = string_lower(filename_ext(path));
+		var _name = filename_name_only(path);
 		
 		switch(ext) {
 			case ".png":
 			case ".jpg":
 			case ".jpeg":
 			case ".gif":
-				name = _name;
-				outputs[| 1].setValue(path);
+				setDisplayName(_name);
 				
-				if(spr) sprite_delete(spr);
-				spr = sprite_add(path, 1, false, false, 0, 0);
+				var _real_path = sprite_path_check_depth(path);
+				var _spr = sprite_add(_real_path, 1, false, false, 0, 0);
 				
-				if(path_current == "") 
-					first_update = true;
-				path_current = path;
+				if(_spr == -1) {
+					var _txt = $"Image node: File not a valid image.";
+					logNode(_txt); noti_warning(_txt);
+					break;
+				}
 				
-				return true;
+				edit_time = file_get_modify_s(path);
+				return _spr;
 		}
-		return false;
+		
+		return noone;
 	}
 	
-	static update = function() {
-		var path = inputs[| 0].getValue();
-		var pad  = inputs[| 1].getValue();
-		if(path == "") return;
+	static updatePaths = function(path) {
+		if(sprite_exists(spr)) sprite_delete(spr);
+		spr = createSprite(path);
+	}
+	
+	setTrigger(1, __txt("Refresh"), [ THEME.refresh_icon, 1, COLORS._main_value_positive ], function() /*=>*/ { updatePaths(path_get(getInputData(0))); triggerRender(); });
+	
+	static spliceImage = function() {
+		if(!attributes.check_splice) return;
+		attributes.check_splice = false;
+		
+		if(LOADING || APPENDING) return;
+		if(string_pos("strip", display_name) == 0) return;
+		
+		var sep_pos = string_pos("strip", display_name) + 5;
+		var sep     = string_copy(display_name, sep_pos, string_length(display_name) - sep_pos + 1);
+		var amo		= toNumber(string_digits(sep));
+		if(amo == 0) return;
+		
+		var ww = sprite_get_width(spr) / amo;
+		var hh = sprite_get_height(spr);
+				
+		var _splice = nodeBuild("Node_Image_Sheet", x + w + 64, y);
+		_splice.inputs[0].setFrom(outputs[0], false);
+		_splice.inputs[1].setValue([ ww, hh ]);
+		_splice.inputs[2].setValue(amo);
+		_splice.inputs[3].setValue([ amo, 1 ]);
+	}
+	
+	static step = function() {
+		var path = path_get(getInputData(0));
+		
+		if(is_array(path)) return;
+		if(!file_exists_empty(path)) return;
+		
+		if(attributes.file_checker && file_get_modify_s(path) > edit_time) {
+			updatePaths(path);
+			triggerRender();
+		}
+	}
+	
+	static update = function(frame = CURRENT_FRAME) {
+		insp2UpdateTooltip = attributes.cache_use? __txt("Remove Cache") : __txt("Cache");
+		insp2UpdateIcon[0] = attributes.cache_use? THEME.cache : THEME.cache_group;
+		insp2UpdateIcon[2] = attributes.cache_use? c_white : COLORS._main_icon;
+		
+		var path = path_get(getInputData(0));
+		if(is_array(path)) return;
+		
+		var pad  = getInputData(1);
+		outputs[1].setValue(path);
 		updatePaths(path);
 		
-		if(!spr || !sprite_exists(spr)) return;
+		var _spr = attributes.cache_use? cache_spr : spr;
+		if(!sprite_exists(_spr)) return;
 		
-		var ww = sprite_get_width(spr) + pad[0] + pad[2];
-		var hh = sprite_get_height(spr) + pad[1] + pad[3];
+		var ww = sprite_get_width(_spr)  + pad[0] + pad[2];
+		var hh = sprite_get_height(_spr) + pad[1] + pad[3];
 		
-		var _outsurf  = outputs[| 0].getValue();
-		if(is_surface(_outsurf)) 
-			surface_size_to(_outsurf, ww, hh);
-		else {
-			_outsurf = surface_create_valid(ww, hh);
-			outputs[| 0].setValue(_outsurf);
-		}
+		var _outsurf = outputs[0].getValue();
+	    _outsurf = surface_verify(_outsurf, ww, hh, attrDepth());
+		outputs[0].setValue(_outsurf);
 		
-		surface_set_target(_outsurf);
-		draw_clear_alpha(0, 0);
-		BLEND_ADD 
-		draw_sprite(spr, 0, pad[2], pad[1]);
-		BLEND_NORMAL
-		surface_reset_target();
+		surface_set_shader(_outsurf, noone);
+			draw_sprite(_spr, 0, pad[2], pad[1]);
+		surface_reset_shader();
 		
-		if(!first_update) return;
-		first_update = false;
-		
-		if(string_pos("strip", name) == 0) return;
-		
-		var sep_pos = string_pos("strip", name) + 5;
-		var sep     = string_copy(name, sep_pos, string_length(name) - sep_pos + 1);
-		var amo		= toNumber(sep);
-			
-		if(amo) {
-			var ww = sprite_get_width(spr) / amo;
-			var hh = sprite_get_height(spr);
-					
-			var _splice = nodeBuild("Node_Image_Sheet", x + w + 64, y);
-			_splice.inputs[| 0].setFrom(outputs[| 0], false);
-			_splice.inputs[| 1].setValue([ww, hh]);
-			_splice.inputs[| 2].setValue(amo);
-			_splice.inputs[| 3].setValue(amo);
-					
-			ds_list_add(PANEL_GRAPH.nodes_select_list, self);
-			ds_list_add(PANEL_GRAPH.nodes_select_list, _splice);
-		}	
+		spliceImage();
 	}
-	doUpdate();
+	
+	static dropPath = function(path) { 
+		if(is_array(path)) path = array_safe_get(path, 0);
+		if(!file_exists_empty(path)) return;
+		
+		inputs[0].setValue(path); 
+		check_directory_redirector(path);
+	}
+	
+	////- Cache
+	
+	attributes.cache_use  = false;
+	attributes.cache_data = "";
+	cache_spr = noone;
+	
+	static cacheData = function() {
+		attributes.cache_use  = true;
+		cache_spr = spr;
+		attributes.cache_data = sprite_array_serialize(spr);
+		triggerRender();
+	}
+	
+	static uncacheData = function() {
+		attributes.cache_use  = false;
+		triggerRender();
+	}
+	
+	setTrigger(2, __txt("Cache"), [ THEME.cache_group, 0, COLORS._main_icon ], function() /*=>*/ { if(attributes.cache_use) uncacheData() else cacheData(); });
+	
+	////- Serialize
+
+	static postDeserialize = function() {
+		if(!attributes[$ "cache_use"] ?? 0) return;
+		cache_spr = sprite_array_deserialize(attributes[$ "cache_data"] ?? "");
+	}
 }

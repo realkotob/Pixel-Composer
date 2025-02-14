@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_fn_smoothstep",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_fn_smoothstep",
+  "parent":{
+    "name":"fn",
+    "path":"folders/nodes/data/animation/fn.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

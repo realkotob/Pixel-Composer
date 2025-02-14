@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"keyboard_display",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"keyboard_display",
+  "parent":{
+    "name":"inputs",
+    "path":"folders/functions/inputs.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

@@ -1,65 +1,56 @@
-function string_real(str) {
-	var ss  = "";
-	var i   = 1;
+function string_variable_valid(str) {
+	static valid_char = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789";
 	
-	while(i <= string_length(str)) {
-		var ch = string_char_at(str, i);
-		switch(ch) {
-			case "-":	
-			case "0":	
-			case "1":	
-			case "2":	
-			case "3":	
-			case "4":	
-			case "5":	
-			case "6":	
-			case "7":	
-			case "8":	
-			case "9":	
-				ss += ch;
-				break;
-		}
-		i++;
+	for( var i = 1; i <= string_length(str); i++ ) {
+		var cch = string_char_at(str, i);
+		if(string_pos(cch, valid_char) == 0) return false;
 	}
-	return ss;
+	
+	return true;
 }
 
 function string_decimal(str) {
-	var ss  = "";
-	var i   = 1;
-	var dec = 0;
+	var neg = string_char_at(str, 1) == "-";
+	if(neg) str = string_copy(str, 2, string_length(str) - 1);
 	
-	if(string_pos("E", str) != 0) return "0";
+	var dec = string_pos(".", str);
+	if(dec == 0)  return (neg? "-" : "") + string_digits(str);
+		
+	var pre = string_copy(str, 1, dec - 1);
+	var pos = string_copy(str, dec + 1, string_length(str) - dec);
 	
-	while(i <= string_length(str)) {
-		var ch = string_char_at(str, i);
-		switch(ch) {
-			case ".":
-				if(dec++ > 0) break;
-			case "-":	
-			case "0":	
-			case "1":	
-			case "2":	
-			case "3":	
-			case "4":	
-			case "5":	
-			case "6":	
-			case "7":	
-			case "8":	
-			case "9":	
-				ss += ch;
-				break;
-		}
-		i++;
-	}
-	
-	return ss;
+	return (neg? "-" : "") + string_digits(pre) + "." + string_digits(pos);
 }
 
 function toNumber(str) {
+	if(is_numeric(str)) return str;
+	
+	try { return real(str); } 
+	catch(e) {}
+	
+	return 0;
+}
+
+function toNumberFull(str) {
+	if(is_real(str))   return str;
+	
+	var expo = 0;
+	if(string_pos("e", str)) {
+		var pos = string_pos("e", str);
+		expo = real(string_copy(str, pos + 1, string_length(str) - pos));
+		str  = string_copy(str, 1, pos - 1);
+	}
+	
 	str = string_decimal(str);
-	if(str == "") return 0;
+	if(str == "")  return 0;
 	if(str == ".") return 0;
-	if(str == "-") return 0;	
-	return real(str);
+	if(str == "-") return 0;
+	
+	return real(str) * power(10, expo);
+}
+
+function isNumber(str) {
+	if(is_real(str)) return true;
+	str = string_trim(str);
+	return str == string_decimal(str);
 }

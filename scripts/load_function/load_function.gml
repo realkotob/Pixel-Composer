@@ -1,160 +1,169 @@
-function LOAD() {
-	var path = get_open_filename("Pixel Composer project (.pxc)|*.pxc", "");
-	if(path == "") return;
-	if(filename_ext(path) != ".json" && filename_ext(path) != ".pxc") return;
-				
-	gc_collect();
-	LOAD_PATH(path);
+function __loadParams(readonly = false, override = false, apply_layout = false) constructor {
+	self.readonly = readonly;
+	self.override = override;
 	
-	ds_list_clear(STATUSES);
-	ds_list_clear(WARNING);
-	ds_list_clear(ERRORS);
+	self.apply_layout = apply_layout;
 }
 
-function LOAD_PATH(path, readonly = false) {
-	if(!file_exists(path)) {
-		log_warning("LOAD", "File not found");
-		return false;
-	}
+function LOAD_SAFE() { LOAD(true); }
+
+function LOAD(safe = false) {
+	if(DEMO) return false;
 	
-	if(filename_ext(path) != ".json" && filename_ext(path) != ".pxc") {
-		log_warning("LOAD", "File not a valid project");
-		return false;
-	}
+	var path = get_open_filename_pxc("Pixel Composer project (.pxc)|*.pxc;*.cpxc", "");
+	key_release();
+	if(path == "") return;
 	
-	nodeCleanUp();
-	clearPanel();
-	setPanel();
-	room_restart();
+	if(!path_is_project(path)) return;
+				
+	gc_collect();
+	var proj = LOAD_PATH(path, false, safe);
+}
+
+function TEST_PATH(path) {
+	TESTING    = true;
+	TEST_ERROR = true;
 	
-	var temp_path = DIRECTORY + "\_temp";
-	if(file_exists(temp_path)) file_delete(temp_path);
-	file_copy(path, temp_path);
+	PROJECT.cleanup();
+	PROJECT = new Project();
 	
-	ALWAYS_FULL = false;
-	LOADING		= true;
-	READONLY	= readonly;
-	SET_PATH(path);
-	
-	var file = file_text_open_read(temp_path);
-	var load_str = "";
-	
-	while(!file_text_eof(file)) {
-		load_str += file_text_readln(file);
-	}
-	file_text_close(file);
-	
-	var _map = json_decode(load_str);
-	if(ds_map_exists(_map, "version")) {
-		var _v = _map[? "version"];
-		if(_v != SAVEFILE_VERSION) {
-			var warn = "File version mismatch : loading file verion " + string(_v) + " to Pixel Composer " + string(SAVEFILE_VERSION);
-			log_warning("LOAD", warn);
-		}
-	} else {
-		var warn = "File version mismatch : loading old format to Pixel Composer " + string(SAVEFILE_VERSION);
-		log_warning("LOAD", warn);
-	}
-	
-	nodeCleanUp();
-	
-	var create_list = ds_list_create();
-	if(ds_map_exists(_map, "nodes")) {
-		try {
-			var _node_list = _map[? "nodes"];
-			for(var i = 0; i < ds_list_size(_node_list); i++) {
-				var _node = nodeLoad(_node_list[| i]);
-				if(_node) ds_list_add(create_list, _node);
-			}
-		} catch(e) {
-			log_warning("LOAD", e.longMessage);
-		}
-	}
-	
-	try {
-		if(ds_map_exists(_map, "animator")) {
-			var _anim_map			= _map[? "animator"];
-			ANIMATOR.frames_total	= ds_map_try_get(_anim_map, "frames_total");
-			ANIMATOR.framerate		= ds_map_try_get(_anim_map, "framerate");
-		}
-	} catch(e) {
-		log_warning("LOAD, animator", e.longMessage);
-	}
-	
-	try {
-		if(ds_map_exists(_map, "graph")) {
-			var _graph_map			= _map[? "graph"];
-			PANEL_GRAPH.graph_x		= ds_map_try_get(_graph_map, "graph_x");
-			PANEL_GRAPH.graph_y		= ds_map_try_get(_graph_map, "graph_y");
-		}
-	} catch(e) {
-		log_warning("LOAD, graph", e.longMessage);
-	}
-	
-	ds_queue_clear(CONNECTION_CONFLICT);
-	
-	try {
-		for(var i = 0; i < ds_list_size(create_list); i++)
-			create_list[| i].loadGroup();
-	} catch(e) {
-		log_warning("LOAD, group", e.longMessage);
-	}
-	
-	try {
-		for(var i = 0; i < ds_list_size(create_list); i++)
-			create_list[| i].postDeserialize();
-	} catch(e) {
-		log_warning("LOAD, deserialize", e.longMessage);
-	}
-	
-	try {
-		for(var i = 0; i < ds_list_size(create_list); i++)
-			create_list[| i].preConnect();
-		for(var i = 0; i < ds_list_size(create_list); i++)
-			create_list[| i].connect();
-		for(var i = 0; i < ds_list_size(create_list); i++)
-			create_list[| i].postConnect();
-	} catch(e) {
-		log_warning("LOAD, connect", e.longMessage);
-	}
-	
-	try {
-		for(var i = 0; i < ds_list_size(create_list); i++)
-			create_list[| i].doUpdate();
-	} catch(e) {
-		log_warning("LOAD, update", e.longMessage);
-	}
-	
+	LOAD_AT(path);
 	Render();
+	closeProject(PROJECT);
+}
+
+function LOAD_PATH(path, readonly = false, safe_mode = false) {
+	var _rep = false;
 	
-	if(!ds_queue_empty(CONNECTION_CONFLICT)) {
-		var pass = 0;
+	for( var i = array_length(PROJECTS) - 1; i >= 0; i-- ) {
+		var _p = array_safe_get_fast(PROJECTS, i);
+		if(!is_instanceof(_p, Project)) continue;
 		
-		try {
-			while(++pass < 4 && !ds_queue_empty(CONNECTION_CONFLICT)) {
-				var size = ds_queue_size(CONNECTION_CONFLICT);
-				log_message("LOAD", "[Connect] " + string(size) + " Connection conflict(s) detected ( pass: " + string(pass) + " )");
-				repeat(size) {
-					ds_queue_dequeue(CONNECTION_CONFLICT).connect();	
-				}
-				Render();
-			}
-		
-			if(!ds_queue_empty(CONNECTION_CONFLICT))
-				log_warning("LOAD", "Some connection(s) is unsolved. This may caused by render node not being update properly, or image path is broken.");
-		} catch(e) {
-			log_warning("LOAD, connect solver", e.longMessage);
+		if(_p.path == path) {
+			_rep = true;
+			closeProject(_p);
 		}
 	}
 	
-	LOADING = false;
-	MODIFIED = false;
+	var _PROJECT = PROJECT;
+	PROJECT = new Project();
 	
-	PANEL_ANIMATION.updatePropertyList();
+	if(_PROJECT == noone) {
+		PROJECTS = [ PROJECT ];
+		
+	} else if(!_rep && ((_PROJECT.path == "" || _PROJECT.readonly) && !_PROJECT.modified)) {
+		var ind = array_find(PROJECTS, _PROJECT);
+		if(ind == -1) ind = 0;
+		PROJECTS[ind] = PROJECT;
+		
+		if(!IS_CMD) PANEL_GRAPH.setProject(PROJECT);
+		
+	} else {
+		if(!IS_CMD) {
+			var graph = new Panel_Graph(PROJECT);
+			PANEL_GRAPH.panel.setContent(graph, true);
+			PANEL_GRAPH = graph;
+		}
+		array_push(PROJECTS, PROJECT);
+	}
 	
-	log_message("FILE", "load " + path, THEME.noti_icon_file_load);
-	PANEL_MENU.setNotiIcon(THEME.noti_icon_file_load);
+	var res = LOAD_AT(path, new __loadParams(readonly));
+	if(!res) return false;
 	
-	ds_map_destroy(_map);
-	return true;
+	PROJECT.safeMode = safe_mode;
+	if(!IS_CMD) setFocus(PANEL_GRAPH.panel);
+	
+	if(PROJECT.meta.author_steam_id) PROJECT.meta.steam = FILE_STEAM_TYPE.steamOpen;
+	
+	return PROJECT;
+}
+
+function LOAD_AT(path, params = new __loadParams()) {
+	static log = 0;
+	
+	CALL("load");
+	
+	printIf(log, $"========== Loading {path} =========="); var t0 = get_timer(), t1 = get_timer();
+	
+	if(DEMO) return false;
+	
+	if(!file_exists_empty(path)) {
+		log_warning("LOAD", $"File not found: {path}");
+		return false;
+	}
+	
+	if(!path_is_project(path)) {
+		log_warning("LOAD", "File not a valid PROJECT");
+		return false;
+	}
+	
+	LOADING = true;
+	
+	if(params.override) {
+		nodeCleanUp();
+		clearPanel();
+		setPanel();
+		if(!TESTING)
+			instance_destroy(_p_dialog);
+		ds_list_clear(ERRORS);
+	}
+	
+	printIf(log, $" > Check file : {(get_timer() - t1) / 1000} ms"); t1 = get_timer();
+	
+	var temp_path = TEMPDIR;
+	directory_verify(temp_path);
+	ds_map_clear(APPEND_MAP);
+	
+	var temp_file_path = TEMPDIR + string(UUID_generate(6));
+	if(file_exists_empty(temp_file_path)) file_delete(temp_file_path);
+	file_copy(path, temp_file_path);
+	
+	PROJECT.readonly = params.readonly;
+	SET_PATH(PROJECT, path);
+	
+	printIf(log, $" > Create temp : {(get_timer() - t1) / 1000} ms"); t1 = get_timer();
+	
+	var content;
+	var _ext = filename_ext_raw(path);
+	var s;
+	
+	var bf = buffer_load(path);
+	var bc = buffer_decompress(bf);
+	
+	if(bc == -1) {
+		s = buffer_read(bf, buffer_string);
+		
+	} else {
+		s = buffer_read(bc, buffer_string);
+		buffer_delete(bc);
+	}
+	
+	buffer_delete(bf);
+	
+	content = json_try_parse(s);
+	printIf(log, $" > Load struct : {(get_timer() - t1) / 1000} ms");
+	
+	return instance_create(0, 0, project_loader, { path, content, log, params, t0, t1 });
+}
+
+function __EXPORT_ZIP()	{ exportPortable(PROJECT); }
+function __IMPORT_ZIP() {
+	var _path = get_open_filename_pxc("Pixel Composer portable project (.zip)|*.zip", "");
+	if(!file_exists_empty(_path)) return;
+	
+	var _fname = filename_name_only(_path);
+	var _fext  = filename_ext(_path);
+	if(_fext != ".zip") return false;
+	
+	directory_verify(TEMPDIR + "proj/");
+	var _dir = TEMPDIR + "proj/" + _fname;
+	directory_create(_dir);
+	zip_unzip(_path, _dir);
+	
+	var _f    = file_find_first(_dir + "/*.pxc", fa_none);
+	var _proj = $"{_dir}/{_f}";
+	print(_proj);
+	if(!file_exists_empty(_proj)) return false;
+	
+	LOAD_PATH(_proj, true);
 }

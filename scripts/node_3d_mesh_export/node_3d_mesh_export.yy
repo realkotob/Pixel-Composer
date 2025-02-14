@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_3d_mesh_export",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_3d_mesh_export",
+  "parent":{
+    "name":"3D",
+    "path":"folders/nodes/data/3D.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

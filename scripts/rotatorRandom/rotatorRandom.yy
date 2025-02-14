@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"rotatorRandom",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"rotatorRandom",
+  "parent":{
+    "name":"rotator",
+    "path":"folders/widgets/rotator.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

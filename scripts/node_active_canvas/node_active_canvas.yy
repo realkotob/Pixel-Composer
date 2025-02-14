@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_active_canvas",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_active_canvas",
+  "parent":{
+    "name":"drawer",
+    "path":"folders/nodes/data/generator/drawer.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_VFX_renderer_output",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_VFX_renderer_output",
+  "parent":{
+    "name":"__legacy",
+    "path":"folders/nodes/data/simulation/VFX/__legacy.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

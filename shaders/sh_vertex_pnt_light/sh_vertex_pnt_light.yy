@@ -1,10 +1,12 @@
 {
-  "resourceType": "GMShader",
-  "resourceVersion": "1.0",
-  "name": "sh_vertex_pnt_light",
-  "type": 1,
-  "parent": {
-    "name": "3d",
-    "path": "folders/shader/3d.yy",
+  "$GMShader":"",
+  "%Name":"sh_vertex_pnt_light",
+  "name":"sh_vertex_pnt_light",
+  "parent":{
+    "name":"legacy",
+    "path":"folders/nodes/data/3D/shader/legacy.yy",
   },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
 }

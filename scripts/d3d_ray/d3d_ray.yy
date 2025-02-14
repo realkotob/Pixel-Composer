@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"d3d_ray",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"d3d_ray",
+  "parent":{
+    "name":"util",
+    "path":"folders/functions/3d/util.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

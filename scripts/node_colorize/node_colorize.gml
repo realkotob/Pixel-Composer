@@ -1,53 +1,81 @@
-function Node_Colorize(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
+function Node_Colorize(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
 	name = "Colorize";
 	
-	uniform_grad_blend = shader_get_uniform(sh_colorize, "gradient_blend");
-	uniform_color = shader_get_uniform(sh_colorize, "gradient_color");
-	uniform_time = shader_get_uniform(sh_colorize, "gradient_time");
-	uniform_shift = shader_get_uniform(sh_colorize, "gradient_shift");
-	uniform_key = shader_get_uniform(sh_colorize, "keys");
+	newInput(0, nodeValue_Surface("Surface In", self));
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
-	inputs[| 1] = nodeValue(1, "Gradient", self, JUNCTION_CONNECT.input, VALUE_TYPE.color, c_white)
-		.setDisplay(VALUE_DISPLAY.gradient);
+	newInput(1, nodeValue_Gradient("Gradient", self, new gradientObject([ cola(c_black), cola(c_white) ])))
+		.setMappable(11);
 		
-	inputs[| 2] = nodeValue(2, "Gradient shift", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0)
-		.setDisplay(VALUE_DISPLAY.slider, [ -1, 1, .01 ]);
+	newInput(2, nodeValue_Float("Gradient Shift", self, 0))
+		.setDisplay(VALUE_DISPLAY.slider, { range: [ -1, 1, .01 ] })
+		.setMappable(10);
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(3, nodeValue_Surface("Mask", self));
 	
-	static process_data = function(_outSurf, _data, _output_index) {
-		var _gra = _data[1];
-		var _gra_data = inputs[| 1].getExtraData();
-		var _gra_shift = _data[2];
+	newInput(4, nodeValue_Float("Mix", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider);
+	
+	newInput(5, nodeValue_Bool("Active", self, true));
+		active_index = 5;
+	
+	newInput(6, nodeValue_Bool("Multiply Alpha", self, true));
+	
+	newInput(7, nodeValue_Toggle("Channel", self, 0b1111, { data: array_create(4, THEME.inspector_channel) }));
+	
+	__init_mask_modifier(3); // inputs 8, 9, 
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(10, nodeValueMap("Gradient shift map", self));
+	
+	newInput(11, nodeValueMap("Gradient map", self));
+	
+	newInput(12, nodeValueGradientRange("Gradient map range", self, inputs[1]));
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(13, nodeValue_Bool("Keep Alpha", self, true));
+	
+	input_display_list = [ 5, 7, 
+		["Surfaces",	 true], 0, 3, 4, 8, 9, 
+		["Colorize",	false], 1, 11, 2, 10, 6, 13, 
+	];
+	
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	attribute_surface_depth();
+	
+	static drawOverlay = function(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) {
+		var _hov = false;
+		var  hv  = inputs[12].drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny, surface_get_dimension(getSingleValue(0))); _hov |= hv;
 		
-		var _grad_color = [];
-		var _grad_time  = [];
+		return _hov;
+	}
+	
+	static step = function() {
+		__step_mask_modifier();
 		
-		for(var i = 0; i < ds_list_size(_gra); i++) {
-			_grad_color[i * 4 + 0] = color_get_red(_gra[| i].value) / 255;
-			_grad_color[i * 4 + 1] = color_get_green(_gra[| i].value) / 255;
-			_grad_color[i * 4 + 2] = color_get_blue(_gra[| i].value) / 255;
-			_grad_color[i * 4 + 3] = 1;
-			_grad_time[i]  = _gra[| i].time;
-		}
+		inputs[1].mappableStep();
+		inputs[2].mappableStep();
+	}
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
+		var _mlAlp = _data[ 6];
+		var _kpAlp = _data[13];
 		
-		surface_set_target(_outSurf);
-			draw_clear_alpha(0, 0);
-			BLEND_ADD
+		surface_set_shader(_outSurf, sh_colorize);
+			shader_set_gradient(_data[1], _data[11], _data[12], inputs[1]);
 			
-			shader_set(sh_colorize);
-			shader_set_uniform_i(uniform_grad_blend, ds_list_get(_gra_data, 0));
-			shader_set_uniform_f_array(uniform_color, _grad_color);
-			shader_set_uniform_f_array(uniform_time,  _grad_time);
-			shader_set_uniform_f(uniform_shift,  _gra_shift);
-			shader_set_uniform_i(uniform_key, ds_list_size(_gra));
+			shader_set_f_map("gradient_shift", _data[2], _data[10], inputs[2]);
+			shader_set_i("multiply_alpha", _mlAlp);
+			shader_set_i("keep_alpha",     _kpAlp);
 			
-			draw_surface_safe(_data[0], 0, 0);
-			shader_reset();
-			
-			BLEND_NORMAL
-		surface_reset_target(); 
+			draw_surface_safe(_data[0]);
+		surface_reset_shader(); 
+		
+		__process_mask_modifier(_data);
+		_outSurf = mask_apply(_data[0], _outSurf, _data[3], _data[4]);
+		_outSurf = channel_apply(_data[0], _outSurf, _data[7]);
 		
 		return _outSurf;
 	}

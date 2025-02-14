@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"logger",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"logger",
+  "parent":{
+    "name":"debug",
+    "path":"folders/functions/debug.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

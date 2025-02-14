@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "ds_map",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "ds",
-    "path": "folders/functions/ds.yy",
+  "$GMScript":"v1",
+  "%Name":"ds_map",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"ds_map",
+  "parent":{
+    "name":"ds",
+    "path":"folders/functions/ds.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

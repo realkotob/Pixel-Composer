@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "vectorRangeBox",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "widgets",
-    "path": "folders/widgets.yy",
+  "$GMScript":"v1",
+  "%Name":"vectorRangeBox",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"vectorRangeBox",
+  "parent":{
+    "name":"text",
+    "path":"folders/widgets/text.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

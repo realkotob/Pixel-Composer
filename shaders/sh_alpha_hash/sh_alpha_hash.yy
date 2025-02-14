@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_alpha_hash",
+  "name":"sh_alpha_hash",
+  "parent":{
+    "name":"colors",
+    "path":"folders/nodes/data/filter/colors.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

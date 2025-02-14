@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_fd_vortex",
+  "name":"sh_fd_vortex",
+  "parent":{
+    "name":"Effectors",
+    "path":"folders/nodes/data/simulation/smokeSim/Effectors.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

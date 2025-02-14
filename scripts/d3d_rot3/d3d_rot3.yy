@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"d3d_rot3",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"d3d_rot3",
+  "parent":{
+    "name":"util",
+    "path":"folders/functions/3d/util.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

@@ -1,63 +1,93 @@
 globalvar BLEND_TYPES;
-BLEND_TYPES = [ "Normal", "Add", "Subtract", "Subtract keep alpha", "Multiply", "Multiply keep Alpha", "Screen", "Screen keep Alpha", "Contrast", "Overlay", "Maximum", "Minimum" ];
+BLEND_TYPES = [ 
+	"Normal", "Replace", 
+	-1,
+	"Multiply", "Color Burn", "Linear Burn", "Minimum", 
+	-1, 
+	"Add", "Screen", "Color Dodge", "Maximum", 
+	-1,
+	"Overlay", "Soft Light", "Hard Light", "Vivid Light", "Linear Light", "Pin Light", 
+	-1,
+	"Difference", "Exclusion", "Subtract", "Divide", 
+	-1,
+	"Hue", "Saturation", "Luminosity", 
+];
 
-enum BLEND_MODE {
-	normal,
-	add,
-	
-	subtract,
-	subtract_alpha,
-	
-	multiply,
-	multiply_alpha,
-	
-	screen,
-	screen_alpha,
-	
-	contrast,
-	overlay,
-	
-	maxx,
-	minn,
-}
+global.node_blend_keys = array_create_ext(array_length(BLEND_TYPES), function(i) /*=>*/ {return string_lower(BLEND_TYPES[i])});
 
-function draw_surface_blend(background, foreground, blend, alpha, _mask = 0, tile = 0) {
+function draw_surface_blend(background, foreground, blend = 0, alpha = 1, _pre_alp = true, _mask = 0, tile = 0) {
 	if(!is_surface(background)) return;
-	if(!is_surface(foreground)) return;
 	
 	var sh = sh_blend_normal
-	switch(blend) {
-		case BLEND_MODE.normal :			sh = sh_blend_normal			break;
-		case BLEND_MODE.add	:				sh = sh_blend_add;				break;
-		case BLEND_MODE.subtract :			sh = sh_blend_subtract;			break;
-		case BLEND_MODE.subtract_alpha :	sh = sh_blend_subtract_alpha;	break;
-		case BLEND_MODE.multiply :			sh = sh_blend_multiply;			break;
-		case BLEND_MODE.multiply_alpha :	sh = sh_blend_multiply_alpha;	break;
-		case BLEND_MODE.screen :			sh = sh_blend_screen;			break;
-		case BLEND_MODE.screen_alpha :		sh = sh_blend_screen_alpha;		break;
-		case BLEND_MODE.contrast :			sh = sh_blend_contrast;			break;
-		case BLEND_MODE.overlay :			sh = sh_blend_overlay;			break;
-		case BLEND_MODE.maxx :				sh = sh_blend_max;				break;
-		case BLEND_MODE.minn :				sh = sh_blend_min;				break;
+	switch(array_safe_get_fast(BLEND_TYPES, blend)) {
+		case "Normal" :			sh = sh_blend_normal			break;
+		case "Replace" :		sh = sh_blend_replace;			break;
+		
+		case "Multiply" :		sh = sh_blend_multiply;			break;
+		case "Color Burn" :		sh = sh_blend_color_burn;		break;
+		case "Linear Burn" :	sh = sh_blend_linear_burn;		break;
+		case "Minimum" :		sh = sh_blend_min;				break;
+		
+		case "Add" :			sh = sh_blend_add;				break;
+		case "Screen" :			sh = sh_blend_screen;			break;
+		case "Color Dodge" :	sh = sh_blend_color_dodge;		break;
+		case "Linear Dodge" :	sh = sh_blend_linear_dodge;		break;
+		case "Maximum" :		sh = sh_blend_max;				break;
+		
+		case "Overlay" :		sh = sh_blend_overlay;			break;
+		case "Soft Light" :		sh = sh_blend_soft_light;		break;
+		case "Hard Light" :		sh = sh_blend_hard_light;		break;
+		case "Vivid Light" :	sh = sh_blend_vivid_light;		break;
+		case "Linear Light" :	sh = sh_blend_linear_light;		break;
+		case "Pin Light" :		sh = sh_blend_pin_light;		break;
+		
+		case "Difference" :		sh = sh_blend_difference;		break;
+		case "Exclusion" :		sh = sh_blend_exclusion;		break;
+		case "Subtract" :		sh = sh_blend_subtract;			break;
+		case "Divide" :			sh = sh_blend_divide;			break;
+		
+		case "Hue" :			sh = sh_blend_hue;				break;
+		case "Saturation" :		sh = sh_blend_sat;				break;
+		case "Luminosity" :		sh = sh_blend_luma;				break;
+		
+		// case "XOR" :			sh = sh_blend_xor;				break;
+		default: return;
 	}
-			
-	var uniform_foreground	= shader_get_sampler_index(sh, "fore");
-	var uniform_mask		= shader_get_sampler_index(sh, "mask");
-	var uniform_dim_rat		= shader_get_uniform(sh, "dimension");
-	var uniform_is_mask		= shader_get_uniform(sh, "useMask");
-	var uniform_alpha		= shader_get_uniform(sh, "opacity");
-	var uniform_tile		= shader_get_uniform(sh, "tile_type");
-				
-	shader_set(sh);
-	texture_set_stage(uniform_foreground,		surface_get_texture(foreground));
-	if(_mask) texture_set_stage(uniform_mask,	surface_get_texture(_mask));
-	shader_set_uniform_i(uniform_is_mask, _mask != 0? 1 : 0);
-	shader_set_uniform_f_array(uniform_dim_rat,	[ surface_get_width(background) / surface_get_width(foreground), surface_get_height(background) / surface_get_height(foreground) ]);
-	shader_set_uniform_f(uniform_alpha,	alpha);
-	shader_set_uniform_i(uniform_tile,	tile);
+	
+	var surf	= surface_get_target();
+	var surf_w  = surface_get_width_safe(surf);
+	var surf_h  = surface_get_height_safe(surf);
+	
+	if(is_surface(foreground)) {
+		shader_set(sh);
+		shader_set_surface("fore",		foreground);
+		shader_set_surface("mask",		_mask);
+		shader_set_i("useMask",			is_surface(_mask));
+		shader_set_f("dimension",		surface_get_width_safe(background) / surface_get_width_safe(foreground), surface_get_height_safe(background) / surface_get_height_safe(foreground));
+		shader_set_f("opacity",			alpha);
+		shader_set_i("preserveAlpha",	_pre_alp);
+		shader_set_i("tile_type",		tile);
+	}
 	
 	BLEND_OVERRIDE
-	draw_surface_safe(background, 0, 0);
+	draw_surface_stretched_safe(background, 0, 0, surf_w, surf_h);
 	BLEND_NORMAL
 	shader_reset();
 }
+
+function draw_surface_blend_ext(bg, fg, _x, _y, _sx = 1, _sy = 1, _rot = 0, _col = c_white, _alpha = 1, _blend = 0, _pre_alp = false) {
+	surface_set_shader(blend_temp_surface);
+		shader_set_interpolation(fg);
+		draw_surface_ext_safe(fg, _x, _y, _sx, _sy, _rot, _col, 1);
+	surface_reset_shader();
+	
+	draw_surface_blend(bg, blend_temp_surface, _blend, _alpha, _pre_alp);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global.BLEND_TYPES_18 = [ 
+	"Normal",  "Add",     "Subtract",   "Multiply",   "Screen", 
+	"Overlay", "Hue",     "Saturation", "Luminosity", "Maximum", 
+	"Minimum", "Replace", "Difference", 
+];

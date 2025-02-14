@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_FLIP_draw_droplet",
+  "name":"sh_FLIP_draw_droplet",
+  "parent":{
+    "name":"FLIP",
+    "path":"folders/nodes/data/simulation/FLIP.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

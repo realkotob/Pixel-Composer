@@ -1,53 +1,105 @@
-function Node_Perlin(_x, _y, _group = -1) : Node(_x, _y, _group) constructor {
-	name = "Perlin";
+#region
+	FN_NODE_CONTEXT_INVOKE {
+		addHotkey("Node_Perlin", "Color Mode > Toggle", "C", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[6].setValue((_n.inputs[6].getValue() + 1) % 3); });
+	});
+#endregion
+
+function Node_Perlin(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
+	name = "Perlin Noise";
 	
-	shader = sh_perlin_tiled;
-	uniform_dim = shader_get_uniform(shader, "u_resolution");
-	uniform_pos = shader_get_uniform(shader, "position");
-	uniform_sca = shader_get_uniform(shader, "scale");
-	uniform_ite = shader_get_uniform(shader, "iteration");
-	uniform_bri = shader_get_uniform(shader, "bright");
+	newInput(0, nodeValue_Dimension(self));
 	
-	inputs[| 0] = nodeValue(0, "Dimension", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, def_surf_size2 )
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(1, nodeValue_Vec2("Position", self, [ 0, 0 ]))
+		.setUnitRef(function(index) { return getDimension(index); });
 	
-	inputs[| 1] = nodeValue(1, "Position", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [ 0, 0 ])
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(2, nodeValue_Vec2("Scale", self, [ 5, 5 ]))
+		.setMappable(10);
 	
-	inputs[| 2] = nodeValue(2, "Scale", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [ 5, 5 ])
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(3, nodeValue_Int("Iteration", self, 4));
 	
-	inputs[| 3] = nodeValue(3, "Iteration", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 2);
-	
-	inputs[| 4] = nodeValue(4, "Brightness", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0.5)
-		.setDisplay(VALUE_DISPLAY.slider, [ 0, 1, 0.01]);
-	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
-	
-	static update = function() {
-		var _dim = inputs[| 0].getValue();
-		var _pos = inputs[| 1].getValue();
-		var _sca = inputs[| 2].getValue();
-		var _ite = inputs[| 3].getValue();
-		var _bri = inputs[| 4].getValue();
+	newInput(4, nodeValue_Bool("Tile", self, true));
 		
-		var _outSurf = outputs[| 0].getValue();
-		if(!is_surface(_outSurf)) {
-			_outSurf =  surface_create_valid(_dim[0], _dim[1]);
-			outputs[| 0].setValue(_outSurf);
-		} else
-			surface_size_to(_outSurf, _dim[0], _dim[1]);
+	newInput(5, nodeValueSeed(self));
 		
-		surface_set_target(_outSurf);
-		shader_set(shader);
-			shader_set_uniform_f_array(uniform_dim, _dim);
-			shader_set_uniform_f_array(uniform_pos, _pos);
-			shader_set_uniform_f_array(uniform_sca, _sca);
-			shader_set_uniform_f(uniform_bri, _bri);
-			shader_set_uniform_i(uniform_ite, _ite);
-			draw_sprite_ext(s_fx_pixel, 0, 0, 0, _dim[0], _dim[1], 0, c_white, 1);
-		shader_reset();
-		surface_reset_target();
+	newInput(6, nodeValue_Enum_Button("Color Mode", self,  0, [ "Greyscale", "RGB", "HSV" ]));
+	
+	newInput(7, nodeValue_Slider_Range("Color R Range", self, [ 0, 1 ]));
+	
+	newInput(8, nodeValue_Slider_Range("Color G Range", self, [ 0, 1 ]));
+	
+	newInput(9, nodeValue_Slider_Range("Color B Range", self, [ 0, 1 ]));
+	
+	//////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(10, nodeValueMap("Scale map", self));
+	
+	//////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(11, nodeValue_Rotation("Rotation", self, 0));
+		
+	input_display_list = [
+		["Output", 	 true],	0, 5, 
+		["Noise",	false],	1, 11, 2, 10, 3, 4, 
+		["Render",	false], 6, 7, 8, 9, 
+	];
+	
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	attribute_surface_depth();
+	
+	static drawOverlay = function(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) {
+		var _hov = false;
+		var  hv  = inputs[1].drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny); _hov |= hv;
+		
+		return _hov;
 	}
-	doUpdate();
+	
+	static step = function() {
+		var _col = getInputData(6);
+		
+		inputs[7].setVisible(_col != 0);
+		inputs[8].setVisible(_col != 0);
+		inputs[9].setVisible(_col != 0);
+		
+		inputs[7].name = _col == 1? "Color R Range" : "Color H Range";
+		inputs[8].name = _col == 1? "Color G Range" : "Color S Range";
+		inputs[9].name = _col == 1? "Color B Range" : "Color V Range";
+		
+		inputs[2].mappableStep();
+	}
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
+		var _dim = _data[0];
+		var _pos = _data[1];
+		var _ite = _data[3];
+		var _til = _data[4];
+		var _sed = _data[5];
+		
+		var _col = _data[6];
+		var _clr = _data[7];
+		var _clg = _data[8];
+		var _clb = _data[9];
+		var _rot = _data[11];
+		
+		_outSurf = surface_verify(_outSurf, _dim[0], _dim[1], attrDepth());
+		
+		surface_set_shader(_outSurf, sh_perlin_tiled);
+			shader_set_2("dimension",  _dim);
+			shader_set_2("position",   _pos);
+			shader_set_f("rotation",   degtorad(_rot));
+			shader_set_f_map("scale",  _data[2], _data[10], inputs[2]);
+			shader_set_f("seed",       _sed);
+			shader_set_i("tile",       _til);
+			shader_set_i("iteration",  _ite);
+		
+			shader_set_i("colored",   _col);
+			shader_set_2("colorRanR", _clr);
+			shader_set_2("colorRanG", _clg);
+			shader_set_2("colorRanB", _clb);
+			
+			draw_sprite_ext(s_fx_pixel, 0, 0, 0, _dim[0], _dim[1], 0, c_white, 1);
+		surface_reset_shader();
+		
+		return _outSurf;
+	}
 }

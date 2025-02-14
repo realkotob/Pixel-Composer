@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"tuple_functions",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"tuple_functions",
+  "parent":{
+    "name":"ds",
+    "path":"folders/functions/ds.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

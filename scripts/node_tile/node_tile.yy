@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_tile",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_tile",
+  "parent":{
+    "name":"compose",
+    "path":"folders/nodes/data/compose.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

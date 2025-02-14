@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"__node_VFX_effector",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"__node_VFX_effector",
+  "parent":{
+    "name":"affector",
+    "path":"folders/nodes/data/simulation/VFX/affector.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

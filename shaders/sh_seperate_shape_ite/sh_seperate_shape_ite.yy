@@ -1,10 +1,12 @@
 {
-  "resourceType": "GMShader",
-  "resourceVersion": "1.0",
-  "name": "sh_seperate_shape_ite",
-  "type": 1,
-  "parent": {
-    "name": "shape seperator",
-    "path": "folders/shader/shape seperator.yy",
+  "$GMShader":"",
+  "%Name":"sh_seperate_shape_ite",
+  "name":"sh_seperate_shape_ite",
+  "parent":{
+    "name":"shape_seperator",
+    "path":"folders/nodes/data/generator/regions/shape_seperator.yy",
   },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
 }

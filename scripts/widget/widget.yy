@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"widget",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"widget",
+  "parent":{
+    "name":"widgets",
+    "path":"folders/widgets.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

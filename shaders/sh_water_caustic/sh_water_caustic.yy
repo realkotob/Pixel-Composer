@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_water_caustic",
+  "name":"sh_water_caustic",
+  "parent":{
+    "name":"generator",
+    "path":"folders/nodes/data/generator.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "node_image_sequence",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "input",
-    "path": "folders/nodes/data/input.yy",
+  "$GMScript":"v1",
+  "%Name":"node_image_sequence",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_image_sequence",
+  "parent":{
+    "name":"image",
+    "path":"folders/nodes/data/io/image.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "curve_damping_function",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "curve",
-    "path": "folders/functions/curve.yy",
+  "$GMScript":"v1",
+  "%Name":"curve_damping_function",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"curve_damping_function",
+  "parent":{
+    "name":"curve",
+    "path":"folders/functions/curve.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

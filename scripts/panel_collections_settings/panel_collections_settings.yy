@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"panel_collections_settings",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"panel_collections_settings",
+  "parent":{
+    "name":"collection",
+    "path":"folders/panels/collection.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

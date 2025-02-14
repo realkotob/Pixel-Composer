@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "node_bloom",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "filter",
-    "path": "folders/nodes/data/filter.yy",
+  "$GMScript":"v1",
+  "%Name":"node_bloom",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_bloom",
+  "parent":{
+    "name":"effects",
+    "path":"folders/nodes/data/filter/effects.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

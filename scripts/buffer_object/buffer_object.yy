@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"buffer_object",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"buffer_object",
+  "parent":{
+    "name":"buffer",
+    "path":"folders/functions/buffer.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"panel_node_credit",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"panel_node_credit",
+  "parent":{
+    "name":"what?",
+    "path":"folders/panels/_others/what?.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_diffuse",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_diffuse",
+  "parent":{
+    "name":"generator",
+    "path":"folders/nodes/data/generator.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

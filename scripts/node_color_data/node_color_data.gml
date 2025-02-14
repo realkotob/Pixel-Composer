@@ -1,41 +1,77 @@
-function Node_Color_Data(_x, _y, _group = -1) : Node_Value_Processor(_x, _y, _group) constructor {
-	name		= "Color data";
-	previewable = false;
+function Node_Color_Data(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
+	name = "Color Data";
+	setDimension(96, 48);
 	
-	w = 96;
+	newInput(0, nodeValue_Color("Color", self, cola(c_white)))
+		.setVisible(true, true);
 	
-	inputs[| 0] = nodeValue(0, "Color", self, JUNCTION_CONNECT.input, VALUE_TYPE.color, c_white);
-	inputs[| 0].setVisible(true, true);
+	newInput(1, nodeValue_Bool("Normalize", self, true));
 	
-	outputs[| 0] = nodeValue(0, "Red", self, JUNCTION_CONNECT.output, VALUE_TYPE.float, 0);
-	outputs[| 1] = nodeValue(1, "Green", self, JUNCTION_CONNECT.output, VALUE_TYPE.float, 0);
-	outputs[| 2] = nodeValue(2, "Blue", self, JUNCTION_CONNECT.output, VALUE_TYPE.float, 0);
+	// newInput(2, nodeValue_Enum_Scroll("Brightness Eq", self, 0, [ "Perceived", "" ]));
 	
-	outputs[| 3] = nodeValue(3, "Hue", self, JUNCTION_CONNECT.output, VALUE_TYPE.float, 0);
-	outputs[| 4] = nodeValue(4, "Saturation", self, JUNCTION_CONNECT.output, VALUE_TYPE.float, 0);
-	outputs[| 5] = nodeValue(5, "Value", self, JUNCTION_CONNECT.output, VALUE_TYPE.float, 0);
+	newOutput(0, nodeValue_Output("Red", 		self, VALUE_TYPE.float, 0));
+	newOutput(1, nodeValue_Output("Green",		self, VALUE_TYPE.float, 0));
+	newOutput(2, nodeValue_Output("Blue",		self, VALUE_TYPE.float, 0));
 	
-	outputs[| 6] = nodeValue(6, "Brightness", self, JUNCTION_CONNECT.output, VALUE_TYPE.float, 0);
+	newOutput(3, nodeValue_Output("Hue", 		self, VALUE_TYPE.float, 0).setVisible(false));
+	newOutput(4, nodeValue_Output("Saturation",	self, VALUE_TYPE.float, 0).setVisible(false));
+	newOutput(5, nodeValue_Output("Value",		self, VALUE_TYPE.float, 0).setVisible(false));
 	
-	function process_value_data(_data, index = 0) { 
-		var c = _data[0];
+	newOutput(6, nodeValue_Output("Brightness",	self, VALUE_TYPE.float, 0).setVisible(false));
+	newOutput(7, nodeValue_Output("Alpha",		self, VALUE_TYPE.float, 0).setVisible(false));
+	
+	static processData = function(_outData, _data, _output_index, _array_index = 0) {  
+		var _c = _data[0];
+		var _n = _data[1];
 		
-		switch(index) {
-			case 0 : return color_get_red(c);
-			case 1 : return color_get_green(c);
-			case 2 : return color_get_blue(c);
+		if(!is_numeric(_c)) return _outData;
+		
+		if(_n) {
+			_outData[0] = _color_get_red(_c);
+			_outData[1] = _color_get_green(_c);
+			_outData[2] = _color_get_blue(_c);
 			
-			case 3 : return color_get_hue(c);
-			case 4 : return color_get_saturation(c);
-			case 5 : return color_get_value(c);
+			_outData[3] = _color_get_hue(_c);
+			_outData[4] = _color_get_saturation(_c);
+			_outData[5] = _color_get_value(_c);
 			
-			case 6 : 
-				var r = color_get_red(c);
-				var g = color_get_green(c);
-				var b = color_get_blue(c);
-				return 0.299 * r + 0.587 * g + 0.224 * b;
+			_outData[6] = sqrt(.241 * _outData[0] * _outData[0] + .691 * _outData[1] * _outData[1] + .068 * _outData[2] * _outData[2]);
+			_outData[7] = _color_get_alpha(_c);
+			
+		} else {
+			_outData[0] = color_get_red(_c);
+			_outData[1] = color_get_green(_c);
+			_outData[2] = color_get_blue(_c);
+			
+			_outData[3] = color_get_hue(_c);
+			_outData[4] = color_get_saturation(_c);
+			_outData[5] = color_get_value(_c);
+			
+			_outData[6] = sqrt(.241 * _outData[0] * _outData[0] + .691 * _outData[1] * _outData[1] + .068 * _outData[2] * _outData[2]);
+			_outData[7] = color_get_alpha(_c);
+		}
+		
+		return _outData;
+	}
+	
+	static onDrawNode = function(xx, yy, _mx, _my, _s, _hover, _focus) {
+		var bbox = drawGetBbox(xx, yy, _s);
+		
+		draw_set_text(f_sdf, fa_right, fa_center, COLORS._main_text);
+		
+		for(var i = 0; i < array_length(outputs); i++) {
+			var val = outputs[i];
+			if(!val.isVisible()) continue;
+			
+			var _bx1 = bbox.x1 -  8 * _s;
+			var _bx0 = _bx1    - 20 * _s;
+			
+			var _by  = val.y;
+			var _by0 = _by - 8 * _s;
+			var _by1 = _by + 8 * _s;
+			
+			draw_sprite_stretched_points(s_node_color_data_label, i, _bx0, _by0, _bx1, _by1);
 		}
 	}
 	
-	doUpdate();
 }

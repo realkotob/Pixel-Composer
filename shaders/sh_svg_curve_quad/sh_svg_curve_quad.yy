@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_svg_curve_quad",
+  "name":"sh_svg_curve_quad",
+  "parent":{
+    "name":"svg",
+    "path":"folders/nodes/data/io/image/svg.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

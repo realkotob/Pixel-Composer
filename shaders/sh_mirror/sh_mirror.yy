@@ -1,10 +1,12 @@
 {
-  "resourceType": "GMShader",
-  "resourceVersion": "1.0",
-  "name": "sh_mirror",
-  "type": 1,
-  "parent": {
-    "name": "warp",
-    "path": "folders/shader/warp.yy",
+  "$GMShader":"",
+  "%Name":"sh_mirror",
+  "name":"sh_mirror",
+  "parent":{
+    "name":"mirror",
+    "path":"folders/nodes/data/transform/mirror.yy",
   },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
 }

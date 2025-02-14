@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"__panel_empty",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"__panel_empty",
+  "parent":{
+    "name":"panels",
+    "path":"folders/panels.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

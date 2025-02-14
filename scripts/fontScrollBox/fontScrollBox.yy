@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"fontScrollBox",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"fontScrollBox",
+  "parent":{
+    "name":"widgets",
+    "path":"folders/widgets.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

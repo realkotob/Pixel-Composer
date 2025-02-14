@@ -5,6 +5,7 @@ varying vec2 v_vTexcoord;
 varying vec4 v_vColour;
 
 uniform vec2 dimension;
+uniform int preserveAlpha;
 uniform sampler2D fore;
 uniform vec2 position;
 uniform vec2 scale;
@@ -20,7 +21,7 @@ void main() {
 	pos.y = center.y + delta.x * sin(rotation) + delta.y * cos(rotation);
 	
 	if(pos.x >= 0. && pos.x <= 1. && pos.y >= 0. && pos.y <= 1.) {
-		vec4 _col0 = texture2D( fore, pos);
+		vec4 _col0 = v_vColour * texture2D( fore, pos);
 		
 		float al = _col0.a + _col1.a * (1. - _col0.a);
 		vec4 res = ((_col0 * _col0.a) + (_col1 * _col1.a * (1. - _col0.a))) / al;

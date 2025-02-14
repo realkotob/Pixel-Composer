@@ -1,10 +1,12 @@
 {
-  "resourceType": "GMShader",
-  "resourceVersion": "1.0",
-  "name": "sh_polar",
-  "type": 1,
-  "parent": {
-    "name": "warp",
-    "path": "folders/shader/warp.yy",
+  "$GMShader":"",
+  "%Name":"sh_polar",
+  "name":"sh_polar",
+  "parent":{
+    "name":"transform",
+    "path":"folders/nodes/data/transform.yy",
   },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
 }

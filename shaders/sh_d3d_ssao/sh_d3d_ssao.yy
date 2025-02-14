@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_d3d_ssao",
+  "name":"sh_d3d_ssao",
+  "parent":{
+    "name":"ssao",
+    "path":"folders/nodes/data/3D/shader/ssao.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

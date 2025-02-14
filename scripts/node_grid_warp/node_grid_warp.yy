@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_grid_warp",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_grid_warp",
+  "parent":{
+    "name":"warps",
+    "path":"folders/nodes/data/filter/warps.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

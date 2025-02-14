@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_spherize",
+  "name":"sh_spherize",
+  "parent":{
+    "name":"warps",
+    "path":"folders/nodes/data/filter/warps.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

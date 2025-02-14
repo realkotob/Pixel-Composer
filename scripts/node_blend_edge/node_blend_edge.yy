@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_blend_edge",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_blend_edge",
+  "parent":{
+    "name":"effects",
+    "path":"folders/nodes/data/filter/effects.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

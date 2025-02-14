@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_VFX_group_inline",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_VFX_group_inline",
+  "parent":{
+    "name":"VFX",
+    "path":"folders/nodes/data/simulation/VFX.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

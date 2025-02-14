@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"luaHighlight",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"luaHighlight",
+  "parent":{
+    "name":"lua",
+    "path":"folders/functions/lua.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

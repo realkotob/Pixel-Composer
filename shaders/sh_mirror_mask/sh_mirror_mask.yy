@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_mirror_mask",
+  "name":"sh_mirror_mask",
+  "parent":{
+    "name":"mirror",
+    "path":"folders/nodes/data/transform/mirror.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

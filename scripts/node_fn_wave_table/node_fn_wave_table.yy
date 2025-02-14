@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_fn_wave_table",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_fn_wave_table",
+  "parent":{
+    "name":"fn",
+    "path":"folders/nodes/data/animation/fn.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

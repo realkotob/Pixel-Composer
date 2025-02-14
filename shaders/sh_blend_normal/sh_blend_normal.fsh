@@ -8,31 +8,31 @@ uniform vec2 dimension;
 uniform int tile_type;
 
 uniform int useMask;
+uniform int preserveAlpha;
 uniform sampler2D mask;
 uniform sampler2D fore;
 uniform float opacity;
 
+float sampleMask() {
+	if(useMask == 0) return 1.;
+	vec4 m = texture2D( mask, v_vTexcoord );
+	return (m.r + m.g + m.b) / 3. * m.a;
+}
+
 void main() {
-	vec4 _col1 = texture2D( gm_BaseTexture, v_vTexcoord );
+	vec4 _cBg = texture2D( gm_BaseTexture, v_vTexcoord );
 	
 	vec2 fore_tex = v_vTexcoord;
-	if(tile_type == 0) {
+	if(tile_type == 0)
 		fore_tex = v_vTexcoord;
-	} else if(tile_type == 1) {
+	else if(tile_type == 1)
 		fore_tex = fract(v_vTexcoord * dimension);
-	}
 	
-	vec4 _col0 = texture2D( fore, fore_tex );
+	vec4 _cFg = texture2D( fore, fore_tex );
+	_cFg.a *= opacity * sampleMask();
 	
-	float o = opacity;
-	if(useMask == 1) {
-		vec3 m = texture2D( mask, v_vTexcoord ).rgb;
-		o *= (m.r + m.g + m.b) / 3.;
-	}
-	_col0.a *= o;
-	
-	float al = _col0.a + _col1.a * (1. - _col0.a);
-	vec4 res = ((_col0 * _col0.a) + (_col1 * _col1.a * (1. - _col0.a))) / al;
+	float al = _cFg.a + _cBg.a * (1. - _cFg.a);
+	vec4 res = ((_cFg * _cFg.a) + (_cBg * _cBg.a * (1. - _cFg.a))) / al;
 	res.a = al;
 	
     gl_FragColor = res;

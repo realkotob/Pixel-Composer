@@ -1,10 +1,15 @@
+#ifdef _YY_HLSL11_ 
+	#define PALETTE_LIMIT 1024 
+#else 
+	#define PALETTE_LIMIT 256 
+#endif
 //
 // Simple passthrough fragment shader
 //
 varying vec2 v_vTexcoord;
 varying vec4 v_vColour;
 
-uniform vec4	colorFrom[32];
+uniform vec4	colorFrom[PALETTE_LIMIT];
 uniform int		colorFrom_amo;
 uniform vec4	colorTo;
 uniform int		inverted;

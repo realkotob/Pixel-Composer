@@ -1,89 +1,123 @@
-function Node_VFX_Renderer(_x, _y, _group = -1) : Node(_x, _y, _group) constructor {
-	name = "Renderer";
+function Node_VFX_Renderer(_x, _y, _group = noone) : Node(_x, _y, _group) constructor {
+	name  = "Renderer";
+	color = COLORS.node_blend_vfx;
+	icon  = THEME.vfx;
+	use_cache = CACHE_USE.auto;
 	
-	inputs[| 0] = nodeValue(0, "Output dimension", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, def_surf_size2)
-		.setDisplay(VALUE_DISPLAY.vector);
+	inline_output      = false;
+	manual_ungroupable = false;
+	
+	newInput(0, nodeValue_Vec2("Output dimension", self, DEF_SURF ));
 		
-	inputs[| 1] = nodeValue(1, "Round position", self, JUNCTION_CONNECT.input, VALUE_TYPE.boolean, true );
+	newInput(1, nodeValue_Bool("Round position", self, true, "Round position to the closest integer value to avoid jittering."))
+		.rejectArray();
 	
-	inputs[| 2] = nodeValue(2, "Blend mode", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0 )
-		.setDisplay(VALUE_DISPLAY.enum_scroll, [ "Normal", "Additive" ]);
+	newInput(2, nodeValue_Enum_Button("Render Type", self,  PARTICLE_RENDER_TYPE.surface , [ "Surface", "Line" ]))
+		.rejectArray();
 	
-	input_index = ds_list_size(inputs);
+	newInput(3, nodeValue_Int("Line life", self, 4 ))
+		.rejectArray();
 		
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	input_display_list = [ 
+		["Output",    false], 0, 
+		["Rendering", false], 1, 2, 3, 
+	];
+	
+	temp_surface = [ 0 ];
+	
+	attribute_surface_depth();
+	attribute_interpolation();
+	
 	static createNewInput = function() {
-		var index = ds_list_size(inputs);
-		inputs[| index] = nodeValue( index, "Particles", self, JUNCTION_CONNECT.input, VALUE_TYPE.object, noone )
+		var index = array_length(inputs);
+		
+		newInput(index + 0, nodeValue_Enum_Scroll("Blend mode", self,  0 , [ "Normal", "Alpha", "Additive" ]))
+			.rejectArray();
+		
+		newInput(index + 1, nodeValue_Particle("Particles", self, noone ))
 			.setVisible(true, true);
-	}
-	createNewInput();
 		
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
-	
-	static updateValueFrom = function(index) {
-		if(index < input_index) return;
+		array_push(input_display_list, ["Particle", false], index + 0, index + 1);
 		
-		var _l = ds_list_create();
-		for( var i = 0; i < ds_list_size(inputs); i++ ) {
-			if(i < input_index || inputs[| i].value_from)
-				ds_list_add(_l, inputs[| i]);
-			else
-				delete inputs[| i];	
-		}
-		
-		for( var i = 0; i < ds_list_size(_l); i++ ) {
-			_l[| i].index = i;	
-		}
-		
-		ds_list_destroy(inputs);
-		inputs = _l;
-		
-		createNewInput();
+		return inputs[index + 1];
 	}
 	
-	function update(_time = ANIMATOR.current_frame) {
-		var _dim	= inputs[| 0].getValue(_time);
-		var _exact 	= inputs[| 1].getValue(_time);
-		var _blend 	= inputs[| 2].getValue(_time);
+	setDynamicInput(2, true, VALUE_TYPE.particle);
+	dyna_input_check_shift = 1;
+	
+	setTrigger(2, "Clear cache", [ THEME.cache, 0, COLORS._main_icon ]);
+	
+	static onInspector2Update = function() { clearCache(); }
+	
+	static step = function() {
+		var _typ = getInputData(2);
 		
-		var _outSurf	= outputs[| 0].getValue();
+		inputs[3].setVisible(_typ == PARTICLE_RENDER_TYPE.line);
 		
-		if(is_surface(_outSurf)) 
-			surface_size_to(_outSurf, _dim[0], _dim[1]);
-		else {
-			_outSurf = surface_create_valid(_dim[0], _dim[1]);
-			outputs[| 0].setValue(_outSurf);
+		if(previewing && is_instanceof(group, Node_VFX_Group)) 
+			group.preview_node = self;
+	}
+	
+	static update = function(_time = CURRENT_FRAME) {
+		var _dim   = inputs[0].getValue(_time);
+		temp_surface[0] = surface_verify(temp_surface[0], _dim[0], _dim[1]);
+		
+		if(!IS_PLAYING) {
+			recoverCache();
+			return;
 		}
 		
-		surface_set_target(_outSurf);
-			draw_clear_alpha(c_white, 0);
+		var _exact = inputs[1].getValue(_time);
+		var _type  = inputs[2].getValue(_time);
+		var _llife = inputs[3].getValue(_time);
+		
+		var _outSurf = outputs[0].getValue();
+		    _outSurf = surface_verify(_outSurf, _dim[0], _dim[1], attrDepth());
+		outputs[0].setValue(_outSurf);
+		
+		var surf_w = surface_get_width_safe(_outSurf);
+		var surf_h = surface_get_height_safe(_outSurf);
+		
+		surface_set_shader(_outSurf, noone);
+			var blend, parts, part, _part;
 			
-			switch(_blend) {
-				case PARTICLE_BLEND_MODE.normal :	gpu_set_blendmode(bm_normal);	break;
-				case PARTICLE_BLEND_MODE.additive : gpu_set_blendmode(bm_add);		break;
-			}
-			
-			for( var i = input_index; i < ds_list_size(inputs) - 1; i++ ) {
-				var parts = inputs[| i].getValue(_time);
-				if(!ds_exists(parts, ds_type_list)) continue;
+			for( var i = input_fix_len, n = array_length(inputs); i < n; i += data_length ) {
+				blend = inputs[i + 0].getValue(_time);
+				parts = inputs[i + 1].getValue(_time);
 				
-				for(var j = 0; j < ds_list_size(parts); j++) {
-					if(!parts[| j].active) continue;
-					parts[| j].draw(_exact);
+				switch(blend) {
+					case PARTICLE_BLEND_MODE.normal:   BLEND_NORMAL break;
+					case PARTICLE_BLEND_MODE.alpha:    BLEND_ALPHA  break;
+					case PARTICLE_BLEND_MODE.additive: BLEND_ADD    break;
+				}
+				
+				if(!is_array(parts) || array_length(parts) == 0) continue;
+				if(!is_array(parts[0])) parts = [ parts ];
+				
+				for( var j = 0, m = array_length(parts); j < m; j++ ) {
+					part = parts[j];
+					
+					for( var k = 0, p = array_length(part); k < p; k++ ) {
+						_part = part[k];
+						_part.render_type = _type;
+						_part.line_draw   = _llife;
+						
+						if(_part.active || _type)
+							_part.draw(_exact, surf_w, surf_h);
+					}
 				}
 			}
 			
-			gpu_set_blendmode(bm_normal);
-		surface_reset_target();
+			BLEND_NORMAL
+		surface_reset_shader();
 		
 		cacheCurrentFrame(_outSurf);
 	}
-	
-	static postDeserialize = function() {
-		var _inputs = load_map[? "inputs"];
-		
-		for(var i = input_index; i < ds_list_size(_inputs); i++)
-			createNewInput();
+
+	static getPreviewValues = function() {
+		var val = outputs[preview_channel].getValue();
+		return is_surface(val)? val : temp_surface[0];
 	}
-	
 }

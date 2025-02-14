@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"svg_objects",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"svg_objects",
+  "parent":{
+    "name":"svg",
+    "path":"folders/functions/svg.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

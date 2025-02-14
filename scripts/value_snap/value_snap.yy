@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"value_snap",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"value_snap",
+  "parent":{
+    "name":"value",
+    "path":"folders/functions/value.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

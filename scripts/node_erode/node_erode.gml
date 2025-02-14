@@ -1,35 +1,71 @@
-function Node_Erode(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
+#region
+	FN_NODE_CONTEXT_INVOKE {
+		addHotkey("Node_Erode", "Width > Set", KEY_GROUP.numeric, MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[1].setValue(toNumber(chr(keyboard_key))); });
+		addHotkey("Node_Erode", "Preserve Border > Toggle",  "B", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[2].setValue(!_n.inputs[2].getValue()); });
+		addHotkey("Node_Erode", "Use Alpha > Toggle",        "A", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[3].setValue(!_n.inputs[3].getValue()); });
+	});
+#endregion
+
+function Node_Erode(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
 	name = "Erode";
 	
-	uniform_dim   = shader_get_uniform(sh_erode, "dimension");
-	uniform_size  = shader_get_uniform(sh_erode, "size");
-	uniform_bor   = shader_get_uniform(sh_erode, "border");
-	uniform_alp   = shader_get_uniform(sh_erode, "alpha");
+	newInput(0, nodeValue_Surface("Surface In", self));
 	
-	inputs[| 0] = nodeValue(0, "Surface in",	 self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
-	inputs[| 1] = nodeValue(1, "Width",			 self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 1);
-	inputs[| 2] = nodeValue(2, "Preserve border",self, JUNCTION_CONNECT.input, VALUE_TYPE.boolean, false);
-	inputs[| 3] = nodeValue(3, "Use alpha",		 self, JUNCTION_CONNECT.input, VALUE_TYPE.boolean, false);
+	newInput(1, nodeValue_Int("Width", self, 1))
+		.setValidator(VV_min(0))
+		.setMappable(10);
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(2, nodeValue_Bool("Preserve Border",self, false));
 	
-	static process_data = function(_outSurf, _data, _output_index) {
-		var wd = _data[1];
+	newInput(3, nodeValue_Bool("Use Alpha", self, true));
+	
+	newInput(4, nodeValue_Surface("Mask", self));
+	
+	newInput(5, nodeValue_Float("Mix", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider);
+	
+	newInput(6, nodeValue_Bool("Active", self, true));
+		active_index = 6;
+	
+	newInput(7, nodeValue_Toggle("Channel", self, 0b1111, { data: array_create(4, THEME.inspector_channel) }));
+	
+	__init_mask_modifier(4); // inputs 8, 9, 
+	
+	/////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(10, nodeValue_Surface("Width map", self))
+		.setVisible(false, false);
+	
+	/////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	input_display_list = [ 6, 7,
+		["Surfaces", true], 0, 4, 5, 8, 9, 
+		["Erode",	false], 1, 10, 2, 3, 
+	]
+	
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	attribute_surface_depth();
+	
+	static step = function() { #region
+		__step_mask_modifier();
 		
-		surface_set_target(_outSurf);
-		draw_clear_alpha(0, 0);
-		BLEND_ADD
+		inputs[1].mappableStep();
+	} #endregion
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
 		
-		shader_set(sh_erode);
-			shader_set_uniform_f_array(uniform_dim, [surface_get_width(_data[0]), surface_get_height(_data[0])]);
-			shader_set_uniform_f(uniform_size, wd);
-			shader_set_uniform_i(uniform_bor, _data[2]? 1 : 0);
-			shader_set_uniform_i(uniform_alp, _data[3]? 1 : 0);
-			draw_surface_safe(_data[0], 0, 0);
-		shader_reset();
+		surface_set_shader(_outSurf, sh_erode);
+			shader_set_f("dimension", surface_get_width_safe(_data[0]), surface_get_height_safe(_data[0]));
+			shader_set_f_map("size" , _data[1], _data[10], inputs[1]);
+			shader_set_i("border"   , _data[2]);
+			shader_set_i("alpha"    , _data[3]);
+			draw_surface_safe(_data[0]);
+		surface_reset_shader();
 		
-		BLEND_NORMAL
-		surface_reset_target();
+		__process_mask_modifier(_data);
+		_outSurf = mask_apply(_data[0], _outSurf, _data[4], _data[5]);
+		_outSurf = channel_apply(_data[0], _outSurf, _data[7]);
 		
 		return _outSurf;
 	}

@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "button",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "widgets",
-    "path": "folders/widgets.yy",
+  "$GMScript":"v1",
+  "%Name":"button",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"button",
+  "parent":{
+    "name":"button",
+    "path":"folders/widgets/button.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

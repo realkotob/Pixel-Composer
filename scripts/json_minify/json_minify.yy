@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"json_minify",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"json_minify",
+  "parent":{
+    "name":"files",
+    "path":"folders/functions/files.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

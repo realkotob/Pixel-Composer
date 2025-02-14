@@ -1,10 +1,12 @@
 {
-  "resourceType": "GMShader",
-  "resourceVersion": "1.0",
-  "name": "sh_blur_gaussian",
-  "type": 1,
-  "parent": {
-    "name": "blur",
-    "path": "folders/shader/blur.yy",
+  "$GMShader":"",
+  "%Name":"sh_blur_gaussian",
+  "name":"sh_blur_gaussian",
+  "parent":{
+    "name":"blur",
+    "path":"folders/nodes/data/filter/blur.yy",
   },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
 }

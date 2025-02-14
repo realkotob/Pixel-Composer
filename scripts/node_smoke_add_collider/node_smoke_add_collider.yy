@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_smoke_add_collider",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_smoke_add_collider",
+  "parent":{
+    "name":"smokeSim",
+    "path":"folders/nodes/data/simulation/smokeSim.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

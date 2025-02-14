@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"pack_shelf",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"pack_shelf",
+  "parent":{
+    "name":"packing",
+    "path":"folders/functions/packing.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

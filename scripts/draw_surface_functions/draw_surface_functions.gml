@@ -1,6 +1,8 @@
 function draw_surface_align(surface, _x, _y, _s, _halign = fa_left, _valign = fa_top) {
-	var w = surface_get_width(surface) * _s;
-	var h = surface_get_height(surface) * _s;
+	if(!is_surface(surface)) return;
+	
+	var w = surface_get_width_safe(surface) * _s;
+	var h = surface_get_height_safe(surface) * _s;
 	
 	var _sx = _x, _sy = _y;
 	switch(_halign) {
@@ -15,5 +17,5 @@ function draw_surface_align(surface, _x, _y, _s, _halign = fa_left, _valign = fa
 		case fa_bottom:	_sy = _y - h;		break;	
 	}
 	
-	draw_surface_ext(surface, _sx, _sy, _s, _s, 0, c_white, 1);
+	draw_surface_ext_safe(surface, _sx, _sy, _s, _s, 0, c_white, 1);
 }

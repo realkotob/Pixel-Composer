@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_atlas_set",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_atlas_set",
+  "parent":{
+    "name":"atlas",
+    "path":"folders/nodes/data/value/atlas.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

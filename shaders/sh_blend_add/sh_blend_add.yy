@@ -1,10 +1,12 @@
 {
-  "resourceType": "GMShader",
-  "resourceVersion": "1.0",
-  "name": "sh_blend_add",
-  "type": 1,
-  "parent": {
-    "name": "blend",
-    "path": "folders/shader/blend.yy",
+  "$GMShader":"",
+  "%Name":"sh_blend_add",
+  "name":"sh_blend_add",
+  "parent":{
+    "name":"blend",
+    "path":"folders/nodes/data/compose/blend.yy",
   },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
 }

@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "color_selector",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "color selector",
-    "path": "folders/dialog/color selector.yy",
+  "$GMScript":"v1",
+  "%Name":"color_selector",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"color_selector",
+  "parent":{
+    "name":"color_selector",
+    "path":"folders/dialog/color_selector.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

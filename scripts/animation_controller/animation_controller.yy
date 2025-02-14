@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "animation_controller",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "animation",
-    "path": "folders/functions/animation.yy",
+  "$GMScript":"v1",
+  "%Name":"animation_controller",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"animation_controller",
+  "parent":{
+    "name":"animation",
+    "path":"folders/functions/animation.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

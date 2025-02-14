@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"checkboxGroup",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"checkboxGroup",
+  "parent":{
+    "name":"widgets",
+    "path":"folders/widgets.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

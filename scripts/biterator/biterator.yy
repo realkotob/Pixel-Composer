@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"biterator",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"biterator",
+  "parent":{
+    "name":"biterator",
+    "path":"folders/__extensions/VCT/biterator.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

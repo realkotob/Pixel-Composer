@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"FirebaseListenerUserFunctions_Firestore",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"FirebaseListenerUserFunctions_Firestore",
+  "parent":{
+    "name":"Listeners_Firestore",
+    "path":"folders/__extensions/FireBase/Extensions/Firebase_API/Listeners_Firestore.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

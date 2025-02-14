@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "node_atlas",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "filter",
-    "path": "folders/nodes/data/filter.yy",
+  "$GMScript":"v1",
+  "%Name":"node_atlas",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_atlas",
+  "parent":{
+    "name":"effects",
+    "path":"folders/nodes/data/filter/effects.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_node_widget_scalar_line",
+  "name":"sh_node_widget_scalar_line",
+  "parent":{
+    "name":"node",
+    "path":"folders/shader/UI/node.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

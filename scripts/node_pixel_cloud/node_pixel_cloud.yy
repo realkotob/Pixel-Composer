@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "node_pixel_cloud",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "generator",
-    "path": "folders/nodes/data/generator.yy",
+  "$GMScript":"v1",
+  "%Name":"node_pixel_cloud",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_pixel_cloud",
+  "parent":{
+    "name":"effects",
+    "path":"folders/nodes/data/filter/effects.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

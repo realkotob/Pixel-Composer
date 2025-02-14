@@ -1,272 +1,680 @@
-function NodeObject(_name, _spr, _node, _create, tags = []) constructor {
+#region globalvar
+	globalvar ALL_NODES, NODE_PB_CATEGORY, NODE_PCX_CATEGORY;
+	globalvar NODE_CATEGORY, NODE_CATEGORY_MAP;
+	globalvar SUPPORTER_NODES, NEW_NODES;
+	globalvar CUSTOM_NODES, CUSTOM_NODES_POSITION;
+	
+	globalvar NODE_PAGE_DEFAULT, NODE_PAGE_LAST;
+	globalvar NODE_ACTION_LIST;
+	
+	global.PATREON_NODES = [
+		Node_Brush_Linear, 
+		Node_Ambient_Occlusion, 
+		Node_RM_Cloud, 
+		Node_Perlin_Extra, 
+		Node_Voronoi_Extra, 
+		Node_Gabor_Noise, 
+		Node_Shard_Noise, 
+		Node_Wavelet_Noise, 
+		Node_Caustic, 
+		Node_Noise_Bubble, 
+		Node_Flow_Noise, 
+		Node_Noise_Cristal, 
+		Node_Honeycomb_Noise, 
+		Node_Grid_Pentagonal, 
+		Node_Pytagorean_Tile, 
+		Node_Herringbone_Tile, 
+		Node_Random_Tile, 
+		Node_MK_Fracture, 
+		Node_MK_Sparkle, 
+	];
+#endregion
+
+function NodeObject(_name, _node, _tooltip = "") constructor {
 	name = _name;
-	spr  = _spr;
 	node = _node;
-	createNode = _create;
+	spr  = s_node_icon;
+	icon = noone;
+	nodekey = "";
 	
-	self.tags = tags;
+	nodeName     = script_get_name(node);
+	usecreateFn  = false;
+	createFn     = noone;
+	createParam  = noone;
 	
-	function build(_x, _y, _group = PANEL_GRAPH.getCurrentContext(), _param = "") {
-		var _node = createNode[0]? new createNode[1](_x, _y, _group, _param) : createNode[1](_x, _y, _group, _param);
+	sourceDir    = "";
+	tags         = [];
+	tooltip      = _tooltip;
+	tooltip_spr  = undefined;
+	
+	pxc_version  = 0;
+	new_node     = false;
+	deprecated   = false;
+	
+	show_in_recent = true;
+	show_in_global = true;
+	
+	patreon  = array_exists(global.PATREON_NODES, node);
+	if(patreon) array_push(SUPPORTER_NODES, self);
+	
+	testable = true;
+	
+	ioArray = [];
+	input_type_mask  = 0b0;
+	output_type_mask = 0b0;
+	
+	author  = "";
+	license = "";
+	
+	static init = function() {
+		if(IS_CMD) return;
+		
+		if(struct_has(global.NODE_GUIDE, node)) {
+			var _n = global.NODE_GUIDE[$ node];
+			name   = _n.name;
+			if(_n.tooltip != "")
+				tooltip = _n.tooltip;
+		}
+	} init();
+    
+	static setTags    = function(_tags) { tags        = _tags; return self; }
+	static setSpr     = function(_spr)  { spr         = _spr;  return self; }
+	static setTooltip = function(_tool) { tooltip     = _tool; return self; }
+	static setParam   = function(_par)  { createParam = _par;  return self; }
+	
+    _fn = registerFunctionLite("New node", name, function(n) /*=>*/ { PANEL_GRAPH.createNodeHotkey(n); }, [ nodeName ]);
+    _fn.spr = spr;
+    static setBuild   = function(_fn)   { createFn    = method(self, _fn); usecreateFn = true; return self; }
+	
+	static setIO = function(t) { 
+		for(var i = 0; i < argument_count; i++) { 
+			input_type_mask  |= value_bit(argument[i]); 
+			output_type_mask |= value_bit(argument[i]); 
+			
+			array_push(ioArray, value_type_to_string(argument[i]));
+		} 
+		return self; 
+	}
+	
+	static setVersion = function(version) {
+		INLINE 
+		if(IS_CMD) return self;
+		
+		pxc_version = version;
+		new_node    = version >= LATEST_VERSION;
+		
+		return self;
+	}
+	
+	static setIcon = function(_icon) {
+		INLINE 
+		if(IS_CMD) return self;
+		
+		icon = _icon;
+		return self;
+	}
+	
+	static isDeprecated = function() {
+		INLINE 
+		if(IS_CMD) return self;
+		
+		deprecated = true;
+		return self;
+	}
+	
+	static hideRecent = function() {
+		INLINE 
+		if(IS_CMD) return self;
+		
+		show_in_recent = false;
+		testable       = false;
+		variable_struct_remove(FUNCTIONS, _fn.fnName);
+		return self;
+	}
+	
+	static notTest = function() { testable = false; return self; }
+	
+	static hideGlobal = function() {
+		INLINE 
+		if(IS_CMD) return self;
+		
+		show_in_global = false;
+		return self;
+	}
+	
+	static getName    = function() { return __txt_node_name(node, name);	   }
+	static getTooltip = function() { return __txt_node_tooltip(node, tooltip); }
+	static getTooltipSpr = function() { 
+		if(tooltip_spr != undefined) return tooltip_spr;
+		
+		tooltip_spr = noone;
+		var pth = $"{sourceDir}/tooltip_spr.png";
+		if(file_exists_empty(pth)) 
+			tooltip_spr = sprite_add(pth, 0, false, false, 0, 0);
+		
+		return tooltip_spr;
+	}
+	
+	static build = function(_x = 0, _y = 0, _group = PANEL_GRAPH.getCurrentContext(), _param = {}) {
+		INLINE 
+		
+		if(createParam != noone) {
+			struct_append(_param, createParam);
+			_param.sourceDir = sourceDir;
+			_param.iname     = nodekey;
+		}
+		
+		var _node = noone;
+		if(usecreateFn) _node = createFn(_x, _y, _group, _param);
+		else            _node = new node(_x, _y, _group, _param);
+		if(_node == noone) return _node;
+		
+		_node.name = name;
+		_node.postBuild();
+		
 		return _node;
+	}
+	
+	static drawGrid = function(_x, _y, _mx, _my, grid_size, _param = {}) {
+		var spr_x = _x + grid_size / 2;
+		var spr_y = _y + grid_size / 2;
+		
+		var _spw = sprite_get_width(spr);
+		var _sph = sprite_get_height(spr);
+		var _ss  = grid_size / max(_spw, _sph) * 0.85;
+		
+		gpu_set_tex_filter(true);
+		draw_sprite_uniform(spr, 0, spr_x, spr_y, _ss);
+		gpu_set_tex_filter(false);
+				
+		if(new_node) {
+			draw_sprite_ui_uniform(THEME.node_new_badge, 0, _x + grid_size - ui(12), _y + ui(6),, COLORS._main_accent);
+			draw_sprite_ui_uniform(THEME.node_new_badge, 1, _x + grid_size - ui(12), _y + ui(6));
+		}
+				
+		if(deprecated) {
+			draw_sprite_ui_uniform(THEME.node_deprecated_badge, 0, _x + grid_size - ui(12), _y + ui(6),, COLORS._main_value_negative);
+			draw_sprite_ui_uniform(THEME.node_deprecated_badge, 1, _x + grid_size - ui(12), _y + ui(6));
+		}
+		
+		var fav = struct_exists(global.FAV_NODES, nodeName);
+		if(fav) {
+			gpu_set_tex_filter(true);
+			draw_sprite_ui_uniform(THEME.star, 0, _x + grid_size - ui(10), _y + grid_size - ui(10), .8, COLORS._main_accent, 1.);
+			gpu_set_tex_filter(false);
+		}
+		
+		var spr_x = _x + grid_size - 4;
+		var spr_y = _y + 4;
+				
+		if(IS_PATREON && patreon) {
+			BLEND_SUBTRACT
+			gpu_set_colorwriteenable(0, 0, 0, 1);
+			draw_sprite_ext(THEME.patreon_supporter, 0, spr_x, spr_y, 1, 1, 0, c_white, 1);
+			gpu_set_colorwriteenable(1, 1, 1, 1);
+			BLEND_NORMAL
+			
+			draw_sprite_ext(THEME.patreon_supporter, 1, spr_x, spr_y, 1, 1, 0, COLORS._main_accent, 1);
+			
+			if(point_in_circle(_mx, _my, spr_x, spr_y, 10)) TOOLTIP = __txt("Supporter exclusive");
+		}
+		
+		if(icon) draw_sprite_ext(icon, 0, spr_x, spr_y, 1, 1, 0, c_white, 1);
+	}
+	
+	static drawList = function(_x, _y, _mx, _my, _h, _w, _param = {}) {
+		var fav = struct_exists(global.FAV_NODES, nodeName);
+		if(fav) {
+			gpu_set_tex_filter(true);
+			draw_sprite_ui_uniform(THEME.star, 0, _x + ui(16), _y + _h / 2, .8, COLORS._main_accent, 1.);
+			gpu_set_tex_filter(false);
+		}
+				
+		var spr_x = _x + ui(32) + _h / 2;
+		var spr_y = _y + _h / 2;
+				
+		var ss = (_h - ui(8)) / max(sprite_get_width(spr), sprite_get_height(spr));
+		gpu_set_tex_filter(true);
+		draw_sprite_ext(spr, 0, spr_x, spr_y, ss, ss, 0, c_white, 1);
+		gpu_set_tex_filter(false);
+		
+		var tx = spr_x + _h / 2 + ui(4);
+		var ty =    _y + _h / 2;
+				
+		if(new_node) {
+			var _nx = _w - ui(6 + 18);
+			draw_sprite_ui_uniform(THEME.node_new_badge, 0, _nx, _y + _h / 2,, COLORS._main_accent);
+			draw_sprite_ui_uniform(THEME.node_new_badge, 1, _nx, _y + _h / 2);
+		}
+				
+		if(deprecated) {
+			var _nx = _w - ui(6 + 18);
+			draw_sprite_ui_uniform(THEME.node_deprecated_badge, 0, _nx, _y + _h / 2,, COLORS._main_value_negative);
+			draw_sprite_ui_uniform(THEME.node_deprecated_badge, 1, _nx, _y + _h / 2);
+		}	
+		
+		var _txt   = getName();
+		var _query = struct_try_get(_param, "query", "");
+		var _range = struct_try_get(_param, "range", 0);
+		
+		if(_query != "") {
+			draw_set_text(f_p2, fa_left, fa_center, COLORS._main_text_sub);
+			draw_text_add(tx, ty, _txt);
+			tx += string_width(_txt);
+			draw_sprite_ext(THEME.arrow, 0, tx + ui(12), ty, 1, 1, 0, COLORS._main_icon, 1);
+			tx += ui(24);
+			
+			_query = string_title(_query);
+			draw_set_text(f_p2, fa_left, fa_center, COLORS._main_text);
+			if(_range == 0) draw_text_add(tx, ty, _query);
+			else            draw_text_match_range(tx, ty, _query, _range);
+			tx += string_width(_query);
+			
+		} else {
+			draw_set_text(f_p2, fa_left, fa_center, COLORS._main_text);
+			if(_range == 0) draw_text_add(tx, ty, _txt);
+			else            draw_text_match_range(tx, ty, _txt, _range);
+			tx += string_width(_txt);
+		}
+		
+		if(IS_PATREON && patreon) {
+			var spr_x = tx + ui(4);
+			var spr_y = _y + _h / 2 - ui(6);
+						
+			gpu_set_colorwriteenable(0, 0, 0, 1); BLEND_SUBTRACT
+			draw_sprite_ext(THEME.patreon_supporter, 0, spr_x, spr_y, 1, 1, 0, c_white, 1);
+			gpu_set_colorwriteenable(1, 1, 1, 1); BLEND_NORMAL
+			
+			draw_sprite_ext(THEME.patreon_supporter, 1, spr_x, spr_y, 1, 1, 0, COLORS._main_accent, 1);
+			
+			if(point_in_circle(_mx, _my, spr_x, spr_y, ui(10))) TOOLTIP = __txt("Supporter exclusive");
+			
+			tx += ui(12);
+		}
+		
+		return tx;
+	}
+	
+	static serialize = function() {
+		var _str = {
+			name,
+			
+			spr: sprite_get_name(spr),
+			baseNode: nodeName,
+			io: ioArray,
+		}
+		
+		if(tooltip != "")      _str.tooltip        = tooltip;
+		if(createFn != noone)  _str.build          = script_get_name(createFn);
+		if(deprecated)         _str.deprecated     = true;
+		if(pxc_version)        _str.pxc_version    = pxc_version;
+		if(!show_in_recent)    _str.show_in_recent = show_in_recent;
+		if(!array_empty(tags)) _str.alias          = tags;
+		
+		return _str;
+	}
+	
+	static deserialize = function(_data, _dir) {
+		sourceDir = _dir;
+		
+		if(struct_has(_data, "tooltip")) setTooltip(_data.tooltip);
+		
+		if(struct_has(_data, "spr")) {
+			var _ispr = _data[$ "spr"];
+			_spr = asset_get_index(_ispr);
+				
+			if(sprite_exists(_spr)) spr = _spr;
+			else print($"Node icon not found {_ispr}");
+			
+		} else {
+			var pth = $"{sourceDir}/icon.png";
+			
+			if(file_exists_empty(pth)) {
+				spr = sprite_add(pth, 0, false, false, 0, 0);
+				sprite_set_offset(spr, sprite_get_width(spr) / 2, sprite_get_height(spr) / 2);
+			} else {
+				var _spr = asset_get_index($"s_{string_lower(nodeName)}");
+				if(sprite_exists(_spr)) spr = _spr;
+			}
+		}
+			
+		if(struct_has(_data, "io")) {
+			var _io = _data.io;
+			for( var i = 0, n = array_length(_io); i < n; i++ ) 
+				setIO(value_type_from_string(_io[i]));
+		}
+		
+		if(struct_has(_data, "build")) {
+			var _bfn = asset_get_index(_data.build);
+			if(_bfn != -1) setBuild(_bfn);
+		}
+	
+		if(struct_has(_data, "deprecated"))
+			isDeprecated();
+		
+		if(struct_has(_data, "alias"))
+			setTags(_data.alias);
+			
+		if(struct_has(_data, "show_in_recent"))
+			show_in_recent = _data.show_in_recent;
+			
+		if(struct_has(_data, "pxc_version"))
+			setVersion(_data.pxc_version);
+		
+		if(struct_has(_data, "params"))
+			setParam(_data.params);
+			
+		testable = _data[$ "testable"] ?? testable;
+		author   = _data[$ "author"]   ?? author;
+		license  = _data[$ "license"]  ?? license;
+			
+		if(struct_has(_data, "position")) {
+			for( var i = 0, n = array_length(_data.position); i < n; i++ ) {
+				var pos = _data.position[i];
+				if(struct_has(CUSTOM_NODES_POSITION, pos))
+					array_push(CUSTOM_NODES_POSITION[$ pos], self);
+				else 
+					CUSTOM_NODES_POSITION[$ pos] = [ self ];
+			}
+		}
+		
+		return self;
 	}
 }
 
-#region nodes
-	globalvar ALL_NODES, NODE_CATEGORY, NODE_PAGE_DEFAULT;
-	ALL_NODES		= ds_map_create();
-	NODE_CATEGORY	= ds_list_create();
+function nodeBuild(_name, _x, _y, _group = PANEL_GRAPH.getCurrentContext()) {
+	INLINE
 	
-	function nodeBuild(_name, _x, _y, _group = PANEL_GRAPH.getCurrentContext()) {
-		if(!ds_map_exists(ALL_NODES, _name)) {
-			log_warning("LOAD", "Node type " + _name + " not found");
-			return noone;
-		}
-			
-		var _node = ALL_NODES[? _name];
-		return _node.build(_x, _y, _group);
+	if(!struct_has(ALL_NODES, _name)) {
+		log_warning("LOAD", $"Node type {_name} not found");
+		return noone;
 	}
 	
-	function addNodeObject(_list, _name, _spr, _node, _fun, _tag = []) {
-		var _n = new NodeObject(_name, _spr, _node, _fun, _tag);
-		
-		ALL_NODES[? _node] = _n;
-		ds_list_add(_list, _n);
-	}
+	var _node  = ALL_NODES[$ _name];
+	var _bnode = _node.build(_x, _y, _group);
 	
-	function addNodeCatagory(name, list, filter = "") {
-		ds_list_add(NODE_CATEGORY, { name: name, list: list, filter: filter });
-	}
-	
-	var group = ds_list_create();
-	addNodeCatagory("Group", group, "Node_Group");
-	addNodeObject(group, "Input",	s_node_group_input,	"Node_Group_Input",		[1, Node_Group_Input]);
-	addNodeObject(group, "Output",	s_node_group_output,"Node_Group_Output",	[1, Node_Group_Output]);
-	
-	var iter = ds_list_create();
-	addNodeCatagory("Loop", iter, "Node_Iterate");
-	addNodeObject(iter, "Index",	s_node_iterator_index,	"Node_Iterator_Index",	[1, Node_Iterator_Index]);
-	addNodeObject(iter, "Input",	s_node_loop_input,		"Node_Iterator_Input",	[1, Node_Iterator_Input]);
-	addNodeObject(iter, "Output",	s_node_loop_output,		"Node_Iterator_Output",	[1, Node_Iterator_Output]);
-	
-	var feed = ds_list_create();
-	addNodeCatagory("Feedback", feed, "Node_Feedback");
-	addNodeObject(feed, "Input",	s_node_feedback_input,	"Node_Feedback_Input",	[1, Node_Feedback_Input]);
-	addNodeObject(feed, "Output",	s_node_feedback_output,	"Node_Feedback_Output",	[1, Node_Feedback_Output]);
-	
-	var vfx = ds_list_create();
-	addNodeCatagory("VFX", vfx, "Node_VFX_Group");
-	addNodeObject(vfx, "Input",			s_node_vfx_input,	"Node_Group_Input",		[1, Node_Group_Input]);
-	addNodeObject(vfx, "Output",		s_node_vfx_output,	"Node_Group_Output",	[1, Node_Group_Output]);
-	addNodeObject(vfx, "Spawner",		s_node_vfx_spawn,	"Node_VFX_Spawner",		[1, Node_VFX_Spawner]);
-	addNodeObject(vfx, "Renderer",		s_node_vfx_render,	"Node_VFX_Renderer",	[1, Node_VFX_Renderer]);
-	addNodeObject(vfx, "Accelerate",	s_node_vfx_accel,	"Node_VFX_Accelerate",	[1, Node_VFX_Accelerate]);
-	addNodeObject(vfx, "Destroy",		s_node_vfx_destroy,	"Node_VFX_Destroy",		[1, Node_VFX_Destroy]);
-	addNodeObject(vfx, "Attract",		s_node_vfx_attract,	"Node_VFX_Attract",		[1, Node_VFX_Attract]);
-	addNodeObject(vfx, "Wind",			s_node_vfx_wind,	"Node_VFX_Wind",		[1, Node_VFX_Wind]);
-	addNodeObject(vfx, "Vortex",		s_node_vfx_vortex,	"Node_VFX_Vortex",		[1, Node_VFX_Vortex]);
-	addNodeObject(vfx, "Turbulence",	s_node_vfx_turb,	"Node_VFX_Turbulence",	[1, Node_VFX_Turbulence]);
-	addNodeObject(vfx, "Repel",			s_node_vfx_repel,	"Node_VFX_Repel",		[1, Node_VFX_Repel]);
-	
-	var image = ds_list_create();
-	NODE_PAGE_DEFAULT = ds_list_size(NODE_CATEGORY);
-	ADD_NODE_PAGE = NODE_PAGE_DEFAULT;
-	addNodeCatagory("Image", image);
-	addNodeObject(image, "Canvas",				s_node_canvas,			"Node_Canvas",					[1, Node_Canvas], ["draw"]);
-	addNodeObject(image, "Image",				s_node_image,			"Node_Image",					[0, Node_create_Image]);
-	addNodeObject(image, "Image gif",			s_node_image_gif,		"Node_Image_gif",				[0, Node_create_Image_gif]);
-	addNodeObject(image, "Splice spritesheet",	s_node_image_sheet,		"Node_Image_Sheet",				[1, Node_Image_Sheet]);
-	addNodeObject(image, "Image array",			s_node_image_sequence,	"Node_Image_Sequence",			[0, Node_create_Image_Sequence]);
-	addNodeObject(image, "Animation",			s_node_image_animation, "Node_Image_Animated",			[0, Node_create_Image_Animated]);
-	addNodeObject(image, "Array to anim",		s_node_image_sequence_to_anim, "Node_Sequence_Anim",	[1, Node_Sequence_Anim]);
-	
-	var transform = ds_list_create();
-	addNodeCatagory("Transform", transform);
-	addNodeObject(transform, "Transform",		s_node_transform,		"Node_Transform",		[1, Node_Transform]);
-	addNodeObject(transform, "Scale",			s_node_scale,			"Node_Scale",			[1, Node_Scale], ["resize"]);
-	addNodeObject(transform, "Crop",			s_node_crop,			"Node_Crop",			[1, Node_Crop]);
-	addNodeObject(transform, "Mirror",			s_node_mirror,			"Node_Mirror",			[1, Node_Mirror]);
-	addNodeObject(transform, "Warp",			s_node_warp,			"Node_Warp",			[1, Node_Warp], ["wrap"]);
-	addNodeObject(transform, "Skew",			s_node_skew,			"Node_Skew",			[1, Node_Skew]);
-	addNodeObject(transform, "Mesh warp",		s_node_warp_mesh,		"Node_Mesh_Warp",		[1, Node_Mesh_Warp], ["mesh wrap"]);
-	addNodeObject(transform, "Compose",			s_node_compose,			"Node_Composite",		[1, Node_Composite], ["merge"]);
-	addNodeObject(transform, "Polar",			s_node_polar,			"Node_Polar",			[1, Node_Polar]);
-	addNodeObject(transform, "Nine slice",		s_node_9patch,			"Node_9Slice",			[1, Node_9Slice], ["9", "splice"]);
-	addNodeObject(transform, "Padding",			s_node_padding,			"Node_Padding",			[1, Node_Padding]);
-	addNodeObject(transform, "Area wrap",		s_node_padding,			"Node_Wrap_Area",		[1, Node_Wrap_Area]);
-	
-	var filter = ds_list_create();
-	addNodeCatagory("Filter", filter);
-	addNodeObject(filter, "Blend",				s_node_blend,			"Node_Blend",			[0, Node_create_Blend], ["normal", "add", "subtract", "multiply", "screen", "maxx", "minn"]);
-	addNodeObject(filter, "Outline",			s_node_border,			"Node_Outline",			[1, Node_Outline], ["border"]);
-	addNodeObject(filter, "Erode",				s_node_erode,			"Node_Erode",			[1, Node_Erode]);
-	addNodeObject(filter, "Trail",				s_node_trail,			"Node_Trail",			[1, Node_Trail]);
-	addNodeObject(filter, "Blur",				s_node_blur,			"Node_Blur",			[1, Node_Blur], ["gaussian"]);
-	addNodeObject(filter, "Directional Blur",	s_node_blur_directional,"Node_Blur_Directional",[1, Node_Blur_Directional]);
-	addNodeObject(filter, "Radial Blur",		s_node_blur,			"Node_Blur_Radial",		[1, Node_Blur_Radial]);
-	addNodeObject(filter, "Contrast Blur",		s_node_blur_contrast,	"Node_Blur_Contrast",	[1, Node_Blur_Contrast]);
-	addNodeObject(filter, "Twirl",				s_node_twirl,			"Node_Twirl",			[1, Node_Twirl], ["twist"]);
-	addNodeObject(filter, "Dilate",				s_node_dilate,			"Node_Dilate",			[1, Node_Dilate], ["inflate"]);
-	addNodeObject(filter, "Glow",				s_node_glow,			"Node_Glow",			[1, Node_Glow]);
-	addNodeObject(filter, "Shadow",				s_node_shadow,			"Node_Shadow",			[1, Node_Shadow]);
-	addNodeObject(filter, "Bloom",				s_node_bloom,			"Node_Bloom",			[1, Node_Bloom]);
-	addNodeObject(filter, "Replace color",		s_node_color_replace,	"Node_Color_replace",	[1, Node_Color_replace], ["isolate color", "select color"]);
-	addNodeObject(filter, "Remove color",		s_node_color_remove,	"Node_Color_Remove",	[1, Node_Color_Remove], ["delete color"]);
-	addNodeObject(filter, "Colorize",			s_node_colorize,		"Node_Colorize",		[1, Node_Colorize], ["recolor"]);
-	addNodeObject(filter, "Posterize",			s_node_posterize,		"Node_Posterize",		[1, Node_Posterize]);
-	addNodeObject(filter, "Dither",				s_node_dithering,		"Node_Dither",			[1, Node_Dither]);
-	addNodeObject(filter, "Adjust color",		s_node_color_adjust,	"Node_Color_adjust",	[1, Node_Color_adjust], ["brightness", "contrast", "hue", "saturation", "value", "color blend", "alpha"]);
-	addNodeObject(filter, "BW",					s_node_BW,				"Node_BW",				[1, Node_BW], ["black and white"]);
-	addNodeObject(filter, "Greyscale",			s_node_greyscale,		"Node_Greyscale",		[1, Node_Greyscale]);
-	addNodeObject(filter, "Invert",				s_node_invert,			"Node_Invert",			[1, Node_Invert], ["negate"]);
-	addNodeObject(filter, "RGB Channels",		s_node_RGB,				"Node_RGB_Channel",		[1, Node_RGB_Channel], ["channel extract"]);
-	addNodeObject(filter, "Level",				s_node_level,			"Node_Level",			[1, Node_Level]);
-	addNodeObject(filter, "Level selector",		s_node_level_selector,	"Node_Level_Selector",	[1, Node_Level_Selector]);
-	addNodeObject(filter, "Displace",			s_node_displace,		"Node_Displace",		[1, Node_Displace]);
-	addNodeObject(filter, "Alpha to grey",		s_node_alpha_grey,		"Node_Alpha_Grey",		[1, Node_Alpha_Grey]);
-	addNodeObject(filter, "Alpha cutoff",		s_node_alpha_cut,		"Node_Alpha_Cutoff",	[1, Node_Alpha_Cutoff], ["remove alpha"]);
-	addNodeObject(filter, "Grey to alpha",		s_node_grey_alpha,		"Node_Grey_Alpha",		[1, Node_Grey_Alpha]);
-	addNodeObject(filter, "De-corner",			s_node_decorner,		"Node_De_Corner",		[1, Node_De_Corner], ["decorner"]);
-	addNodeObject(filter, "De-stray",			s_node_destray,			"Node_De_Stray",		[1, Node_De_Stray], ["destray"]);
-	addNodeObject(filter, "Texture remap",		s_node_texture_map,		"Node_Texture_Remap",	[1, Node_Texture_Remap]);
-	addNodeObject(filter, "Time remap",			s_node_time_map,		"Node_Time_Remap",		[1, Node_Time_Remap]);
-	addNodeObject(filter, "2D light",			s_node_2d_light,		"Node_2D_light",		[1, Node_2D_light]);
-	addNodeObject(filter, "Atlas",				s_node_atlas,			"Node_Atlas",			[1, Node_Atlas]);
-	addNodeObject(filter, "Scale algorithm",	s_node_scale_algo,		"Node_Scale_Algo",		[0, Node_create_Scale_Algo], ["scale2x", "scale3x"]);
-	addNodeObject(filter, "Pixel cloud",		s_node_pixel_cloud,		"Node_Pixel_Cloud",		[1, Node_Pixel_Cloud]);
-	addNodeObject(filter, "Pixel sort",			s_node_pixel_sort,		"Node_Pixel_Sort",		[1, Node_Pixel_Sort]);
-	addNodeObject(filter, "Edge detect",		s_node_edge_detect,		"Node_Edge_Detect",		[1, Node_Edge_Detect]);
-	addNodeObject(filter, "Chromatic aberration",	s_node_chromatic_abarration,	"Node_Chromatic_Aberration",	[1, Node_Chromatic_Aberration]);
-	//addNodeObject(filter, "Corner",			s_node_corner,			"Node_Corner",			[1, Node_create_Corner]);
-	
-	var threeD = ds_list_create();
-	addNodeCatagory("3D", threeD);
-	addNodeObject(threeD, "3D Transform",		s_node_3d_transform,	"Node_3D_Transform",	[1, Node_3D_Transform]);
-	addNodeObject(threeD, "Normal",				s_node_normal,			"Node_Normal",			[1, Node_Normal]);
-	addNodeObject(threeD, "Normal light",		s_node_normal_light,	"Node_Normal_Light",	[1, Node_Normal_Light]);
-	addNodeObject(threeD, "Bevel",				s_node_bevel,			"Node_Bevel",			[1, Node_Bevel]);
-	addNodeObject(threeD, "Sprite stack",		s_node_stack,			"Node_Sprite_Stack",	[1, Node_Sprite_Stack]);
-	addNodeObject(threeD, "3D Obj",				s_node_3d_obj,			"Node_3D_Obj",			[1, Node_3D_Obj]);
-	addNodeObject(threeD, "3D Cube",			s_node_3d_cube,			"Node_3D_Cube",			[1, Node_3D_Cube]);
-	addNodeObject(threeD, "3D Cylinder",		s_node_3d_cylinder,		"Node_3D_Cylinder",		[1, Node_3D_Cylinder]);
-	addNodeObject(threeD, "3D Extrude",			s_node_3d_extrude,		"Node_3D_Extrude",		[1, Node_3D_Extrude]);
-	
-	var generator = ds_list_create();
-	addNodeCatagory("Generate", generator);
-	addNodeObject(generator, "Solid",				s_node_solid,				"Node_Solid",				[1, Node_Solid]);
-	addNodeObject(generator, "Gradient",			s_node_gradient,			"Node_Gradient",			[1, Node_Gradient]);
-	addNodeObject(generator, "4 Points Gradient",	s_node_gradient_4points,	"Node_Gradient_Points",		[1, Node_Gradient_Points]);
-	addNodeObject(generator, "Line",				s_node_line,				"Node_Line",				[1, Node_Line]);
-	addNodeObject(generator, "Stripe",				s_node_stripe,				"Node_Stripe",				[1, Node_Stripe]);
-	addNodeObject(generator, "Zigzag",				s_node_zigzag,				"Node_Zigzag",				[1, Node_Zigzag]);
-	addNodeObject(generator, "Checker",				s_node_checker,				"Node_Checker",				[1, Node_Checker]);
-	addNodeObject(generator, "Shape",				s_node_shape,				"Node_Shape",				[1, Node_Shape]);
-	addNodeObject(generator, "Particle",			s_node_particle,			"Node_Particle",			[1, Node_Particle]);
-	addNodeObject(generator, "VFX",					s_node_vfx,					"Node_VFX_Group",			[1, Node_VFX_Group]);
-	//addNodeObject(generator, "Particle Effector",	s_node_particle_effector,	"Node_Particle_Effector",	[1, Node_Particle_Effector], ["affector"]);
-	addNodeObject(generator, "Scatter",				s_node_scatter,				"Node_Scatter",				[1, Node_Scatter]);
-	addNodeObject(generator, "Noise",				s_node_noise,				"Node_Noise",				[1, Node_Noise]);
-	addNodeObject(generator, "Perlin noise",		s_node_noise_perlin,		"Node_Perlin",				[1, Node_Perlin]);
-	addNodeObject(generator, "Cellular noise",		s_node_noise_cell,			"Node_Cellular",			[1, Node_Cellular], ["Voronoi", "Worley"]);
-	addNodeObject(generator, "Grid noise",			s_node_grid_noise,			"Node_Grid_Noise",			[1, Node_Grid_Noise]);
-	addNodeObject(generator, "Grid",				s_node_grid,				"Node_Grid",				[1, Node_Grid], ["tile"]);
-	addNodeObject(generator, "Grid triangle",		s_node_grid_tri,			"Node_Grid_Tri",			[1, Node_Grid_Tri]);
-	addNodeObject(generator, "Grid hexagonal",		s_node_grid_hex,			"Node_Grid_Hex",			[1, Node_Grid_Hex]);
-	addNodeObject(generator, "Anisotropic noise",	s_node_noise_aniso,			"Node_Noise_Aniso",			[1, Node_Noise_Aniso]);
-	addNodeObject(generator, "Seperate shape",	    s_node_sepearte_shape,		"Node_Seperate_Shape",		[1, Node_Seperate_Shape]);
-	addNodeObject(generator, "Draw text",			s_node_text_render,			"Node_Text",				[1, Node_Text]);
-	
-	var renderNode = ds_list_create();
-	addNodeCatagory("Render", renderNode);
-	addNodeObject(renderNode, "Render sprite sheet",	s_node_sprite_sheet,	"Node_Render_Sprite_Sheet",	[1, Node_Render_Sprite_Sheet]);
-	addNodeObject(renderNode, "Export",					s_node_export,			"Node_Export",				[0, Node_create_Export]);
-	addNodeObject(renderNode, "Camera",					s_node_camera,			"Node_Camera",				[1, Node_Camera]);
-	//addNodeObject(renderNode, "Preview timeline",		s_node_timeline_preview,"Node_Timeline_Preview",	[1, Node_create_Timeline_Preview]);
-	
-	var values = ds_list_create();
-	addNodeCatagory("Values", values);
-	addNodeObject(values, "Math",			s_node_math,			"Node_Math",			[0, Node_create_Math], ["add", "subtract", "multiply", "divide", "power", "modulo", "round", "ceiling", "floor", "sin", "cos", "tan"]);
-	addNodeObject(values, "Statistic",		s_node_statistic,		"Node_Statistic",		[0, Node_create_Statistic], ["sum", "average", "mean", "median", "min", "max"]);
-	addNodeObject(values, "Number",			s_node_number,			"Node_Number",			[1, Node_Number]);
-	addNodeObject(values, "Vector2",		s_node_vec2,			"Node_Vector2",			[1, Node_Vector2]);
-	addNodeObject(values, "Vector3",		s_node_vec3,			"Node_Vector3",			[1, Node_Vector3]);
-	addNodeObject(values, "Vector4",		s_node_vec4,			"Node_Vector4",			[1, Node_Vector4]);
-	addNodeObject(values, "Vector split",	s_node_vec_split,		"Node_Vector_Split",	[1, Node_Vector_Split]);
-	addNodeObject(values, "Unicode",		s_node_unicode,			"Node_Unicode",			[1, Node_Unicode]);
-	addNodeObject(values, "Text",			s_node_text,			"Node_String",			[1, Node_String]);
-	addNodeObject(values, "Split text",		s_node_text_splice,		"Node_String_Split",	[1, Node_String_Split]);
-	addNodeObject(values, "Path",			s_node_path,			"Node_Path",			[1, Node_Path]);
-	addNodeObject(values, "Area",			s_node_area,			"Node_Area",			[1, Node_Area]);
-	addNodeObject(values, "Array",			s_node_array,			"Node_Array",			[1, Node_Array]);
-	addNodeObject(values, "Array range",	s_node_array_range,		"Node_Array_Range",		[1, Node_Array_Range]);
-	addNodeObject(values, "Array add",		s_node_array_add,		"Node_Array_Add",		[1, Node_Array_Add]);
-	addNodeObject(values, "Array length",	s_node_array_length,	"Node_Array_Length",	[1, Node_Array_Length]);
-	addNodeObject(values, "Array get",		s_node_array_get,		"Node_Array_Get",		[1, Node_Array_Get]);
-	//addNodeObject(number, "Surface data",	s_node_surface_data,	"Node_Surface_data",	[1, Node_Surface_data]);
-	
-	var color = ds_list_create();
-	addNodeCatagory("Color", color);
-	addNodeObject(color, "Color",		s_node_color_out,		"Node_Color",			[1, Node_Color]);
-	addNodeObject(color, "RGB Color",	s_node_color_from_rgb,	"Node_Color_RGB",		[1, Node_Color_RGB]);
-	addNodeObject(color, "HSV Color",	s_node_color_from_hsv,	"Node_Color_HSV",		[1, Node_Color_HSV]);
-	addNodeObject(color, "Palette",		s_node_palette,			"Node_Palette",			[1, Node_Palette]);
-	addNodeObject(color, "Gradient",	s_node_gradient_out,	"Node_Gradient_Out",	[1, Node_Gradient_Out]);
-	addNodeObject(color, "Sampler",		s_node_sampler,			"Node_Sampler",			[1, Node_Sampler]);
-	addNodeObject(color, "Color data",	s_node_color_data,		"Node_Color_Data",		[1, Node_Color_Data]);
-	
-	var animation = ds_list_create();
-	addNodeCatagory("Animation", animation);
-	addNodeObject(animation, "Counter",	s_node_counter,	"Node_Counter",		[1, Node_Counter]);
-	addNodeObject(animation, "Wiggler", s_node_wiggler,	"Node_Wiggler",		[1, Node_Wiggler]);
-	addNodeObject(animation, "Curve",	s_node_curve,	"Node_Anim_Curve",	[1, Node_Anim_Curve]);
-	
-	var node = ds_list_create();
-	addNodeCatagory("Node", node);
-	addNodeObject(node, "Group",			s_node_group,		"Node_Group",			[1, Node_Group]);
-	addNodeObject(node, "Feedback",			s_node_feedback,	"Node_Feedback",		[1, Node_Feedback]);
-	addNodeObject(node, "Loop",				s_node_loop,		"Node_Iterate",			[1, Node_Iterate]);
-	addNodeObject(node, "Pin",				s_node_pin,			"Node_Pin",				[1, Node_Pin]);
-	addNodeObject(node, "Frame",			s_node_frame,		"Node_Frame",			[1, Node_Frame]);
-	addNodeObject(node, "Display text",		s_node_text,		"Node_Display_Text",	[1, Node_Display_Text]);
-	addNodeObject(node, "Display image",	s_node_image,		"Node_Display_Image",	[0, Node_create_Display_Image]);
-	addNodeObject(node, "Condition",		s_node_condition,	"Node_Condition",		[1, Node_Condition]);
-#endregion
+	return _bnode;
+}
 
-#region node function
-	function nodeLoad(_data, scale = false) {
-		if(!ds_exists(_data, ds_type_map)) return noone;
+	////- Nodes
+
+function __read_node_directory(dir) {
+	if(!directory_exists(dir)) return;
+	__read_node_folder(dir);
+	
+	var _dirs = [];
+	var _f = file_find_first(dir + "/*", fa_directory);
+	var f, p;
+	
+	while(_f != "") {
+		 f = _f;
+		 p = dir + "/" + f;
+		_f = file_find_next();
 		
-		var _x    = ds_map_try_get(_data, "x", 0);
-		var _y    = ds_map_try_get(_data, "y", 0);
-		var _type = ds_map_try_get(_data, "type", 0);
-		var _node = nodeBuild(_type, _x, _y);
+		if(!directory_exists(p)) continue;
+		array_push(_dirs, p);
+	}
+	file_find_close();
+	
+	array_foreach(_dirs, function(d) /*=>*/ {return __read_node_directory(d)});
+}
+
+function __read_node_folder(dir) {
+	var _info = dir + "/info.json";
+	if(!file_exists(_info)) return;
+	
+	var _data = json_load_struct(_info);
+	var _name = _data[$ "name"];
+	var _base = _data[$ "baseNode"];
+	var _inme = _data[$ "iname"] ?? _base;
+	var _custom = _data[$ "custom"] ?? false;
+	
+	if(is_undefined(_base)) {
+		print($"NODE ERROR: baseNode not found in {_info}.");
+		return;
+	}
+	
+	if(struct_has(ALL_NODES, _inme))
+		print($"NODE WARNING: Duplicate node iname {_inme} | {dir}.");
 		
-		if(_node) {
-			var map = ds_map_clone(_data);
-			_node.deserialize(map, scale);
-		}
+	var _node = asset_get_index(_base);
+	var _n = new NodeObject(_name, _node);
+	
+	_n.nodekey = _inme;
+	_n.deserialize(_data, dir);
+	
+	ALL_NODES[$ _inme] = _n;
+	
+	if(_custom) array_push(CUSTOM_NODES, _n);
+	return _n;
+}
+
+function __read_node_display(_list) {
+	var _currLab = "";
+	
+	for( var i = 0, n = array_length(_list); i < n; i++ ) {
+		var _dl     = _list[i];
+		var _name   = _dl.name;
+		var _iname  = _dl[$ "iname"] ?? _name;
+		var _filter = _dl[$ "context"] ?? undefined;
+		var _ctx    = _dl[$ "globalContext"] ?? "";
+		var _color  = struct_has(_dl, "color")? COLORS[$ _dl.color] : undefined;
+		
+		var _kname = _iname;
+		var _nodes = _dl.nodes;
+		var _head  = "";
+		var _lab   = "";
+		
+		if(struct_has(NODE_CATEGORY_MAP, _iname)) {
+			_lobj = NODE_CATEGORY_MAP[$ _iname];
+			_l = _lobj.list;
 			
-		return _node;
-	}
-	
-	function nodeDelete(node, _merge = false) {
-		var list = node.group == -1? NODES : node.group.nodes;
-		ds_list_delete(list, ds_list_find_index(list, node));
-		node.destroy(_merge);
-		
-		recordAction(ACTION_TYPE.node_delete, node);
-	}
-	
-	function nodeCleanUp() {
-		var key = ds_map_find_first(NODE_MAP);
-		repeat(ds_map_size(NODE_MAP)) {
-			if(NODE_MAP[? key]) {
-				NODE_MAP[? key].cleanUp();
-				delete NODE_MAP[? key];
-			}
-			key = ds_map_find_next(NODE_MAP, key);
+		} else {
+			var _l     = [];
+			var _lobj  = { 
+				name   : _name, 
+				list   : _l, 
+				filter : _filter,
+				color  : _color,
+			};
+			NODE_CATEGORY_MAP[$ _iname] = _lobj;
 		}
-		ds_map_clear(NODE_MAP);
-		ds_list_clear(NODES);	
+		
+		switch(_ctx) {
+			case "pb"  : array_push(NODE_PB_CATEGORY, _lobj);  break;
+			case "pcx" : array_push(NODE_PCX_CATEGORY, _lobj); break;
+			default    : array_insert(NODE_CATEGORY, NODE_PAGE_LAST++, _lobj); break;
+		}
+		
+		for( var j = 0, m = array_length(_nodes); j < m; j++ ) {
+			var _n = _nodes[j];
+			
+			if(is_string(_n)) {
+				if(struct_has(ALL_NODES, _n)) {
+					var _node = ALL_NODES[$ _n];
+					
+					if(_node.new_node) {
+						if(_currLab != _head)
+							array_push(NEW_NODES, _head);
+						_currLab = _head;
+						array_push(NEW_NODES, _node);
+					}
+					
+					array_push(_l, _node);
+					
+				} else {
+					var _txt = $"Missing node data [{_n}]: Check if node folder exists in {DIRECTORY}Nodes\Internal";
+					// print(_txt);
+					noti_warning(_txt);
+				}
+			}
+			
+			if(is_struct(_n) && struct_has(_n, "label")) {
+				var _k = _kname; if(_head != "") _k += "/" + _head; if(_lab != "") _k += "/" + _lab;
+				array_append(_l, CUSTOM_NODES_POSITION[$ _k]);
+				
+				if(!string_starts_with(_n.label, "/")) _head = _n.label; 
+				else _lab = string_trim_start(_n.label, ["/"]);
+				
+				array_push(_l, _n.label);
+			}
+		}
+		
+		var _k = _kname; if(_head != "") _k += "/" + _head; if(_lab != "") _k += "/" + _lab;
+		array_append(_l, CUSTOM_NODES_POSITION[$ _k]);
 	}
-#endregion
+	
+}
+
+function __read_node_display_folder(dir) {
+	if(!directory_exists(dir)) return;
+	
+	var _dirs = [];
+	var _f = file_find_first(dir + "/*", fa_directory);
+	
+	while(_f != "") {
+		array_push(_dirs, dir + "/" + _f);
+		_f = file_find_next();
+	}
+	file_find_close();
+	
+	var _f = file_find_first(dir + "/*", 0);
+	
+	while(_f != "") {
+		if(_f == "display_data.json") {
+			var _data = json_load_struct(dir + "/" + _f);
+			__read_node_display(_data);
+		}
+		
+		_f = file_find_next();
+	}
+	file_find_close();
+	
+	array_foreach(_dirs, function(d) /*=>*/ {return __read_node_display_folder(d)});
+}
+
+function __initNodes(unzip = true) { 
+	CUSTOM_NODES_POSITION = {};
+	ALL_NODES		      = {};
+	NODE_CATEGORY_MAP     = {};
+	NODE_CATEGORY	      = [];
+	NODE_PB_CATEGORY      = [];
+	NODE_PCX_CATEGORY     = [];
+	SUPPORTER_NODES       = [];
+	NEW_NODES		      = [];
+	CUSTOM_NODES	      = [];
+	CUSTOM_NODES_POSITION = {};
+	
+	global.FAV_NODES      = {};
+	
+	NODE_PAGE_DEFAULT = 0;
+	ADD_NODE_PAGE     = 0;
+	NODE_PAGE_LAST    = 0;
+	
+	////- DATA
+	
+	if(unzip) {
+		directory_verify($"{DIRECTORY}Nodes");
+		if(check_version($"{DIRECTORY}Nodes/version", "internal")) 
+			zip_unzip("data/Nodes/Internal.zip", $"{DIRECTORY}Nodes");
+	}
+	
+	__read_node_directory($"{DIRECTORY}Nodes");
+	
+	if(IS_CMD) return;
+	
+	////- DISPLAY
+	
+	if(unzip) {
+		var _relFrom = $"data/Nodes/display_data.json";
+		var _relTo   = $"{DIRECTORY}Nodes/display_data.json";
+		file_copy_override(_relFrom, _relTo);
+	}
+	
+	__read_node_display_folder($"{DIRECTORY}Nodes");
+	
+	__initNodeActions();           array_push(NODE_CATEGORY, { name : "Action", list : NODE_ACTION_LIST });
+	if(IS_PATREON)                 array_push(NODE_CATEGORY, { name : "Extra",  list : SUPPORTER_NODES  });
+	if(!array_empty(CUSTOM_NODES)) array_push(NODE_CATEGORY, { name : "Custom", list : CUSTOM_NODES     });
+	
+	////- FAV
+	
+	var favPath = $"{DIRECTORY}Nodes/fav.json";
+	if(file_exists_empty(favPath)) {
+		var favs = json_load_struct(favPath);
+		for (var i = 0, n = array_length(favs); i < n; i++)
+			global.FAV_NODES[$ favs[i]] = 1;
+	}
+	
+	var recPath = $"{DIRECTORY}Nodes/recent.json";
+	global.RECENT_NODES = file_exists_empty(recPath)? json_load_struct(recPath) : [];
+	if(!is_array(global.RECENT_NODES)) global.RECENT_NODES = [];
+	
+	////- HLSL
+	
+	__initHLSL();
+}
+
+function __generateNodeData() {
+	var _dir = "D:/Project/MakhamDev/LTS-PixelComposer/PixelComposer/datafiles/data/Nodes/Internal"
+	
+	for( var i = 0, n = array_length(NODE_CATEGORY); i < n; i++ ) {
+		var _cat = NODE_CATEGORY[i];
+		
+		var _lnme = _cat.name;
+		var _list = _cat.list;
+		directory_verify($"{_dir}/{_lnme}");
+		
+		for( var j = 0, m = array_length(_list); j < m; j++ ) {
+			var _node = _list[j];
+			if(!is(_node, NodeObject)) continue;
+			
+			var _nme  = _node.nodeName;
+			var _vnme = filename_name_validate(_nme);
+			
+			var _str  = _node.serialize();
+			directory_verify($"{_dir}/{_lnme}/{_vnme}");
+			json_save_struct($"{_dir}/{_lnme}/{_vnme}/info.json", _str, true);
+		}
+	}
+	
+	for( var i = 0, n = array_length(NODE_PB_CATEGORY); i < n; i++ ) {
+		var _cat = NODE_PB_CATEGORY[i];
+		
+		var _lnme = _cat.name;
+		var _list = _cat.list;
+		directory_verify($"{_dir}/{_lnme}");
+		
+		for( var j = 0, m = array_length(_list); j < m; j++ ) {
+			var _node = _list[j];
+			if(!is(_node, NodeObject)) continue;
+			
+			var _nme  = _node.nodeName;
+			var _vnme = filename_name_validate(_nme);
+			
+			var _str  = _node.serialize();
+			directory_verify($"{_dir}/pb_{_lnme}/{_vnme}");
+			json_save_struct($"{_dir}/pb_{_lnme}/{_vnme}/info.json", _str, true);
+		}
+	}
+	
+	for( var i = 0, n = array_length(NODE_PCX_CATEGORY); i < n; i++ ) {
+		var _cat = NODE_PCX_CATEGORY[i];
+		
+		var _lnme = _cat.name;
+		var _list = _cat.list;
+		directory_verify($"{_dir}/{_lnme}");
+		
+		for( var j = 0, m = array_length(_list); j < m; j++ ) {
+			var _node = _list[j];
+			if(!is(_node, NodeObject)) continue;
+			
+			var _nme  = _node.nodeName;
+			var _vnme = filename_name_validate(_nme);
+			
+			var _str  = _node.serialize();
+			directory_verify($"{_dir}/pcx_{_lnme}/{_vnme}");
+			json_save_struct($"{_dir}/pcx_{_lnme}/{_vnme}/info.json", _str, true);
+		}
+	}
+}

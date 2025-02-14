@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_anim_curve",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_anim_curve",
+  "parent":{
+    "name":"animation",
+    "path":"folders/nodes/data/animation.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

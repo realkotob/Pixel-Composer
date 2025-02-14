@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_bloom_pass",
+  "name":"sh_bloom_pass",
+  "parent":{
+    "name":"effects",
+    "path":"folders/nodes/data/filter/effects.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

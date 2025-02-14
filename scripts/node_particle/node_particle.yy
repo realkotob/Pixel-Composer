@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "node_particle",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "generator",
-    "path": "folders/nodes/data/generator.yy",
+  "$GMScript":"v1",
+  "%Name":"node_particle",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_particle",
+  "parent":{
+    "name":"VFX",
+    "path":"folders/nodes/data/simulation/VFX.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

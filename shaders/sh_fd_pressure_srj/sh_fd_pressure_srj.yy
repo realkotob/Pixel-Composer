@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_fd_pressure_srj",
+  "name":"sh_fd_pressure_srj",
+  "parent":{
+    "name":"Shaders",
+    "path":"folders/nodes/data/simulation/smokeSim/Shaders.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

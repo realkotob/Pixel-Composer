@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "node_zigzag",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "generator",
-    "path": "folders/nodes/data/generator.yy",
+  "$GMScript":"v1",
+  "%Name":"node_zigzag",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_zigzag",
+  "parent":{
+    "name":"pattern",
+    "path":"folders/nodes/data/generator/pattern.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

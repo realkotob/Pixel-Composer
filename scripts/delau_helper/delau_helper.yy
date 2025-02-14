@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"delau_helper",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"delau_helper",
+  "parent":{
+    "name":"delaunay",
+    "path":"folders/functions/delaunay.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

@@ -1,115 +1,155 @@
-function Node_Dither(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
-	static dither2 =    [  0,  2,
-					       3,  1 ];
-	static dither4 =    [  0,  8,  2, 10,
-					      12,  4, 14,  6,
-					       3, 11,  1,  9,
-					      15,  7, 13,  5];
-	static dither8 =  [    0, 32,  8, 40,  2, 34, 10, 42, 
-						  48, 16, 56, 24, 50, 18, 58, 26,
-						  12, 44,  4, 36, 14, 46,  6, 38, 
-						  60, 28, 52, 20, 62, 30, 54, 22,
-						   3, 35, 11, 43,  1, 33,  9, 41,
-						  51, 19, 59, 27, 49, 17, 57, 25,
-						  15, 47,  7, 39, 13, 45,  5, 37,
-						  63, 31, 55, 23, 61, 29, 53, 21];
+#region
+	FN_NODE_CONTEXT_INVOKE {
+		addHotkey("Node_Dither", "Pattern > Toggle", "P", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[2].setValue((_n.inputs[2].getValue() + 1) % 4); });
+		addHotkey("Node_Dither", "Mode > Toggle",    "M", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[6].setValue(!_n.inputs[6].getValue()); });
+		addHotkey("Node_Dither", "Contrast > Set", KEY_GROUP.numeric, MOD_KEY.none, function(val) /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[4].setValue(toNumber(chr(keyboard_key))); });
+	});
+#endregion
+
+function Node_Dither(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
+	static dither2 = [  0,  2,
+					    3,  1 ];
+	static dither4 = [  0,  8,  2, 10,
+					   12,  4, 14,  6,
+					    3, 11,  1,  9,
+					   15,  7, 13,  5];
+	static dither8 = [  0, 32,  8, 40,  2, 34, 10, 42, 
+					   48, 16, 56, 24, 50, 18, 58, 26,
+					   12, 44,  4, 36, 14, 46,  6, 38, 
+					   60, 28, 52, 20, 62, 30, 54, 22,
+					    3, 35, 11, 43,  1, 33,  9, 41,
+					   51, 19, 59, 27, 49, 17, 57, 25,
+					   15, 47,  7, 39, 13, 45,  5, 37,
+					   63, 31, 55, 23, 61, 29, 53, 21];
 	
 	name = "Dither";
 	
-	uniform_dither_size	= shader_get_uniform(sh_dither, "ditherSize");
-	uniform_dither     	= shader_get_uniform(sh_dither, "dither");
+	newInput(0, nodeValue_Surface("Surface In", self));
 	
-	uniform_dim		= shader_get_uniform(sh_dither, "dimension");
-	uniform_color	= shader_get_uniform(sh_dither, "palette");
-	uniform_key		= shader_get_uniform(sh_dither, "keys");
+	newInput(1, nodeValue_Palette("Palette", self, array_clone(DEF_PALETTE)));
 	
-	uniform_constrast	= shader_get_uniform(sh_dither, "contrast");
-	uniform_con_map_use = shader_get_uniform(sh_dither, "useConMap");
-	uniform_con_map		= shader_get_sampler_index(sh_dither, "conMap");
+	newInput(2, nodeValue_Enum_Scroll("Pattern", self,  0, [ "2 x 2 Bayer", "4 x 4 Bayer", "8 x 8 Bayer", "White Noise", "Custom" ]));
 	
-	uniform_map_use = shader_get_uniform(sh_dither, "useMap");
-	uniform_map		= shader_get_sampler_index(sh_dither, "map");
-	uniform_map_dim = shader_get_uniform(sh_dither, "mapDimension");
+	newInput(3, nodeValue_Surface("Dither map", self))
+		.setVisible(false);
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
-	inputs[| 1] = nodeValue(1, "Palette", self, JUNCTION_CONNECT.input, VALUE_TYPE.color, [ c_white ])
-		.setDisplay(VALUE_DISPLAY.palette);
+	newInput(4, nodeValue_Float("Contrast", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider, { range: [1, 5, 0.1] });
 	
-	inputs[| 2] = nodeValue(2, "Pattern", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0)
-		.setDisplay(VALUE_DISPLAY.enum_scroll, [ "2 x 2 Bayer", "4 x 4 Bayer", "8 x 8 Bayer", "Custom" ]);
+	newInput(5, nodeValue_Surface("Contrast map", self));
 	
-	inputs[| 3] = nodeValue(3, "Dither map", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
+	newInput(6, nodeValue_Enum_Button("Mode", self, 0, [ "Color", "Alpha" ]));
 	
-	inputs[| 4] = nodeValue(4, "Contrast", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 1)
-		.setDisplay(VALUE_DISPLAY.slider, [1, 5, 0.1]);
+	newInput(7, nodeValue_Surface("Mask", self));
 	
-	inputs[| 5] = nodeValue(5, "Contrast map", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
+	newInput(8, nodeValue_Float("Mix", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider);
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(9, nodeValue_Bool("Active", self, true));
+		active_index = 9;
 	
-	static process_data = function(_outSurf, _data, _output_index) {
-		var _pal = _data[1];
-		var _typ = _data[2];
-		var _map = _data[3];
-		var _con = _data[4];
+	newInput(10, nodeValue_Toggle("Channel", self, 0b1111, { data: array_create(4, THEME.inspector_channel) }));
+	
+	__init_mask_modifier(7); // inputs 11, 12, 
+	
+	newInput(13, nodeValueSeed(self));
+		
+	newInput(14, nodeValue_Bool("Use palette", self, true));
+	
+	newInput(15, nodeValue_Int("Steps", self, 4))
+		.setDisplay(VALUE_DISPLAY.slider, { range: [2, 16, 0.1] });
+	
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	input_display_list = [ 9, 10, 13, 
+		["Surfaces", true], 0, 7, 8, 11, 12, 
+		["Pattern",	false], 2, 3, 
+		["Dither",	false], 6, 4, 5, 
+		["Palette", false, 14], 1, 15, 
+	]
+	
+	attribute_surface_depth();
+	
+	static step = function() {
+		__step_mask_modifier();
+		
+		var _type    = getInputData(2);
+		var _mode    = getInputData(6);
+		var _use_pal = getInputData(14);
+		
+		inputs[3].setVisible(_type == 4, _type == 4);
+		inputs[1].setVisible(_mode == 0 && _use_pal);
+		inputs[4].setVisible(_mode == 0);
+		inputs[5].setVisible(_mode == 0);
+		
+		inputs[15].setVisible(!_use_pal);
+	}
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
+		var _pal    = _data[1];
+		var _typ    = _data[2];
+		var _map    = _data[3];
+		var _con    = _data[4];
 		var _conMap = _data[5];
+		var _mode   = _data[6];
+		var _seed   = _data[13];
+		var _usepal = _data[14];
+		var _step   = _data[15];
 		
-		var _colors = array_create(array_length(_pal) * 4);
-		for(var i = 0; i < array_length(_pal); i++) {
-			_colors[i * 4 + 0] = color_get_red(_pal[i]) / 255;
-			_colors[i * 4 + 1] = color_get_green(_pal[i]) / 255;
-			_colors[i * 4 + 2] = color_get_blue(_pal[i]) / 255;
-			_colors[i * 4 + 3] = 1;
-		}
-		
-		surface_set_target(_outSurf);
-			draw_clear_alpha(0, 0);
-			BLEND_ADD
+		surface_set_shader(_outSurf, _mode? sh_alpha_hash : sh_dither);
+			shader_set_f("dimension", surface_get_dimension(_data[0]));
 			
-			shader_set(sh_dither);
-			shader_set_uniform_f_array(uniform_dim, [ surface_get_width(_data[0]), surface_get_height(_data[0]) ] );
-			shader_set_uniform_f_array(uniform_color, _colors);
-			shader_set_uniform_i(uniform_key, array_length(_pal));
-				
-			shader_set_uniform_i(uniform_con_map_use, _conMap == DEF_SURFACE? 0 : 1);
-			texture_set_stage(uniform_con_map, surface_get_texture(_conMap));
-			shader_set_uniform_f(uniform_constrast, _con);
-				
 			switch(_typ) {
 				case 0 :
-					inputs[| 3].setVisible(false);
-					shader_set_uniform_i(uniform_map_use, 0);
-					shader_set_uniform_f(uniform_dither_size, 2);
-					shader_set_uniform_f_array(uniform_dither, dither2);
+					shader_set_i("useMap",		0);
+					shader_set_f("ditherSize",	2);
+					shader_set_f("dither",		dither2);
 					break;
+					
 				case 1 :
-					inputs[| 3].setVisible(false);
-					shader_set_uniform_i(uniform_map_use, 0);
-					shader_set_uniform_f(uniform_dither_size, 4);
-					shader_set_uniform_f_array(uniform_dither, dither4);
+					shader_set_i("useMap",		0);
+					shader_set_f("ditherSize",	4);
+					shader_set_f("dither",		dither4);
 					break;
+					
 				case 2 :
-					inputs[| 3].setVisible(false);
-					shader_set_uniform_i(uniform_map_use, 0);
-					shader_set_uniform_f(uniform_dither_size, 8);
-					shader_set_uniform_f_array(uniform_dither, dither8);
+					shader_set_i("useMap",		0);
+					shader_set_f("ditherSize",	8);
+					shader_set_f("dither",		dither8);
 					break;
+					
 				case 3 :
-					inputs[| 3].setVisible(true);
+					shader_set_i("useMap",		2);
+					shader_set_f("seed",	_seed);
+					break;
+					
+				case 4 :
 					if(is_surface(_map)) {
-						shader_set_uniform_i(uniform_map_use, 1);
-						shader_set_uniform_f_array(uniform_map_dim, [ surface_get_width(_map), surface_get_height(_map) ]);
-						texture_set_stage(uniform_map, surface_get_texture(_map));
+						shader_set_i("useMap",		 1);
+						shader_set_f("mapDimension", surface_get_dimension(_map));
+						shader_set_surface("map",	 _map);
 					}
 					break;
 			}
 			
-			draw_surface_safe(_data[0], 0, 0);
-			shader_reset();
+			if(_mode == 0) {
+				shader_set_f("contrast",     _con);
+				shader_set_i("useConMap",    is_surface(_conMap));
+				shader_set_surface("conMap", _conMap);
 				
-			BLEND_NORMAL 
-		surface_reset_target();
+				shader_set_i("usePalette",	 _usepal);
+				shader_set_f("palette",		 paletteToArray(_pal));
+				shader_set_f("colors",		 _step);
+				shader_set_i("keys",		 array_length(_pal));
+			}
+			
+			draw_surface_safe(_data[0]);
+		surface_reset_shader();
 		
-		return _outSurf;
+		__process_mask_modifier(_data);
+		_outSurf = mask_apply(_data[0], _outSurf, _data[7], _data[8]);
+		_outSurf = channel_apply(_data[0], _outSurf, _data[10]);
+		
+		return _outSurf; 
 	}
 }

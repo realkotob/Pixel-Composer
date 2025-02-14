@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"draw_line_width_vertex",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"draw_line_width_vertex",
+  "parent":{
+    "name":"draw",
+    "path":"folders/functions/draw.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

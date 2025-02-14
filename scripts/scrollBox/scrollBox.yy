@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "scrollBox",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "widgets",
-    "path": "folders/widgets.yy",
+  "$GMScript":"v1",
+  "%Name":"scrollBox",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scrollBox",
+  "parent":{
+    "name":"widgets",
+    "path":"folders/widgets.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

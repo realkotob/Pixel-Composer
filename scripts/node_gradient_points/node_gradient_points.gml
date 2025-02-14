@@ -1,74 +1,103 @@
-function Node_Gradient_Points(_x, _y, _group = -1) : Node(_x, _y, _group) constructor {
-	name = "4 Points gradient";
+function Node_Gradient_Points(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
+	name = "Draw 4 Points Gradient";
 	
-	shader = sh_gradient_points;
-	uniform_dim = shader_get_uniform(shader, "dimension");
-	uniform_cen = shader_get_uniform(shader, "center");
-	uniform_col = shader_get_uniform(shader, "color");
+	newInput(0, nodeValue_Dimension(self));
 	
-	inputs[| 0] = nodeValue(0, "Dimension", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, def_surf_size2 )
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(1, nodeValue_Vec2("Center 1", self, [ 0, 0 ])).setUnitRef(function(i) /*=>*/ {return getDimension(i)}, VALUE_UNIT.reference);
+	newInput(2, nodeValue_Color("Color 1", self, cola(c_white) ));
 	
-	inputs[| 1] = nodeValue(1, "Center 1", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [ 0, 0 ] )
-		.setDisplay(VALUE_DISPLAY.vector);
-	inputs[| 2] = nodeValue(2, "Color 1", self, JUNCTION_CONNECT.input, VALUE_TYPE.color, c_white );
+	newInput(3, nodeValue_Vec2("Center 2", self, [ 1, 0 ])).setUnitRef(function(i) /*=>*/ {return getDimension(i)}, VALUE_UNIT.reference);
+	newInput(4, nodeValue_Color("Color 2", self, cola(c_white) ));
 	
-	inputs[| 3] = nodeValue(3, "Center 2", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [ def_surf_size, 0 ] )
-		.setDisplay(VALUE_DISPLAY.vector);
-	inputs[| 4] = nodeValue(4, "Color 2", self, JUNCTION_CONNECT.input, VALUE_TYPE.color, c_white );
+	newInput(5, nodeValue_Vec2("Center 3", self, [ 0, 1 ])).setUnitRef(function(i) /*=>*/ {return getDimension(i)}, VALUE_UNIT.reference);
+	newInput(6, nodeValue_Color("Color 3", self, cola(c_white) ));
 	
-	inputs[| 5] = nodeValue(5, "Center 3", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [ 0, def_surf_size ] )
-		.setDisplay(VALUE_DISPLAY.vector);
-	inputs[| 6] = nodeValue(6, "Color 3", self, JUNCTION_CONNECT.input, VALUE_TYPE.color, c_white );
+	newInput(7, nodeValue_Vec2("Center 4", self, [ 1, 1 ])).setUnitRef(function(i) /*=>*/ {return getDimension(i)}, VALUE_UNIT.reference);
+	newInput(8, nodeValue_Color("Color 4", self, cola(c_white) ));
 	
-	inputs[| 7] = nodeValue(7, "Center 4", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [ def_surf_size, def_surf_size ] )
-		.setDisplay(VALUE_DISPLAY.vector);
-	inputs[| 8] = nodeValue(8, "Color 4", self, JUNCTION_CONNECT.input, VALUE_TYPE.color, c_white );
+	newInput(9, nodeValue_Bool("Use palette", self, false ));
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(10, nodeValue_Palette("Palette", self, array_clone(DEF_PALETTE)));
+	
+	newInput(11, nodeValue_Float("Falloff 1", self, 6 )).setDisplay(VALUE_DISPLAY.slider, { range: [ 0, 32, 0.1 ] });
+	newInput(12, nodeValue_Float("Falloff 2", self, 6 )).setDisplay(VALUE_DISPLAY.slider, { range: [ 0, 32, 0.1 ] });
+	newInput(13, nodeValue_Float("Falloff 3", self, 6 )).setDisplay(VALUE_DISPLAY.slider, { range: [ 0, 32, 0.1 ] });
+	newInput(14, nodeValue_Float("Falloff 4", self, 6 )).setDisplay(VALUE_DISPLAY.slider, { range: [ 0, 32, 0.1 ] });
+		
+	newInput(15, nodeValue_Bool("Normalize weight", self, false ))
+	
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
 	
 	input_display_list = [
-		["Output",		true],	0,
+		["Output",		 true],	0,
 		["Positions",	false],	1, 3, 5, 7,
-		["Colors",		false],	2, 4, 6, 8,
+		["Falloff",		 true],	11, 12, 13, 14, 15, 
+		["Colors",		false],	9, 10, 2, 4, 6, 8,
 	];
 	
-	static drawOverlay = function(active, _x, _y, _s, _mx, _my) {
-		if(inputs[| 1].drawOverlay(active, _x, _y, _s, _mx, _my)) active = false;
-		if(inputs[| 3].drawOverlay(active, _x, _y, _s, _mx, _my)) active = false;
-		if(inputs[| 5].drawOverlay(active, _x, _y, _s, _mx, _my)) active = false;
-		if(inputs[| 7].drawOverlay(active, _x, _y, _s, _mx, _my)) active = false;
+	attribute_surface_depth();
+	
+	static drawOverlay = function(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) {
+		var _hov = false;
+		var  hv  = inputs[1].drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) active &= !hv; _hov |= hv;
+		var  hv  = inputs[3].drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) active &= !hv; _hov |= hv;
+		var  hv  = inputs[5].drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) active &= !hv; _hov |= hv;
+		var  hv  = inputs[7].drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) active &= !hv; _hov |= hv;
+		
+		return _hov;
 	}
 	
-	static update = function() {
-		var _dim = inputs[| 0].getValue();
+	static step = function() {
+		var _usePal = getInputData(9);
 		
-		var _outSurf = outputs[| 0].getValue();
-		if(!is_surface(_outSurf)) {
-			_outSurf =  surface_create_valid(_dim[0], _dim[1]);
-			outputs[| 0].setValue(_outSurf);
+		inputs[10].setVisible(_usePal, _usePal);
+		
+		inputs[ 2].setVisible(!_usePal, !_usePal);
+		inputs[ 4].setVisible(!_usePal, !_usePal);
+		inputs[ 6].setVisible(!_usePal, !_usePal);
+		inputs[ 8].setVisible(!_usePal, !_usePal);
+	}
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
+		var _dim = _data[0];
+		
+		_outSurf = surface_verify(_outSurf, _dim[0], _dim[1], attrDepth());
+		
+		var _usePal = _data[9];
+		var _pal    = _data[10];
+		
+		var _1cen = _data[1], _1col = _data[2];
+		var _2cen = _data[3], _2col = _data[4];
+		var _3cen = _data[5], _3col = _data[6];
+		var _4cen = _data[7], _4col = _data[8];
+		
+		var _1str = _data[11];
+		var _2str = _data[12];
+		var _3str = _data[13];
+		var _4str = _data[14];
+		
+		var _blnd = _data[15];
+		
+		var colArr = [];
+		
+		if(_usePal) {
+			for( var i = 0; i < 4; i++ )
+				colArr = array_append(colArr, colorToArray(array_safe_get_fast(_pal, i, c_black)));
 		} else
-			surface_size_to(_outSurf, _dim[0], _dim[1]);
-			
-		var _1cen = inputs[| 1].getValue();
-		var _1col = inputs[| 2].getValue();
-		var _2cen = inputs[| 3].getValue();
-		var _2col = inputs[| 4].getValue();
-		var _3cen = inputs[| 5].getValue();
-		var _3col = inputs[| 6].getValue();
-		var _4cen = inputs[| 7].getValue();
-		var _4col = inputs[| 8].getValue();
+			colArr = array_merge(colorToArray(_1col), colorToArray(_2col), colorToArray(_3col), colorToArray(_4col))
 		
-		surface_set_target(_outSurf);
-		draw_clear_alpha(0, 0);
-		shader_set(shader);
-			shader_set_uniform_f_array(uniform_dim, [_dim[0], _dim[1]]);
-			shader_set_uniform_f_array(uniform_cen, array_merge(_1cen, _2cen, _3cen, _4cen));
-			shader_set_uniform_f_array(uniform_col, array_merge(colorArrayFromReal(_1col), colorArrayFromReal(_2col), colorArrayFromReal(_3col), colorArrayFromReal(_4col)));
+		surface_set_shader(_outSurf, sh_gradient_points);
+			
+			shader_set_f("dimension", _dim);
+			shader_set_f("center",    array_merge(_1cen, _2cen, _3cen, _4cen));
+			shader_set_f("color",     colArr);
+			shader_set_f("strength",  _1str, _2str, _3str, _4str);
+			shader_set_i("blend",     _blnd);
 			
 			draw_sprite_stretched_ext(s_fx_pixel, 0, 0, 0, _dim[0], _dim[1], c_white, 1);
-		shader_reset();
-		surface_reset_target();
+			
+		surface_reset_shader();
+		
+		return _outSurf;
 	}
-	doUpdate();
 }

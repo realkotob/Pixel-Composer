@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_kuwahara",
+  "name":"sh_kuwahara",
+  "parent":{
+    "name":"kuwahara",
+    "path":"folders/nodes/data/filter/effects/kuwahara.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

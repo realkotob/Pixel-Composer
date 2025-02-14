@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"_line_drawer",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"_line_drawer",
+  "parent":{
+    "name":"draw",
+    "path":"folders/functions/draw.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

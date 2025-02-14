@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"hlsl_draw",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"hlsl_draw",
+  "parent":{
+    "name":"GLSL",
+    "path":"folders/functions/GLSL.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

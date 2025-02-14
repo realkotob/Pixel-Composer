@@ -1,101 +1,146 @@
-function Node_Stripe(_x, _y, _group = -1) : Node(_x, _y, _group) constructor {
+#region
+	FN_NODE_CONTEXT_INVOKE {
+		addHotkey("Node_Stripe", "Amount > Set", KEY_GROUP.numeric, MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[1].setValue(toNumber(chr(keyboard_key))); });
+		addHotkey("Node_Stripe", "Type > Toggle",      "T", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[3].setValue((_n.inputs[3].getValue() + 1) % 3); });
+		addHotkey("Node_Stripe", "Coloring > Toggle",  "C", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[6].setValue((_n.inputs[6].getValue() + 1) % 3); });
+		addHotkey("Node_Stripe", "Angle > Rotate CCW", "R", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[2].setValue((_n.inputs[2].getValue() + 90) % 360); });
+	});
+#endregion
+
+function Node_Stripe(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
 	name = "Stripe";
 	
-	uniform_grad_use = shader_get_uniform(sh_stripe, "gradient_use");
-	uniform_grad_blend = shader_get_uniform(sh_stripe, "gradient_blend");
-	uniform_grad = shader_get_uniform(sh_stripe, "gradient_color");
-	uniform_grad_time = shader_get_uniform(sh_stripe, "gradient_time");
-	uniform_grad_key = shader_get_uniform(sh_stripe, "gradient_keys");
+	newInput(0, nodeValue_Dimension(self));
 	
-	uniform_dim = shader_get_uniform(sh_stripe, "dimension");
-	uniform_pos = shader_get_uniform(sh_stripe, "position");
-	uniform_angle = shader_get_uniform(sh_stripe, "angle");
-	uniform_amount = shader_get_uniform(sh_stripe, "amount");
-	uniform_blend = shader_get_uniform(sh_stripe, "blend");
-	uniform_rand = shader_get_uniform(sh_stripe, "rand");
+	newInput(1, nodeValue_Float("Amount", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider, { range: [1, 16, 0.1] })
+		.setMappable(11);
 	
-	inputs[| 0] = nodeValue(0, "Dimension", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, def_surf_size2 )
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(2, nodeValue_Rotation("Angle", self, 0))
+		.setMappable(12);
 	
-	inputs[| 1] = nodeValue(1, "Amount", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 1)
-		.setDisplay(VALUE_DISPLAY.slider, [1, 16, 0.1]);
+	newInput(3, nodeValue_Enum_Button("Type", self,  0, [ "Solid", "Smooth", "AA" ]));
 	
-	inputs[| 2] = nodeValue(2, "Angle", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0)
-		.setDisplay(VALUE_DISPLAY.rotation);
-	
-	inputs[| 3] = nodeValue(3, "Blend", self, JUNCTION_CONNECT.input, VALUE_TYPE.boolean, 0);
-	
-	inputs[| 4] = nodeValue(4, "Position", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, [0, 0] )
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(4, nodeValue_Vec2("Position", self, [ 0, 0 ] ))
+		.setUnitRef(function(index) { return getDimension(index); });
 		
-	inputs[| 5] = nodeValue(5, "Random", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0)
-		.setDisplay(VALUE_DISPLAY.slider, [0, 1, 0.01]);
+	newInput(5, nodeValue_Float("Random", self, 0))
+		.setDisplay(VALUE_DISPLAY.slider)
+		.setMappable(13);
 		
-	inputs[| 6] = nodeValue(6, "Random color", self, JUNCTION_CONNECT.input, VALUE_TYPE.boolean, false);
+	newInput(6, nodeValue_Enum_Button("Coloring", self,  0, [ "Alternate", "Palette", "Random" ]));
 	
-	inputs[| 7] = nodeValue(7, "Colors", self, JUNCTION_CONNECT.input, VALUE_TYPE.color, c_white)
-		.setDisplay(VALUE_DISPLAY.gradient);
+	newInput(7, nodeValue_Gradient("Colors", self, new gradientObject(cola(c_white))))
+		.setMappable(15);
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(8, nodeValue_Color("Color 1", self, cola(c_white)));
 	
-	input_display_list = [ 
+	newInput(9, nodeValue_Color("Color 2", self, cola(c_black)));
+	
+	newInput(10, nodeValue_Float("Strip Ratio", self, 0.5))
+		.setDisplay(VALUE_DISPLAY.slider)
+		.setMappable(14);
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(11, nodeValueMap("Amount Map", self));
+	
+	newInput(12, nodeValueMap("Angle Map", self));
+	
+	newInput(13, nodeValueMap("Random Map", self));
+	
+	newInput(14, nodeValueMap("Ratio Map", self));
+	
+	newInput(15, nodeValueMap("Gradient Map", self));
+	
+	newInput(16, nodeValueGradientRange("Gradient Map Range", self, inputs[7]));
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(17, nodeValue_Float("Progress", self, 0.5))
+		.setDisplay(VALUE_DISPLAY.slider);
+		
+	newInput(18, nodeValue_Palette("Colors", self, [ c_black, c_white ] ));
+		
+	newInput(19, nodeValueSeed(self));
+		
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	input_display_list = [ 19, 
 		["Output",	true],	0,  
-		["Pattern",	false], 1, 2, 4, 5,
-		["Render",	false], 3, 6, 7
+		["Pattern",	false], 1, 11, 10, 14, 2, 12, 4, 5, 13, 17, 
+		["Render",	false], 3, 6, 7, 15, 8, 9, 18, 
 	];
 	
-	static drawOverlay = function(active, _x, _y, _s, _mx, _my) {
-		var pos = inputs[| 4].getValue();
-		var px = _x + pos[0] * _s;
-		var py = _y + pos[1] * _s;
+	attribute_surface_depth();
+	
+	static drawOverlay = function(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) {
+		PROCESSOR_OVERLAY_CHECK
 		
-		inputs[| 4].drawOverlay(active, _x, _y, _s, _mx, _my);
-		inputs[| 2].drawOverlay(active, px, py, _s, _mx, _my);
+		var pos  = current_data[4];
+		var px   = _x + pos[0] * _s;
+		var py   = _y + pos[1] * _s;
+		var _hov = false;
+		
+		var hv = inputs[4].drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny);						active &= !hv; _hov |= hv;
+		var hv = inputs[2].drawOverlay(hover, active, px, py, _s, _mx, _my, _snx, _sny);						active &= !hv; _hov |= hv;
+		var hv = inputs[16].drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny, current_data[0]);	active &= !hv; _hov |= hv;
+		
+		return _hov;
 	}
 	
-	static update = function() {
-		var _dim = inputs[| 0].getValue();
-		var _amo = inputs[| 1].getValue();
-		var _ang = inputs[| 2].getValue();
-		var _bnd = inputs[| 3].getValue();
-		var _pos = inputs[| 4].getValue();
-		var _rnd = inputs[| 5].getValue();
+	static step = function() {
+		var _clr = getSingleValue(6);
 		
-		var _grad_use = inputs[| 6].getValue();
-		inputs[| 7].setVisible(_grad_use);
+		inputs[ 1].mappableStep();
+		inputs[ 2].mappableStep();
+		inputs[ 5].mappableStep();
+		inputs[ 7].mappableStep();
+		inputs[10].mappableStep();
 		
-		var _gra = inputs[| 7].getValue();
-		var _gra_data = inputs[| 7].getExtraData();
-		
-		var _g = getGradientData(_gra, _gra_data);
-		var _grad_color = _g[0];
-		var _grad_time = _g[1];
-		
-		var _outSurf = outputs[| 0].getValue();
-		if(!is_surface(_outSurf)) {
-			_outSurf =  surface_create_valid(_dim[0], _dim[1]);
-			outputs[| 0].setValue(_outSurf);
-		} else
-			surface_size_to(_outSurf, _dim[0], _dim[1]);
-			
-		surface_set_target(_outSurf);
-			shader_set(sh_stripe);
-			shader_set_uniform_f(uniform_dim, _dim[0], _dim[1]);
-			shader_set_uniform_f(uniform_pos, _pos[0] / _dim[0], _pos[1] / _dim[1]);
-			shader_set_uniform_f(uniform_angle,  degtorad(_ang));
-			shader_set_uniform_f(uniform_amount, _amo);
-			shader_set_uniform_f(uniform_blend, _bnd);
-			shader_set_uniform_f(uniform_rand, _rnd);
-			
-			shader_set_uniform_i(uniform_grad_use, _grad_use);
-			shader_set_uniform_i(uniform_grad_blend, ds_list_get(_gra_data, 0));
-			shader_set_uniform_f_array(uniform_grad, _grad_color);
-			shader_set_uniform_f_array(uniform_grad_time, _grad_time);
-			shader_set_uniform_i(uniform_grad_key, ds_list_size(_gra));
-			
-				draw_sprite_ext(s_fx_pixel, 0, 0, 0, _dim[0], _dim[1], 0, c_white, 1);
-			shader_reset();
-		surface_reset_target();
+		inputs[ 8].setVisible(_clr == 0);
+		inputs[ 9].setVisible(_clr == 0);
+		inputs[18].setVisible(_clr == 1);
+		inputs[ 7].setVisible(_clr == 2);
 	}
-	doUpdate();
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) { #region
+		var _dim  = _data[0];
+		var _bnd  = _data[3];
+		var _pos  = _data[4];
+		var _clr0 = _data[8];
+		var _clr1 = _data[9];
+		var _prg  = _data[17];
+		var _pal  = _data[18];
+		var _seed = _data[19];
+		
+		var _color = _data[6];
+		
+		_outSurf = surface_verify(_outSurf, _dim[0], _dim[1], attrDepth());
+			
+		surface_set_shader(_outSurf, sh_stripe);
+			shader_set_f("seed",		 _seed);
+			shader_set_f("dimension",	 _dim[0], _dim[1]);
+			shader_set_f("position",	 _pos[0] / _dim[0], _pos[1] / _dim[1]);
+			shader_set_i("blend",		 _bnd);
+			shader_set_f("progress",	 _prg);
+			
+			shader_set_f_map("amount",		 _data[ 1], _data[11], inputs[ 1]);
+			shader_set_f_map("angle",		 _data[ 2], _data[12], inputs[ 2]);
+			shader_set_f_map("randomAmount", _data[ 5], _data[13], inputs[ 5]);
+			shader_set_f_map("ratio",        _data[10], _data[14], inputs[10]);
+			
+			shader_set_i("coloring",	_color);
+			
+			shader_set_color("color0", _clr0);
+			shader_set_color("color1", _clr1);
+			shader_set_palette(_pal);
+			
+			shader_set_gradient(_data[7], _data[15], _data[16], inputs[7]);
+			
+			draw_sprite_ext(s_fx_pixel, 0, 0, 0, _dim[0], _dim[1], 0, c_white, 1);
+		surface_reset_shader();
+		
+		return _outSurf;
+	} #endregion
 }

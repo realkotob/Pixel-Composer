@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_pytagorean_tile",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_pytagorean_tile",
+  "parent":{
+    "name":"pattern",
+    "path":"folders/nodes/data/generator/pattern.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

@@ -1,50 +1,49 @@
-function Node_Counter(_x, _y, _group = -1) : Node_Value_Processor(_x, _y, _group) constructor {
-	name = "Counter";
+function Node_Counter(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
+	name = "Frame Index";
 	update_on_frame = true;
-	previewable = false;
 	
-	w = 96;
-	min_h = 0;
+	setDimension(96, 48);
 	
-	inputs[| 0] = nodeValue(0, "Start", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 1);
-	inputs[| 1] = nodeValue(1, "Speed", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 1);
-	inputs[| 2] = nodeValue(2, "Mode", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0)
-		.setDisplay(VALUE_DISPLAY.enum_scroll, ["Frame count", "Animation progress"]);
+	newInput(0, nodeValue_Float("Start", self, 1));
 	
-	outputs[| 0] = nodeValue(0, "Counter", self, JUNCTION_CONNECT.output, VALUE_TYPE.float, 0);
+	newInput(1, nodeValue_Float("Speed", self, 1));
+	
+	newInput(2, nodeValue_Int("Mode", self, 0, @"Counting mode
+    - Frame count: Count value up/down per frame.
+    - Animation progress: Count from 0 (first frame) to 1 (last frame). ")
+		.setDisplay(VALUE_DISPLAY.enum_scroll, ["Frame count", "Animation progress"]))
+		.rejectArray();
+	
+	newOutput(0, nodeValue_Output("Value", self, VALUE_TYPE.float, 0));
 	
 	input_display_list = [
 		2, 0, 1
 	];
 	
 	static step = function() {
-		var mode = inputs[| 2].getValue();
-		switch(mode) {
-			case 0 :
-				inputs[| 0].setVisible(true);
-				break;
-			case 1 :
-				inputs[| 0].setVisible(false);
-				break;
-		}
+		var mode = getInputData(2);
+		inputs[0].setVisible(mode == 0);
 	}
 	
-	function process_value_data(_data, index = 0) { 
-		var time = ANIMATOR.current_frame;
-		var mode = inputs[| 2].getValue();
-		var val;
+	static processData = function(_output, _data, _output_index, _array_index = 0) {  
+		var time = CURRENT_FRAME;
+		var mode = _data[2];
+		var val = 0;
 		
 		switch(mode) {
 			case 0 : val = _data[0] + time * _data[1]; break;
-			case 1 : val = time / (ANIMATOR.frames_total - 1) * _data[1]; break;
+			case 1 : val = time / (TOTAL_FRAMES - 1) * _data[1]; break;
 		}
 		
 		return val;
 	}
-	doUpdate();
 	
-	static onDrawNode = function(xx, yy, _mx, _my, _s) {
-		draw_set_text(f_h5, fa_center, fa_center, COLORS._main_text);
-		draw_text_transformed(xx + w / 2 * _s, yy + 10 + h / 2 * _s, outputs[| 0].getValue(), _s, _s, 0);
+	static onDrawNode = function(xx, yy, _mx, _my, _s, _hover, _focus) {
+		var bbox = drawGetBbox(xx, yy, _s);
+		var str = outputs[0].getValue();
+		
+		draw_set_text(f_sdf, fa_center, fa_center, COLORS._main_text);
+		var ss	= string_scale(str, bbox.w, bbox.h);
+		draw_text_transformed(bbox.xc, bbox.yc, str, ss, ss, 0);
 	}
 }

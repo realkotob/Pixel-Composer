@@ -1,44 +1,92 @@
-function Node_Blur_Radial(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
-	name = "Blur_Radial";
+#region
+	FN_NODE_CONTEXT_INVOKE {
+		addHotkey("Node_Blur_Radial", "Strength > Set",  KEY_GROUP.numeric, MOD_KEY.none, function(val) /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[1].setValue(toNumber(chr(keyboard_key)) * 15); });
+	});
+#endregion
+
+function Node_Blur_Radial(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
+	name = "Radial Blur";
 	
-	uniform_str = shader_get_uniform(sh_blur_radial, "strength");
-	uniform_cen = shader_get_uniform(sh_blur_radial, "center");
+	newInput(0, nodeValue_Surface("Surface In", self));
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
-	inputs[| 1] = nodeValue(1, "Strength", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0.2);
+	newInput(1, nodeValue_Rotation("Strength", self, 45))
+		.setMappable(10);
 	
-	inputs[| 2] = nodeValue(2, "Center",   self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [ 0, 0 ])
-		.setDisplay(VALUE_DISPLAY.vector);
-	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
-	
-	static drawOverlay = function(active, _x, _y, _s, _mx, _my) {
-		var pos = inputs[| 2].getValue();
-		var px = _x + pos[0] * _s;
-		var py = _y + pos[1] * _s;
+	newInput(2, nodeValue_Vec2("Center",   self, [ 0.5, 0.5 ]))
+		.setUnitRef(function(index) { return getDimension(index); }, VALUE_UNIT.reference);
 		
-		inputs[| 1].drawOverlay(active, px, py, _s, _mx, _my, 0, 64, THEME.anchor_scale_hori);
-		inputs[| 2].drawOverlay(active, _x, _y, _s, _mx, _my);
-	}
+	newInput(3, nodeValue_Enum_Scroll("Oversample mode", self, 0, [ "Empty", "Clamp", "Repeat" ]))
+		.setTooltip("How to deal with pixel outside the surface.\n    - Empty: Use empty pixel\n    - Clamp: Repeat edge pixel\n    - Repeat: Repeat texture.");
+		
+	newInput(4, nodeValue_Surface("Mask", self));
 	
-	static process_data = function(_outSurf, _data, _output_index) {
-		var _str = _data[1];
-		var _cen = _data[2];
-		_cen[0] /= surface_get_width(_outSurf);
-		_cen[1] /= surface_get_height(_outSurf);
+	newInput(5, nodeValue_Float("Mix", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider);
+	
+	newInput(6, nodeValue_Bool("Active", self, true));
+		active_index = 6;
+	
+	newInput(7, nodeValue_Toggle("Channel", self, 0b1111, { data: array_create(4, THEME.inspector_channel) }));
+	
+	__init_mask_modifier(4); // inputs 8, 9, 
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(10, nodeValueMap("Strength map", self));
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(11, nodeValue_Bool("Gamma Correction", self, false));
+	
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	input_display_list = [ 6, 7, 
+		["Surfaces", true],	0, 4, 5, 8, 9, 
+		["Blur",	false],	1, 10, 2, 11, 
+	];
+	
+	attribute_surface_depth();
+	attribute_oversample();
+	attribute_interpolation();
+	
+	static drawOverlay = function(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) { #region
+		var pos  = getInputData(2);
+		var px   = _x + pos[0] * _s;
+		var py   = _y + pos[1] * _s;
+		var _hov = false;
 		
-		surface_set_target(_outSurf);
-			draw_clear_alpha(0, 0);
-			BLEND_ADD
+		var hv = inputs[1].drawOverlay(hover, active, px, py, _s, _mx, _my, _snx, _sny); _hov |= hv;
+		var hv = inputs[2].drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny); _hov |= hv;
 		
-			shader_set(sh_blur_radial);
-			shader_set_uniform_f(uniform_str, _str);
-			shader_set_uniform_f_array(uniform_cen, _cen);
-			draw_surface_safe(_data[0], 0, 0);
-			shader_reset();
+		return _hov;
+	} #endregion
+	
+	static step = function() { #region
+		__step_mask_modifier();
 		
-			BLEND_NORMAL
-		surface_reset_target();
+		inputs[1].mappableStep();
+	} #endregion
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {		
+		var _cen  = _data[2];
+		
+		_cen = array_clone(_cen);
+		_cen[0] /= surface_get_width_safe(_outSurf);
+		_cen[1] /= surface_get_height_safe(_outSurf);
+		
+		surface_set_shader(_outSurf, sh_blur_radial);
+			shader_set_interpolation(_data[0]);
+			shader_set_f("dimension", surface_get_width_safe(_outSurf), surface_get_height_safe(_outSurf));
+			shader_set_f_map("strength", _data[1], _data[10], inputs[1]);
+			shader_set_2("center",       _cen);
+			shader_set_f("gamma",        _data[11]);
+			
+			draw_surface_safe(_data[0]);
+		surface_reset_shader();
+		
+		__process_mask_modifier(_data);
+		_outSurf = mask_apply(_data[0], _outSurf, _data[4], _data[5]);
+		_outSurf = channel_apply(_data[0], _outSurf, _data[7]);
 		
 		return _outSurf;
 	}

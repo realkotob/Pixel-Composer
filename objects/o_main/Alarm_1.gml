@@ -1,10 +1,7 @@
 /// @description init
 #region prefload
-	RECENT_LOAD();
+	__migration_check();
 	
-	LOAD_SAMPLE();
-	INIT_FOLDERS();
-	
-	if(!file_exists(file_open_parameter) && PREF_MAP[? "show_splash"])
+	if(!file_exists_empty(PROGRAM_ARGUMENTS._path) && PREFERENCES.show_splash)
 		dialogCall(o_dialog_splash);
 #endregion

@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"meta_data",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"meta_data",
+  "parent":{
+    "name":"components",
+    "path":"folders/main/components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

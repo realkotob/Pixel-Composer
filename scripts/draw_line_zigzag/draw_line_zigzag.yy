@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"draw_line_zigzag",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"draw_line_zigzag",
+  "parent":{
+    "name":"draw",
+    "path":"folders/functions/draw.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

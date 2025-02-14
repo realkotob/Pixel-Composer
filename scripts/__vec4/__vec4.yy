@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"__vec4",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"__vec4",
+  "parent":{
+    "name":"vector",
+    "path":"folders/functions/vector.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

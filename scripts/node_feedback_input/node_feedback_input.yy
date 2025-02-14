@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "node_feedback_input",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "feedback",
-    "path": "folders/nodes/data/feedback.yy",
+  "$GMScript":"v1",
+  "%Name":"node_feedback_input",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_feedback_input",
+  "parent":{
+    "name":"feedback",
+    "path":"folders/nodes/data/iterate/feedback.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_ace",
+  "name":"sh_ace",
+  "parent":{
+    "name":"colors",
+    "path":"folders/nodes/data/filter/colors.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"_smokeSim_domain",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"_smokeSim_domain",
+  "parent":{
+    "name":"smokeSim",
+    "path":"folders/nodes/data/simulation/smokeSim.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

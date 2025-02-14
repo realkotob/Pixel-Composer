@@ -14,14 +14,16 @@ event_inherited();
 #region text
 	onModify = -1;
 	tb_name = new textBox(TEXTBOX_INPUT.text, function(txt) {
-		while(string_char_at(txt, 1) == " ") {
-			txt = string_copy(txt, 2, string_length(txt) - 1);
-		}
-		
+		txt = filename_name_validate(txt);
 		onModify(path + txt);
 		instance_destroy();
 	});
 	
-	TEXTBOX_ACTIVE  = tb_name;
+	function setName(_name) {
+		self.name = _name;
+		return self;
+	}
+	
+	WIDGET_CURRENT  = tb_name;
 	KEYBOARD_STRING = "";
 #endregion

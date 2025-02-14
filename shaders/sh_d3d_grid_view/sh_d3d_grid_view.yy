@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_d3d_grid_view",
+  "name":"sh_d3d_grid_view",
+  "parent":{
+    "name":"shader",
+    "path":"folders/nodes/data/3D/shader.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

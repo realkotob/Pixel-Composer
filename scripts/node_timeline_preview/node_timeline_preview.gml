@@ -1,17 +1,17 @@
-function Node_Timeline_Preview(_x, _y, _group = -1) : Node(_x, _y, _group) constructor {
+function Node_Timeline_Preview(_x, _y, _group = noone) : Node(_x, _y, _group) constructor {
 	name = "Timeline";
-	use_cache = true;
+	use_cache = CACHE_USE.auto;
 	color = COLORS.node_blend_number;
 	
-	w = 96;
-	min_h = 0;
+	setDimension(96, 48);
+	
 	
 	PANEL_ANIMATION.timeline_preview = self;
 	
-	inputs[| 0] = nodeValue(0, "Surface", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
+	newInput(0, nodeValue_Surface("Surface", self));
 	
-	static update = function() {
-		var _inSurf = inputs[| 0].getValue();
+	static update = function(frame = CURRENT_FRAME) {
+		var _inSurf = getInputData(0);
 		if(_inSurf == 0) return;
 		
 		if(is_array(_inSurf)) {

@@ -1,10 +1,12 @@
 {
-  "resourceType": "GMShader",
-  "resourceVersion": "1.0",
-  "name": "sh_noise",
-  "type": 1,
-  "parent": {
-    "name": "generator",
-    "path": "folders/shader/generator.yy",
+  "$GMShader":"",
+  "%Name":"sh_noise",
+  "name":"sh_noise",
+  "parent":{
+    "name":"noise",
+    "path":"folders/nodes/data/generator/noise.yy",
   },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
 }

@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"real_number_functions",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"real_number_functions",
+  "parent":{
+    "name":"math",
+    "path":"folders/functions/math.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

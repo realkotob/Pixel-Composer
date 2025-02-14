@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"__node_3d_modifier",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"__node_3d_modifier",
+  "parent":{
+    "name":"d3d_modifier",
+    "path":"folders/nodes/data/3D/d3d_modifier.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

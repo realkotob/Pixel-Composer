@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "globals",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "scritps",
-    "path": "folders/main/scritps.yy",
+  "$GMScript":"v1",
+  "%Name":"globals",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"globals",
+  "parent":{
+    "name":"main",
+    "path":"folders/main.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

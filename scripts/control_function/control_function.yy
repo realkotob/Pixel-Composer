@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"control_function",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"control_function",
+  "parent":{
+    "name":"inputs",
+    "path":"folders/functions/inputs.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

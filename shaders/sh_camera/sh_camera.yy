@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_camera",
+  "name":"sh_camera",
+  "parent":{
+    "name":"render",
+    "path":"folders/nodes/data/render.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

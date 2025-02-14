@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "compat_path_array",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "compat",
-    "path": "folders/functions/compat.yy",
+  "$GMScript":"v1",
+  "%Name":"compat_path_array",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"compat_path_array",
+  "parent":{
+    "name":"compat",
+    "path":"folders/functions/compat.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

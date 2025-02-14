@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_noise_blue_interpret",
+  "name":"sh_noise_blue_interpret",
+  "parent":{
+    "name":"blue",
+    "path":"folders/nodes/data/generator/noise/blue.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

@@ -1,10 +1,12 @@
 {
-  "resourceType": "GMShader",
-  "resourceVersion": "1.0",
-  "name": "sh_cell_noise_round",
-  "type": 1,
-  "parent": {
-    "name": "generator",
-    "path": "folders/shader/generator.yy",
+  "$GMShader":"",
+  "%Name":"sh_cell_noise_round",
+  "name":"sh_cell_noise_round",
+  "parent":{
+    "name":"cell",
+    "path":"folders/nodes/data/generator/noise/cell.yy",
   },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
 }

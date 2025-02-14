@@ -1,74 +1,94 @@
-function Node_VFX_Spawner(_x, _y, _group = -1) : Node_VFX_Spawner_Base(_x, _y, _group) constructor {
-	name = "Spawner";
+function Node_VFX_Spawner(_x, _y, _group = noone) : Node_VFX_Spawner_Base(_x, _y, _group) constructor {
+	name   = "Spawner";
+	color  = COLORS.node_blend_vfx;
+	icon   = THEME.vfx;
+	reloop = true;
 	
-	inputs[| input_len + 0] = nodeValue(input_len + 0, "Spawn trigger", self, JUNCTION_CONNECT.input, VALUE_TYPE.node, false)
+	manual_ungroupable	 = false;
+	
+	attributes.Output_pool = false;
+	array_push(attributeEditors, ["Output all particles", function() /*=>*/ {return attributes.Output_pool},
+		new checkBox(function() /*=>*/ { attributes.Output_pool = !attributes.Output_pool; }) ]);
+	
+	inputs[21].setVisible(false, false);
+	
+	newInput(input_len + 0, nodeValue("Spawn trigger", self, CONNECT_TYPE.input, VALUE_TYPE.node, false))
 		.setVisible(true, true);
 	
-	inputs[| input_len + 1] = nodeValue(input_len + 1, "Step interval", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 1);
+	newInput(input_len + 1, nodeValue_Int("Step interval", self, 1, "How often the 'on step' event is triggered.\nWith 1 being trigger every frame, 2 means triggered once every 2 frames."));
 	
-	outputs[| 0] = nodeValue(0, "Particles", self, JUNCTION_CONNECT.output, VALUE_TYPE.object, parts );
-	outputs[| 1] = nodeValue(1, "On create", self, JUNCTION_CONNECT.output, VALUE_TYPE.node, noone );
-	outputs[| 2] = nodeValue(2, "On step", self, JUNCTION_CONNECT.output, VALUE_TYPE.node, noone );
-	outputs[| 3] = nodeValue(3, "On destroy", self, JUNCTION_CONNECT.output, VALUE_TYPE.node, noone );
+	newOutput(0, nodeValue_Output("Particles",	self, VALUE_TYPE.particle, [] ));
+	newOutput(1, nodeValue_Output("On create",	self, VALUE_TYPE.node, noone ));
+	newOutput(2, nodeValue_Output("On step",	self, VALUE_TYPE.node, noone ));
+	newOutput(3, nodeValue_Output("On destroy",	self, VALUE_TYPE.node, noone ));
 	
 	array_insert(input_display_list, 0, ["Trigger", true], input_len + 0, input_len + 1);
 	
+	UPDATE_PART_FORWARD
+	
+	static onUpdate = function(frame = CURRENT_FRAME) {
+		if(IS_PLAYING) runVFX(frame);
+		
+		if(attributes.Output_pool) {
+			outputs[0].setValue(parts);
+			return;
+			
+		} else {
+			var _parts = [];
+			for( var i = 0, n = array_length(parts); i < n; i++ ) {
+				if(!parts[i].active) continue;
+				array_push(_parts, parts[i]);
+			}
+			
+			outputs[0].setValue(_parts);
+		}
+	}
+	
 	static onSpawn = function(_time, part) {
-		part.step_int = inputs[| input_len + 1].getValue(_time);
+		part.step_int = inputs[input_len + 1].getValue(_time);
 	}
 	
 	static onPartCreate = function(part) {
+		var vt = outputs[1];
+		if(array_empty(vt.value_to)) return;
+		
 		var pv = part.getPivot();
 		
-		var vt = outputs[| 1];
-		for( var i = 0; i < ds_list_size(vt.value_to); i++ ) {
-			var _n = vt.value_to[| i];
+		for( var i = 0; i < array_length(vt.value_to); i++ ) {
+			var _n = vt.value_to[i];
 			if(_n.value_from != vt) continue;
-			_n.node.spawn(, pv);
+			_n.node.spawn(part.frame, pv);
 		}
 	}
 	
 	static onPartStep = function(part) {
+		var vt = outputs[2];
+		if(array_empty(vt.value_to)) return;
+		
 		var pv = part.getPivot();
 		
-		var vt = outputs[| 2];
-		for( var i = 0; i < ds_list_size(vt.value_to); i++ ) {
-			var _n = vt.value_to[| i];
+		for( var i = 0; i < array_length(vt.value_to); i++ ) {
+			var _n = vt.value_to[i];
 			if(_n.value_from != vt) continue;
-			_n.node.spawn(, pv);
+			_n.node.spawn(part.frame, pv);
 		}
 	}
 	
 	static onPartDestroy = function(part) {
-		var pv = part.getPivot();
+		var vt = outputs[3];
+		if(array_empty(vt.value_to)) return;
 		
-		var vt = outputs[| 3];
-		for( var i = 0; i < ds_list_size(vt.value_to); i++ ) {
-			var _n = vt.value_to[| i];
+		var pv = part.getPivot();
+			
+		for( var i = 0; i < array_length(vt.value_to); i++ ) {
+			var _n = vt.value_to[i];
 			if(_n.value_from != vt) continue;
-			_n.node.spawn(, pv);
+			_n.node.spawn(part.frame, pv);
 		}
 	}
 	
-	static onDrawNode = function(xx, yy, _mx, _my, _s) {
-		var spr = inputs[| 0].getValue();
-		
-		if(spr == 0) {
-			if(def_surface == -1 || !surface_exists(def_surface)) { 
-				def_surface = PIXEL_SURFACE;
-				surface_set_target(def_surface);
-				draw_clear(c_white);
-				surface_reset_target();
-			}
-			spr = def_surface;	
-		}
-		
-		if(is_array(spr))
-			spr = spr[safe_mod(round(current_time / 100), array_length(spr))];
-		
-		var cx = xx + w * _s / 2;
-		var cy = yy + h * _s / 2;
-		var ss = min((w - 8) / surface_get_width(spr), (h - 8) / surface_get_height(spr)) * _s;
-		draw_surface_align(spr, cx, cy, ss, fa_center, fa_center);
-	}
+	static getGraphPreviewSurface = function() { return getInputData(0); }
+	
+	static getPreviewingNode = function() { return is(inline_context, Node_VFX_Group_Inline)? inline_context.getPreviewingNode() : self; }
+	static getPreviewValues  = function() { return is(inline_context, Node_VFX_Group_Inline)? inline_context.getPreviewValues()  : self; }
 }

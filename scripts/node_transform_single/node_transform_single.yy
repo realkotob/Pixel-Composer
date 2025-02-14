@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "node_transform_single",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "transform",
-    "path": "folders/nodes/data/transform.yy",
+  "$GMScript":"v1",
+  "%Name":"node_transform_single",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_transform_single",
+  "parent":{
+    "name":"transform",
+    "path":"folders/nodes/data/transform.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

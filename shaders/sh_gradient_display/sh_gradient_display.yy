@@ -1,10 +1,12 @@
 {
-  "resourceType": "GMShader",
-  "resourceVersion": "1.0",
-  "name": "sh_gradient_display",
-  "type": 1,
-  "parent": {
-    "name": "generator",
-    "path": "folders/shader/generator.yy",
+  "$GMShader":"",
+  "%Name":"sh_gradient_display",
+  "name":"sh_gradient_display",
+  "parent":{
+    "name":"gradient",
+    "path":"folders/shader/UI/gradient.yy",
   },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
 }

@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "node_canvas",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "input",
-    "path": "folders/nodes/data/input.yy",
+  "$GMScript":"v1",
+  "%Name":"node_canvas",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_canvas",
+  "parent":{
+    "name":"canvas",
+    "path":"folders/nodes/data/canvas.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

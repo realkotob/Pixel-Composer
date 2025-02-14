@@ -1,45 +1,62 @@
-function Node_Chromatic_Aberration(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
-	name = "Chromatic aberration";
+function Node_Chromatic_Aberration(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
+	name = "Chromatic Aberration";
 	
-	shader = sh_chromatic_aberration;
-	uniform_dim = shader_get_uniform(shader, "dimension");
-	uniform_cen = shader_get_uniform(shader, "center");
-	uniform_str = shader_get_uniform(shader, "strength");
+	newInput(0, nodeValue_Surface("Surface In", self));
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
-	inputs[| 1] = nodeValue(1, "Center", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [ 0, 0 ])
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(1, nodeValue_Vec2("Center", self, [ 0.5, 0.5 ]))
+		.setUnitRef(function(index) { return getDimension(index); }, VALUE_UNIT.reference);
 	
-	inputs[| 2] = nodeValue(2, "Strength", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 1)
-		.setDisplay(VALUE_DISPLAY.slider, [0, 16, 0.01]);
+	newInput(2, nodeValue_Float("Strength", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider, { range: [-16, 16, 0.01] })
+		.setMappable(4);
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(3, nodeValue_Bool("Active", self, true));
+		active_index = 3;
 	
-	static drawOverlay = function(active, _x, _y, _s, _mx, _my) {
-		var pos = inputs[| 1].getValue();
-		var px = _x + pos[0] * _s;
-		var py = _y + pos[1] * _s;
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(4, nodeValueMap("Strength map", self));
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(5, nodeValue_Enum_Scroll("Type", self, 0, [ "Spherical", "Scale" ]));
+	
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	input_display_list = [ 3, 
+		["Surface",  false], 0, 
+		["Effect",   false], 1, 2, 4, 
+	];
+	
+	attribute_surface_depth();
+	attribute_interpolation();
+	
+	static drawOverlay = function(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) {
+		var pos  = getInputData(1);
+		var px   = _x + pos[0] * _s;
+		var py   = _y + pos[1] * _s;
+		var _hov = false;
 		
-		inputs[| 1].drawOverlay(active, _x, _y, _s, _mx, _my);
+		var hv = inputs[1].drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny); _hov |= hv;
+		
+		return _hov;
 	}
 	
-	static process_data = function(_outSurf, _data, _output_index) {
-		surface_set_target(_outSurf);
-		draw_clear_alpha(0, 0);
-		BLEND_ADD
+	static step = function() {
+		inputs[2].mappableStep();
+	}
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
 		
-		var center = _data[1];
-		var stren = _data[2];
-		
-		shader_set(shader);
-			shader_set_uniform_f_array(uniform_dim, [ surface_get_width(_data[0]), surface_get_height(_data[0]) ]);
-			shader_set_uniform_f_array(uniform_cen, center);
-			shader_set_uniform_f(uniform_str, stren);
-			draw_surface_safe(_data[0], 0, 0);
-		shader_reset();
-		
-		BLEND_NORMAL
-		surface_reset_target();
+		surface_set_shader(_outSurf, sh_chromatic_aberration);
+			shader_set_interpolation(    _data[0]);
+			shader_set_dim("dimension",  _data[0]);
+			// shader_set_i("type",         _data[5]);
+			shader_set_2("center",       _data[1]);
+			shader_set_f_map("strength", _data[2], _data[4], inputs[2]);
+			
+			draw_surface_safe(_data[0]);
+		surface_reset_shader();
 		
 		return _outSurf;
 	}

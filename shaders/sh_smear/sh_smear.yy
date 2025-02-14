@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_smear",
+  "name":"sh_smear",
+  "parent":{
+    "name":"blur",
+    "path":"folders/nodes/data/filter/blur.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

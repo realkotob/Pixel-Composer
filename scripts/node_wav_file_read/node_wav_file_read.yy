@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_wav_file_read",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_wav_file_read",
+  "parent":{
+    "name":"io",
+    "path":"folders/nodes/data/io.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

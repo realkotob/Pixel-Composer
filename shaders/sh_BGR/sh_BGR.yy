@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_BGR",
+  "name":"sh_BGR",
+  "parent":{
+    "name":"_helper",
+    "path":"folders/shader/_helper.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

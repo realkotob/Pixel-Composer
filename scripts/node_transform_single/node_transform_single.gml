@@ -1,19 +1,19 @@
-function Node_Transform_Single(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
+function Node_Transform_Single(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
 	name = "Transform single";
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
+	newInput(0, nodeValue_Surface("Surface In", self));
 	
-	inputs[| 1] = nodeValue(1, "Position x", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0);
-	inputs[| 2] = nodeValue(2, "Position y", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0);
-	inputs[| 3] = nodeValue(3, "Anchor x",   self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0);
-	inputs[| 4] = nodeValue(4, "Anchor y",   self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0);
-	inputs[| 5] = nodeValue(5, "Rotation",   self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0);
-	inputs[| 6] = nodeValue(6, "Scale x",    self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 1);
-	inputs[| 7] = nodeValue(7, "Scale y",    self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 1);
+	newInput(1, nodeValue_Float("Position x", self, 0));
+	newInput(2, nodeValue_Float("Position y", self, 0));
+	newInput(3, nodeValue_Float("Anchor x",   self, 0));
+	newInput(4, nodeValue_Float("Anchor y",   self, 0));
+	newInput(5, nodeValue_Float("Rotation",   self, 0));
+	newInput(6, nodeValue_Float("Scale x",    self, 1));
+	newInput(7, nodeValue_Float("Scale y",    self, 1));
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
 	
-	static process_data = function(_outSurf, _data, _output_index) {
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
 		var pos_x = _data[1];
 		var pos_y = _data[2];
 		var anc_x = _data[3];
@@ -28,8 +28,8 @@ function Node_Transform_Single(_x, _y, _group = -1) : Node_Processor(_x, _y, _gr
 		var origin = point_rotate(0, 0, anc_x, anc_y, rot);
 		
 		surface_set_target(_outSurf);
-		draw_clear_alpha(0, 0);
-		BLEND_ADD
+		DRAW_CLEAR
+		BLEND_OVERRIDE
 		
 		draw_surface_ext_safe(_data[0], pos_x + origin[0] - psc_x, pos_y + origin[1] - psc_y, sca_x, sca_y, rot, c_white, 1);
 		
@@ -47,10 +47,12 @@ function Node_Transform_Single(_x, _y, _group = -1) : Node_Processor(_x, _y, _gr
 	overlay_drag_ma  = 0;
 	overlay_drag_sa  = 0;
 	
-	static drawOverlay = function(active, _x, _y, _s, _mx, _my) {
-		if(array_length(current_data) < ds_list_size(inputs)) return;
+	static drawOverlay = function(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) {
+		PROCESSOR_OVERLAY_CHECK
 		
-		var _surf = outputs[| 0].getValue();
+		if(array_length(current_data) < array_length(inputs)) return;
+		
+		var _surf = outputs[0].getValue();
 		if(is_array(_surf)) {
 			if(array_length(_surf) == 0) return;
 			_surf = _surf[preview_index];
@@ -63,8 +65,8 @@ function Node_Transform_Single(_x, _y, _group = -1) : Node_Processor(_x, _y, _gr
 		var rot   = current_data[5];
 		var sca_x = current_data[6];
 		var sca_y = current_data[7];
-		var ww  = surface_get_width(_surf) * sca_x;
-		var hh  = surface_get_height(_surf) * sca_y;
+		var ww  = surface_get_width_safe(_surf) * sca_x;
+		var hh  = surface_get_height_safe(_surf) * sca_y;
 		
 		var psc_x = anc_x * sca_x;
 		var psc_y = anc_y * sca_y;
@@ -88,18 +90,18 @@ function Node_Transform_Single(_x, _y, _group = -1) : Node_Processor(_x, _y, _gr
 			var br = point_rotate(bx1, by1, bax, bay, rot);
 		
 			draw_set_color(COLORS._main_accent);
-			draw_sprite_ui_uniform(THEME.anchor, 0, bax, bay);
+			draw_sprite_colored(THEME.anchor, 0, bax, bay);
 			
-			draw_sprite_ui_uniform(THEME.anchor_selector, 0, tl[0], tl[1]);
-			draw_sprite_ui_uniform(THEME.anchor_selector, 0, tr[0], tr[1]);
-			draw_sprite_ui_uniform(THEME.anchor_selector, 0, bl[0], bl[1]);
-			draw_sprite_ui_uniform(THEME.anchor_selector, 0, br[0], br[1]);
+			draw_sprite_colored(THEME.anchor_selector, 0, tl[0], tl[1]);
+			draw_sprite_colored(THEME.anchor_selector, 0, tr[0], tr[1]);
+			draw_sprite_colored(THEME.anchor_selector, 0, bl[0], bl[1]);
+			draw_sprite_colored(THEME.anchor_selector, 0, br[0], br[1]);
 			
-			if(point_in_circle(_mx, _my, bax, bay, 8))			draw_sprite_ui_uniform(THEME.anchor, 0, bax, bay, 1.25);
-			else if(point_in_circle(_mx, _my, tl[0], tl[1], 8))	draw_sprite_ui_uniform(THEME.anchor_selector, 1, tl[0], tl[1]);
-			else if(point_in_circle(_mx, _my, tr[0], tr[1], 8))	draw_sprite_ui_uniform(THEME.anchor_selector, 1, tr[0], tr[1]);			
-			else if(point_in_circle(_mx, _my, bl[0], bl[1], 8))	draw_sprite_ui_uniform(THEME.anchor_selector, 1, bl[0], bl[1]);			
-			else if(point_in_circle(_mx, _my, br[0], br[1], 8))	draw_sprite_ui_uniform(THEME.anchor_selector, 1, br[0], br[1]);
+			if(point_in_circle(_mx, _my, bax, bay, 8))			draw_sprite_colored(THEME.anchor, 0, bax, bay, 1.25);
+			else if(point_in_circle(_mx, _my, tl[0], tl[1], 8))	draw_sprite_colored(THEME.anchor_selector, 1, tl[0], tl[1]);
+			else if(point_in_circle(_mx, _my, tr[0], tr[1], 8))	draw_sprite_colored(THEME.anchor_selector, 1, tr[0], tr[1]);			
+			else if(point_in_circle(_mx, _my, bl[0], bl[1], 8))	draw_sprite_colored(THEME.anchor_selector, 1, bl[0], bl[1]);			
+			else if(point_in_circle(_mx, _my, br[0], br[1], 8))	draw_sprite_colored(THEME.anchor_selector, 1, br[0], br[1]);
 				
 			draw_line(tl[0], tl[1], tr[0], tr[1]);
 			draw_line(tl[0], tl[1], bl[0], bl[1]);
@@ -108,11 +110,11 @@ function Node_Transform_Single(_x, _y, _group = -1) : Node_Processor(_x, _y, _gr
 		#endregion
 		
 		if(overlay_dragging && overlay_dragging < 3) {
-			var px = _mx - overlay_drag_mx;
-			var py = _my - overlay_drag_my;
+			var px = value_snap(_mx - overlay_drag_mx, _snx);
+			var py = value_snap(_my - overlay_drag_my, _sny);
 			var pos_x, pos_y;
 			
-			if(keyboard_check(vk_shift)) {
+			if(key_mod_press(SHIFT)) {
 				var ang  = round(point_direction(overlay_drag_mx, overlay_drag_my, _mx, _my) / 45) * 45;
 				var dist = point_distance(overlay_drag_mx, overlay_drag_my, _mx, _my) / _s;
 				
@@ -123,17 +125,17 @@ function Node_Transform_Single(_x, _y, _group = -1) : Node_Processor(_x, _y, _gr
 				pos_y = overlay_drag_sy + py / _s;
 			}
 			
-			if(keyboard_check(vk_control)) {
+			if(key_mod_press(CTRL)) {
 				pos_x = round(pos_x);
 				pos_y = round(pos_y);
 			}
 			
 			if(overlay_dragging == 1) {
-				inputs[| 1].setValue(pos_x);
-				inputs[| 2].setValue(pos_y);
+				inputs[1].setValue(pos_x);
+				inputs[2].setValue(pos_y);
 			} else if(overlay_dragging == 2) {
-				inputs[| 3].setValue(pos_x);
-				inputs[| 4].setValue(pos_y);
+				inputs[3].setValue(pos_x);
+				inputs[4].setValue(pos_y);
 			}
 			
 			if(mouse_release(mb_left))
@@ -143,7 +145,7 @@ function Node_Transform_Single(_x, _y, _group = -1) : Node_Processor(_x, _y, _gr
 			var da = angle_difference(overlay_drag_ma, aa);
 			var sa = overlay_drag_sa - da;
 			
-			inputs[| 5].setValue(sa);
+			inputs[5].setValue(sa);
 			
 			if(mouse_release(mb_left))
 				overlay_dragging = 0;	

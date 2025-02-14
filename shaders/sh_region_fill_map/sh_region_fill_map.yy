@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_region_fill_map",
+  "name":"sh_region_fill_map",
+  "parent":{
+    "name":"region",
+    "path":"folders/nodes/data/generator/regions/region.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

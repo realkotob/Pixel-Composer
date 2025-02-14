@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_gabor_noise",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_gabor_noise",
+  "parent":{
+    "name":"noise",
+    "path":"folders/nodes/data/generator/noise.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

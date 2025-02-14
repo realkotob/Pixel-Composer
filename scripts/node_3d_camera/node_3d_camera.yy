@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_3d_camera",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_3d_camera",
+  "parent":{
+    "name":"d3d_camera",
+    "path":"folders/nodes/data/3D/d3d_camera.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

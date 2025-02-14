@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "node_blend",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "filter",
-    "path": "folders/nodes/data/filter.yy",
+  "$GMScript":"v1",
+  "%Name":"node_blend",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_blend",
+  "parent":{
+    "name":"compose",
+    "path":"folders/nodes/data/compose.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

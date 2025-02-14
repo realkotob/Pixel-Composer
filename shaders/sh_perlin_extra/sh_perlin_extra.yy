@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_perlin_extra",
+  "name":"sh_perlin_extra",
+  "parent":{
+    "name":"noise",
+    "path":"folders/nodes/data/generator/noise.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

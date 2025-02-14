@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_jpeg_dct",
+  "name":"sh_jpeg_dct",
+  "parent":{
+    "name":"jpeg",
+    "path":"folders/nodes/data/filter/effects/jpeg.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

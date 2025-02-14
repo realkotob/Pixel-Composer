@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"complex_function",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"complex_function",
+  "parent":{
+    "name":"value",
+    "path":"folders/functions/value.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

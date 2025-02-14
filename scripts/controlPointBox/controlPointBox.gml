@@ -10,108 +10,160 @@ enum PUPPET_CONTROL {
 
 enum PUPPET_FORCE_MODE {
 	move,
-	pinch,
-	inflate,
 	wind,
+	puppet, 
 }
 
-function controlPointBox(_onModify) constructor {
+function controlPointBox(_onModify) : widget() constructor {
 	onModify = _onModify;
 	onSurfaceSize = -1;
 	
-	active  = false;
-	hover   = false;
+	tbCx = new textBox(TEXTBOX_INPUT.number, function(val) { return onModify(toNumber(val),         PUPPET_CONTROL.cx    ); });	tbCx.hide = true; tbCx.slidable = true;
+	tbCy = new textBox(TEXTBOX_INPUT.number, function(val) { return onModify(toNumber(val),         PUPPET_CONTROL.cy    ); });	tbCy.hide = true; tbCy.slidable = true;
+	tbFx = new textBox(TEXTBOX_INPUT.number, function(val) { return onModify(toNumber(val),         PUPPET_CONTROL.fx    ); });	tbFx.hide = true; tbFx.slidable = true;
+	tbFy = new textBox(TEXTBOX_INPUT.number, function(val) { return onModify(toNumber(val),         PUPPET_CONTROL.fy    ); });	tbFy.hide = true; tbFy.slidable = true;
+	tbW  = new textBox(TEXTBOX_INPUT.number, function(val) { return onModify(max(0, toNumber(val)), PUPPET_CONTROL.width ); });	tbW.hide  = true; tbW.slidable  = true;
+	tbH  = new textBox(TEXTBOX_INPUT.number, function(val) { return onModify(max(0, toNumber(val)), PUPPET_CONTROL.height); });	tbH.hide  = true; tbH.slidable  = true;
+	rot  = new rotator(function(val) { return onModify(toNumber(val), PUPPET_CONTROL.fy); });
 	
-	tbCx = new textBox(TEXTBOX_INPUT.float, function(val) { onModify(PUPPET_CONTROL.cx,     toNumber(val)); });
-	tbCy = new textBox(TEXTBOX_INPUT.float, function(val) { onModify(PUPPET_CONTROL.cy,     toNumber(val)); });
-	tbFx = new textBox(TEXTBOX_INPUT.float, function(val) { onModify(PUPPET_CONTROL.fx,     toNumber(val)); });
-	tbFy = new textBox(TEXTBOX_INPUT.float, function(val) { onModify(PUPPET_CONTROL.fy,     toNumber(val)); });
-	tbW  = new textBox(TEXTBOX_INPUT.float, function(val) { onModify(PUPPET_CONTROL.width,  max(0, toNumber(val))); });
-	tbH  = new textBox(TEXTBOX_INPUT.float, function(val) { onModify(PUPPET_CONTROL.height, max(0, toNumber(val))); });
-	rot  = new rotator(function(val) { onModify(PUPPET_CONTROL.fy, toNumber(val)); });
-	tbFx.slidable = true;
-	tbFy.slidable = true;
-	tbW.slidable = true;
-	tbH.slidable = true;
+	sW   = new textBox(TEXTBOX_INPUT.number, function(val) { onModify(toNumber(val), PUPPET_CONTROL.width); });
 	
-	sW   = new slider(0, 32, 0.1, function(val) { onModify(PUPPET_CONTROL.width,  toNumber(val)); });
+	tbCx.label = "cx";
+	tbCy.label = "cy";
+		
+	sMode = [
+		__txtx("widget_control_point_move",   "Move"), 
+		__txtx("widget_control_point_wind",   "Wind"), 
+	];
 	
-	sMode = ["Move", "Pinch", "Inflate", "Wind"];
 	scMode = new scrollBox(
 		sMode, 
-		function(val) { onModify(PUPPET_CONTROL.mode, toNumber(val)); }
+		function(val) { onModify(toNumber(val), PUPPET_CONTROL.mode); }
 	);
 	
-	static draw = function(_x, _y, _w, _data, _m, _rx, _ry) {
-		tbCx.hover   = hover; tbCx.active   = active;
-		tbCy.hover   = hover; tbCy.active   = active;
-		tbFx.hover   = hover; tbFx.active   = active;
-		tbFy.hover   = hover; tbFy.active   = active;
-		tbW.hover    = hover; tbW.active    = active;
-		sW.hover     = hover; sW.active     = active;
-		tbH.hover    = hover; tbH.active    = active;
-		scMode.hover = hover; scMode.active = active;
-		rot.hover    = hover; rot.active    = active;
+	widgets = [ scMode, tbCx, tbCy, tbFx, tbFy, tbW, tbH, rot, sW ];
+	
+	static setInteract = function(interactable = noone) { 
+		self.interactable = interactable;
+		
+		for( var i = 0, n = array_length(widgets); i < n; i++ ) 
+			widgets[i].setInteract(interactable);
+	}
+	
+	static register = function(parent = noone) {
+		for( var i = 0, n = array_length(widgets); i < n; i++ ) 
+			widgets[i].register(parent); 
+	}
+	
+	static isHovering = function() { 
+		for( var i = 0, n = array_length(widgets); i < n; i++ ) if(widgets[i].isHovering()) return true;
+		return false;
+	}
+	
+	static drawParam = function(params) {
+		setParam(params);
+		tbCx.setParam(params);
+		tbCy.setParam(params);
+		tbFx.setParam(params);
+		tbFy.setParam(params);
+		tbW.setParam(params);
+		tbH.setParam(params);
+		rot.setParam(params);
+		sW.setParam(params);setParam(params);
+		scMode.setParam(params);
+		
+		return draw(params.x, params.y, params.w, params.h, params.data, params.m, params.rx, params.ry); 
+	}
+	
+	static draw = function(_x, _y, _w, _h, _data, _m, _rx, _ry) {
+		x = _x;
+		y = _y;
+		
+		var _mode = array_safe_get_fast(_data, PUPPET_CONTROL.mode);
+		var _cx   = array_safe_get_fast(_data, PUPPET_CONTROL.cx);
+		var _cy   = array_safe_get_fast(_data, PUPPET_CONTROL.cy);
+		var _fx   = array_safe_get_fast(_data, PUPPET_CONTROL.fx);
+		var _fy   = array_safe_get_fast(_data, PUPPET_CONTROL.fy);
+		var _wid  = array_safe_get_fast(_data, PUPPET_CONTROL.width);
+		
+		if(is_array(_mode) || is_array(_cx) || is_array(_cy) || is_array(_fx) || is_array(_fy) || is_array(_wid))
+			return 0;
+		
+		for( var i = 0, n = array_length(widgets); i < n; i++ )
+			widgets[i].setFocusHover(active, hover);
 		
 		var yy = _y;
 		
-		scMode.draw(_x, yy, _w, TEXTBOX_HEIGHT, sMode[_data[PUPPET_CONTROL.mode]], _m, _rx, _ry);
-		yy += TEXTBOX_HEIGHT + ui(8);
+		scMode.draw(_x, yy, _w, _h, sMode[_mode], _m, _rx, _ry);
+		yy += _h + ui(4);
 		
-		var lw = ui(80);
-		var w  = _w / 2 - lw;
+		var _ww = _w / 2;
+		var _wh = _h;
 		
-		draw_set_text(f_p0, fa_left, fa_center, COLORS._main_text);
-		draw_text(_x,					yy + ui(17), "cx");
-		draw_text(_x + _w / 2 + ui(10), yy + ui(17), "cy");
-		tbCx.draw(_x + lw,				yy, w, TEXTBOX_HEIGHT, _data[PUPPET_CONTROL.cx], _m);
-		tbCy.draw(_x + _w / 2 + lw,		yy, w, TEXTBOX_HEIGHT, _data[PUPPET_CONTROL.cy], _m);
-		yy += TEXTBOX_HEIGHT + ui(8);
+		draw_sprite_stretched_ext(THEME.textbox, 3, _x, yy, _w, _wh, boxColor, 1);
+		draw_sprite_stretched_ext(THEME.textbox, 0, _x, yy, _w, _wh, boxColor, 0.5 + 0.5 * interactable);	
 		
-		switch(_data[PUPPET_CONTROL.mode]) {
+		tbCx.draw(_x,	    yy, _ww, _wh, _cx, _m);
+		tbCy.draw(_x + _ww, yy, _ww, _wh, _cy, _m);
+		yy += _wh + ui(4);
+		
+		switch(_mode) {
 			case PUPPET_FORCE_MODE.move: 
-				draw_set_text(f_p0, fa_left, fa_center, COLORS._main_text);
-				draw_text(_x,					yy + ui(17), "fx");
-				draw_text(_x + _w / 2 + ui(10), yy + ui(17), "fy");
-				tbFx.draw(_x + lw,				yy, w, TEXTBOX_HEIGHT, _data[PUPPET_CONTROL.fx],  _m);
-				tbFy.draw(_x + _w / 2 + lw,		yy, w, TEXTBOX_HEIGHT, _data[PUPPET_CONTROL.fy], _m);
-				yy += TEXTBOX_HEIGHT + ui(8);
+			case PUPPET_FORCE_MODE.puppet: 
+			
+				draw_sprite_stretched_ext(THEME.textbox, 3, _x, yy, _w, _wh, boxColor, 1);
+				draw_sprite_stretched_ext(THEME.textbox, 0, _x, yy, _w, _wh, boxColor, 0.5 + 0.5 * interactable);	
 		
-				draw_set_text(f_p0, fa_left, fa_center, COLORS._main_text);
-				draw_text(_x, yy + ui(17), "radius");
-				sW.draw(_x + lw, yy, _w - lw, TEXTBOX_HEIGHT, _data[PUPPET_CONTROL.width],  _m);
-				yy += TEXTBOX_HEIGHT + ui(8);
-				break;
-			case PUPPET_FORCE_MODE.pinch: 
-			case PUPPET_FORCE_MODE.inflate: 
-				draw_set_text(f_p0, fa_left, fa_center, COLORS._main_text);
-				draw_text(_x, yy + ui(17), "radius");
-				sW.draw(_x + lw, yy, _w - lw, TEXTBOX_HEIGHT, _data[PUPPET_CONTROL.width],  _m);
-				yy += TEXTBOX_HEIGHT + ui(8);
+				tbFx.label = "fx";
+				tbFy.label = "fy";
 				
-				draw_text(_x, yy + ui(17), "strength");
-				tbH.draw(_x + lw, yy, _w - lw, TEXTBOX_HEIGHT, _data[PUPPET_CONTROL.height], _m);
-				yy += TEXTBOX_HEIGHT + ui(8);
+				tbFx.draw(_x,		yy, _ww, _wh, _fx, _m);
+				tbFy.draw(_x + _ww,	yy, _ww, _wh, _fy, _m);
+				yy += _wh + ui(4);
+				
+				if(_mode == PUPPET_FORCE_MODE.move) {
+					sW.label = __txt("radius");
+					sW.draw(_x, yy, _w, _wh, _wid, _m);
+					
+					yy += _wh + ui(4);
+				}
 				break;
+				
 			case PUPPET_FORCE_MODE.wind: 
-				draw_set_text(f_p0, fa_left, fa_center, COLORS._main_text);
-				draw_text(_x, yy + ui(17), "stength");
-				tbFx.draw(_x + lw, yy, _w - lw, TEXTBOX_HEIGHT, _data[PUPPET_CONTROL.fx],  _m);
-				yy += TEXTBOX_HEIGHT + ui(8);
+			
+				draw_sprite_stretched_ext(THEME.textbox, 3, _x, yy, _w, _wh, boxColor, 1);
+				draw_sprite_stretched_ext(THEME.textbox, 0, _x, yy, _w, _wh, boxColor, 0.5 + 0.5 * interactable);	
+		
+				tbFx.label = __txt("strength");
+				tbW.label  = __txt("width");
 				
-				draw_set_text(f_p0, fa_left, fa_center, COLORS._main_text);
-				draw_text(_x, yy + ui(17), "width");
-				tbW.draw(_x + lw, yy, _w - lw, TEXTBOX_HEIGHT, _data[PUPPET_CONTROL.width], _m);
-				yy += TEXTBOX_HEIGHT + ui(8);
+				tbFx.draw(_x,       yy, _ww, _wh, _fx, _m);
+				tbW.draw( _x + _ww, yy, _ww, _wh, _wid, _m);
+				yy += _wh + ui(4);
 				
-				rot.draw(_x + _w / 2, yy, _data[PUPPET_CONTROL.fy], _m);
-				yy += ui(94 + 8);
+				var _rh = rot.draw(_x, yy, _w, _wh, _fy, _m);
+				yy += _rh + ui(4);
 				break;
 		}
 		
-		active = false;
-		hover  = false;
-		
+		resetFocus();
 		return yy - _y;
+	}
+	
+	static clone = function() {
+		var cln = new controlPointBox(onModify);
+		
+		return cln;
+	}
+
+	static free = function() {
+		tbCx.free();
+		tbCy.free();
+		tbFx.free();
+		tbFy.free();
+		tbW.free();
+		tbH.free();
+		rot.free();
+		sW.free();
 	}
 }

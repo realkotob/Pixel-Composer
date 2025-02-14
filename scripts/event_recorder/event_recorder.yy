@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "event_recorder",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "scritps",
-    "path": "folders/main/scritps.yy",
+  "$GMScript":"v1",
+  "%Name":"event_recorder",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"event_recorder",
+  "parent":{
+    "name":"components",
+    "path":"folders/main/components.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

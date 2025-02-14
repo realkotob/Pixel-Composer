@@ -1,10 +1,12 @@
 {
-  "resourceType": "GMShader",
-  "resourceVersion": "1.0",
-  "name": "sh_content_sampler",
-  "type": 1,
-  "parent": {
-    "name": "shader",
-    "path": "folders/shader.yy",
+  "$GMShader":"",
+  "%Name":"sh_content_sampler",
+  "name":"sh_content_sampler",
+  "parent":{
+    "name":"warps",
+    "path":"folders/nodes/data/filter/warps.yy",
   },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
 }

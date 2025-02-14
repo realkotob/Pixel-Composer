@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_midi_in",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_midi_in",
+  "parent":{
+    "name":"io",
+    "path":"folders/nodes/data/io.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_fd_turbulence",
+  "name":"sh_fd_turbulence",
+  "parent":{
+    "name":"Effectors",
+    "path":"folders/nodes/data/simulation/smokeSim/Effectors.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

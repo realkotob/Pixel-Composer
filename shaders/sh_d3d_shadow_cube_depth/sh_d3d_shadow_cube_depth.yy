@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_d3d_shadow_cube_depth",
+  "name":"sh_d3d_shadow_cube_depth",
+  "parent":{
+    "name":"shader",
+    "path":"folders/nodes/data/3D/shader.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

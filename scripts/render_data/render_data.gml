@@ -4,131 +4,347 @@ enum RENDER_TYPE {
 	full = 2
 }
 
-global.RENDER_LOG = false;
+#region globalvar
+	globalvar UPDATE, RENDER_QUEUE, RENDER_ORDER, UPDATE_RENDER_ORDER, LIVE_UPDATE;
+	
+	LIVE_UPDATE            = false;
+	UPDATE_RENDER_ORDER    = false;
+	
+	#macro RENDER_ALL                                         UPDATE |= RENDER_TYPE.full;
+	#macro RENDER_ALL_REORDER	  UPDATE_RENDER_ORDER = true; UPDATE |= RENDER_TYPE.full;
+	#macro RENDER_PARTIAL		   						      UPDATE |= RENDER_TYPE.partial;
+	#macro RENDER_PARTIAL_REORDER UPDATE_RENDER_ORDER = true; UPDATE |= RENDER_TYPE.partial;
+	
+	global.getvalue_hit = 0;
+#endregion
 
-function __nodeLeafList(_list, _stack) {
-	for( var i = 0; i < ds_list_size(_list); i++ ) {
-		var _node = _list[| i];
-		if(!_node.active) continue;
+function ResetAllNodesRender() {
+	LOG_IF(global.FLAG.render == 1, $"XXXXXXXXXXXXXXXXXXXX RESETTING ALL NODES [frame {CURRENT_FRAME}] XXXXXXXXXXXXXXXXXXXX");
+	
+	array_foreach(PROJECT.allNodes, function(_node) { 
+		if(!is_instanceof(_node, Node)) return;
 		
-		var _startNode = _node.isRenderable(true);
-		if(_startNode) {
-			ds_stack_push(_stack, _node);
-			printIf(global.RENDER_LOG, "Push node " + _node.name + " to stack");
-		}
-	}
+		_node.setRenderStatus(false);
+		for( var i = 0, n = array_length(_node.inputs); i < n; i++ ) 
+			_node.inputs[i].resetCache();
+		return;
+	});
+	
 }
 
-function __nodeInLoop(_node) {
-	var gr = _node.group;
-	while(gr != -1) {
-		if(instanceof(gr) == "Node_Iterate")  return true;
-		if(instanceof(gr) == "Node_Feedback") return true;
-		gr = gr.group;
-	}
-	return false;
+function NodeTopoSort() {
+	LOG_IF(global.FLAG.render == 1, $"======================= RESET TOPO =======================")
+	
+	var amo  = array_length(PROJECT.allNodes);
+	var _t   = get_timer();
+	
+	array_foreach(PROJECT.allNodes, function(n) /*=>*/ { if(is(n, Node_Collection)) n.refreshNodes(); });
+	
+	PROJECT.nodeTopo   = [];
+	__topoSort(PROJECT.nodeTopo, PROJECT.nodes);
+	
+	PROJECT.nodeTopoID = UUID_generate();
+	// print(PROJECT.nodeTopo);
+	LOG_IF(global.FLAG.render == 1, $"+++++++ Topo Sort Completed: {array_length(PROJECT.nodeTopo)}/{amo} nodes sorted in {(get_timer() - _t) / 1000} ms +++++++");
 }
 
-function Render(partial = false) {
-	var rendering = noone;
-	var error = 0;
-	printIf(global.RENDER_LOG, "=== RENDER START ===");
-	
-	if(!partial || ALWAYS_FULL) {
-		var _key = ds_map_find_first(NODE_MAP);
-		var amo = ds_map_size(NODE_MAP);
-		
-		repeat(amo) {
-			var _node = NODE_MAP[? _key];
-			_node.setRenderStatus(false);
-			_key = ds_map_find_next(NODE_MAP, _key);	
-		}
-	}
-	
-	// get leaf node
-	ds_stack_clear(RENDER_STACK);
-	var key = ds_map_find_first(NODE_MAP);
-	var amo = ds_map_size(NODE_MAP);
-	repeat(amo) {
-		var _node = NODE_MAP[? key];
-		key = ds_map_find_next(NODE_MAP, key);
-		
-		if(is_undefined(_node)) continue;
-		if(!is_struct(_node)) continue;
-		if(instanceof(_node) == "Node_Group_Input") continue;
-		if(instanceof(_node) == "Node_Iterator_Input") continue;
-		
-		if(!_node.active) continue;
-		if(_node.rendered) continue;
-		if(__nodeInLoop(_node)) continue;
-		
-		var _startNode = _node.isRenderable();
-		if(_startNode) {
-			ds_stack_push(RENDER_STACK, _node);
-			printIf(global.RENDER_LOG, "    > Push " + _node.name + " node to stack");
-		}
-	}
-	
-	// render forward
-	while(!ds_stack_empty(RENDER_STACK)) {
-		rendering = ds_stack_pop(RENDER_STACK);
-		
-		var txt = rendering.rendered? " [Skip]" : " [Update]";
-		if(!rendering.rendered) {
-			if(LOADING || APPENDING || rendering.auto_update)
-				rendering.doUpdate();
-			rendering.setRenderStatus(true);
-		}
-		printIf(global.RENDER_LOG, "Rendered " + rendering.name + " [" + string(instanceof(rendering)) + "]" + txt);
-		rendering.getNextNodes();
-	}
-	
-	printIf(global.RENDER_LOG, "=== RENDER COMPLETE ===\n");
+function NodeListSort(_nodeList) {
+	var _arr = __topoSort([], _nodeList);
+	return _arr;
 }
-/*
-function renderNodeBackward(_node) { //unused
-	var RENDER_STACK = ds_stack_create();
-	ds_stack_push(RENDER_STACK, _node);
+
+function __sortNode(_arr, _node, _sorted, _nodeMap = undefined) {
+	if(struct_has(_sorted, _node.node_id)) return;
 	
-	var key = ds_map_find_first(NODE_MAP);
-	for(var i = 0; i < ds_map_size(NODE_MAP); i++) {
-		var _allnode = NODE_MAP[? key];
-		if(_allnode && !is_undefined(_allnode) && is_struct(_allnode) && string_pos("Node", instanceof(_allnode)))
-			_allnode.triggerRender();
-		key = ds_map_find_next(NODE_MAP, key);
+	var _parents = [];
+	var _prev    = _node.getPreviousNodes();
+		
+	for( var i = 0, n = array_length(_prev); i < n; i++ ) {
+		var _in = _prev[i];
+		if(_in == noone || struct_has(_sorted, _in.node_id)) continue;
+		if(_nodeMap != undefined && !struct_has(_nodeMap, _in.node_id)) continue;
+		
+		array_push(_parents, _in);
 	}
+		
+	// print($"        > Checking {_node.name}: {array_length(_parents)}");
+		
+	if(is_instanceof(_node, Node_Collection) && !_node.managedRenderOrder)
+		__topoSort(_arr, _node.nodes, _sorted);
 	
-	for(var i = 0; i < ds_list_size(_node.inputs); i++) {
-		var _in = _node.inputs[| i];
+	for( var i = 0, n = array_length(_parents); i < n; i++ ) 
+		__sortNode(_arr, _parents[i], _sorted, _nodeMap);
+	
+	if(struct_has(_sorted, _node.node_id)) return;
+	array_push(_arr, _node);
+	_sorted[$ _node.node_id] = 1;
+	_node.__nextNodes        = noone;
+	_node.__nextNodesToLoop  = noone;
+		
+	// print($"        > Adding > {_node.name} | {_arr}");
+}
+
+function __topoSort(_arr = [], _nodeArr = [], _sorted = {}) {
+	var _leaf     = [];
+	var _leftOver = [];
+	var _global   = _nodeArr == PROJECT.nodes;
+	var _nodeMap  = _global? undefined : {};
+	__temp_nodeList = _nodeArr;
+	
+	for( var i = 0, n = array_length(_nodeArr); i < n; i++ ) {
+		var _node   = _nodeArr[i];
+		var _isLeaf = true;
+		
+		if(!_global) _nodeMap[$ _node.node_id]  = 1;
+		
+		if(is_instanceof(_node, Node_Collection_Inline) && !_node.is_root) { array_push(_leftOver, _node); continue; }
+		
+		if(_node.attributes.show_update_trigger && !array_empty(_node.updatedOutTrigger.getJunctionTo())) {
+			_isLeaf = false;
 			
-		if(_in.value_from) {
-			ds_stack_push(RENDER_STACK, _in.value_from.node);
-		}
-	}
-		
-	while(!ds_stack_empty(RENDER_STACK)) {
-		var _rendering = ds_stack_top(RENDER_STACK);
-		var _leaf = true;
-			
-		for(var i = 0; i < ds_list_size(_rendering.inputs); i++) {
-			var _in = _rendering.inputs[| i];
-			if(_in.value_from && !_in.value_from.node.rendered) {
-				ds_stack_push(RENDER_STACK, _in.value_from.node);
-				_leaf = false;
+		} else {
+			for( var j = 0, m = array_length(_node.outputs); j < m; j++ ) {
+				var _to = _node.outputs[j].getJunctionTo();
+				
+				if(_global) _isLeaf &=  array_empty(_to);
+				else        _isLeaf &= !array_any(_to, function(_val) /*=>*/ {return array_exists(__temp_nodeList, _val.node)});
+				
+				if(!_isLeaf) break;
 			}
 		}
-			
-		if(_leaf) {
-			//show_debug_message("Rendering " + _rendering.name + " at " + string(ANIMATOR.current_frame));
-			_rendering.setRenderStatus(true);
-			if(_rendering.use_cache) {
-				if(!_rendering.recoverCache())
-					_rendering.doUpdate();
-			} else
-				_rendering.doUpdate();
-			ds_stack_pop(RENDER_STACK);
-		}
-	}
 		
-	ds_stack_destroy(RENDER_STACK);
+		if(_isLeaf) array_push(_leaf, _node);
+	}
+	
+	// print($"Leaf: {_leaf}");
+	
+	for( var i = 0, n = array_length(_leaf); i < n; i++ ) 
+		__sortNode(_arr, _leaf[i], _sorted, _nodeMap);
+	
+	for( var i = 0, n = array_length(_leftOver); i < n; i++ ) {
+		if(!struct_has(_sorted, _leftOver[i].node_id))
+			array_insert(_arr, 0, _leftOver[i]);
+	}
+	
+	__temp_nodeList = [];
+	return _arr;
+}
+
+function __nodeLeafList(_arr) {
+	var nodes     = [];
+	var nodeNames = [];
+	
+	for( var i = 0, n = array_length(_arr); i < n; i++ ) {
+		var _node = _arr[i];
+		
+		if(!_node.active)			 { LOG_LINE_IF(global.FLAG.render == 1, $"Reject {_node.internalName} [inactive]");       continue; }
+		if(!_node.isLeafList(_arr))  { LOG_LINE_IF(global.FLAG.render == 1, $"Reject {_node.internalName} [not leaf]");       continue; }
+		if(!_node.isRenderable())    { LOG_LINE_IF(global.FLAG.render == 1, $"Reject {_node.internalName} [not renderable]"); continue; }
+		
+		array_push(nodes, _node);
+		array_push(nodeNames, _node.internalName);
+	}
+	
+	LOG_LINE_IF(global.FLAG.render == 1, $"Push node {nodeNames} to queue");
+	return nodes;
+}
+
+function __nodeIsRenderLeaf(_node) {
+	if(is_undefined(_node))									 { LOG_IF(global.FLAG.render == 1, $"Skip undefiend		  [{_node}]"); return false; }
+	if(!is_instanceof(_node, Node))							 { LOG_IF(global.FLAG.render == 1, $"Skip non-node		  [{_node}]"); return false; }
+	
+	if(_node.is_group_io)									 { LOG_IF(global.FLAG.render == 1, $"Skip group IO		  [{_node.internalName}]"); return false; }
+	
+	if(!_node.active)										 { LOG_IF(global.FLAG.render == 1, $"Skip inactive         [{_node.internalName}]"); return false; }
+	if(!_node.isRenderActive())								 { LOG_IF(global.FLAG.render == 1, $"Skip render inactive  [{_node.internalName}]"); return false; }
+	if(!_node.attributes.update_graph)						 { LOG_IF(global.FLAG.render == 1, $"Skip non-auto update  [{_node.internalName}]"); return false; }
+			
+	if(_node.passiveDynamic) { _node.forwardPassiveDynamic();  LOG_IF(global.FLAG.render == 1, $"Skip passive dynamic  [{_node.internalName}]"); return false; }
+	
+	if(!_node.isActiveDynamic())							 { LOG_IF(global.FLAG.render == 1, $"Skip rendered static  [{_node.internalName}]"); return false; }
+	if(_node.inline_context != noone && _node.inline_context.managedRenderOrder) return false;
+	
+	return true;
+}
+
+function Render(partial = false, runAction = false) {
+	// node_auto_organize(PROJECT.nodes);
+	
+	LOG_END();
+
+	LOG_BLOCK_START();
+	LOG_IF(global.FLAG.render, $"============================== RENDER START [{partial? "PARTIAL" : "FULL"}] [frame {CURRENT_FRAME}] ==============================");
+	
+	try {
+		var t  = get_timer();
+		var t1 = get_timer();
+		
+		var _render_time = 0;
+		var _leaf_time   = 0;
+		
+		var rendering = noone;
+		var error     = 0;
+		var reset_all = !partial;
+		var renderable;
+		
+		if(reset_all) {
+			LOG_IF(global.FLAG.render == 1, $"xxxxxxxxxx Resetting {array_length(PROJECT.nodeTopo)} nodes xxxxxxxxxx");
+			
+			for (var i = 0, n = array_length(PROJECT.allNodes); i < n; i++) {
+				var _node = PROJECT.allNodes[i];
+				_node.setRenderStatus(false);
+			}
+		}
+		
+		// get leaf node
+		LOG_IF(global.FLAG.render == 1, $"----- Finding leaf from {array_length(PROJECT.nodeTopo)} nodes -----");
+		RENDER_QUEUE.clear();
+		array_foreach(PROJECT.nodeTopo, function(n) /*=>*/ { 
+			// n.__nextNodes    = noone;
+			n.passiveDynamic = false;
+			n.render_time    = 0;
+		});
+		
+		array_foreach(PROJECT.nodeTopo, function(n) /*=>*/ { 
+			if(!__nodeIsRenderLeaf(n)) return;
+			
+			LOG_IF(global.FLAG.render == 1, $"    Found leaf [{n.internalName}]");
+			RENDER_QUEUE.enqueue(n);
+			n.forwardPassiveDynamic();
+		});
+		
+		_leaf_time = get_timer() - t;
+		LOG_IF(global.FLAG.render >= 1, $"Get leaf complete: found {RENDER_QUEUE.size()} leaves in {(get_timer() - t) / 1000} ms."); t = get_timer();
+		LOG_IF(global.FLAG.render == 1,  "================== Start rendering ==================");
+		
+		// render forward
+		while(!RENDER_QUEUE.empty()) {
+			LOG_BLOCK_START();
+			// LOG_IF(global.FLAG.render == 1, $"➤➤➤➤➤➤ CURRENT RENDER QUEUE {RENDER_QUEUE} [{RENDER_QUEUE.size()}] ");
+			
+			rendering  = RENDER_QUEUE.dequeue();
+			renderable = rendering.isRenderable();
+			
+			// LOG_IF(global.FLAG.render == 1, $"Rendering {rendering.internalName} ({rendering.display_name}) : {renderable? "Update" : "Pass"} ({rendering.rendered})");
+			
+			if(renderable) {
+				var render_pt = get_timer();
+				rendering.doUpdate(); 
+				_render_time += get_timer() - render_pt;
+				
+				var nextNodes = rendering.getNextNodes();
+				
+				for( var i = 0, n = array_length(nextNodes); i < n; i++ ) {
+					var nextNode = nextNodes[i];
+					if(!is(nextNode, __Node_Base) || !nextNode.isRenderable()) continue;
+					
+					// LOG_IF(global.FLAG.render == 1, $"→→ Push {nextNode.internalName} to queue.");
+					RENDER_QUEUE.enqueue(nextNode);
+					
+					if(PROFILER_STAT) array_push(rendering.nextn, nextNode);
+				}
+				
+				// if(runAction && rendering.hasInspector1Update()) rendering.inspector1Update();
+					
+				if(PROFILER_STAT) rendering.summarizeReport(render_pt);
+				
+			} else if(rendering.force_requeue)
+				RENDER_QUEUE.enqueue(rendering);
+			
+			LOG_BLOCK_END();
+		}
+		
+		_render_time /= 1000;
+		
+		LOG_IF(global.FLAG.renderTime || global.FLAG.render >= 1, $"=== RENDER FRAME {CURRENT_FRAME} COMPLETE IN {(get_timer() - t1) / 1000} ms ===\n");
+		LOG_IF(global.FLAG.render >  1, $"=== RENDER SUMMARY STA ===");
+		LOG_IF(global.FLAG.render >  1, $"  total time:  {(get_timer() - t1) / 1000} ms");
+		LOG_IF(global.FLAG.render >  1, $"  leaf:        {_leaf_time / 1000} ms");
+		LOG_IF(global.FLAG.render >  1, $"  render loop: {(get_timer() - t) / 1000} ms");
+		LOG_IF(global.FLAG.render >  1, $"  render only: {_render_time} ms");
+		LOG_IF(global.FLAG.render >  1, $"=== RENDER SUMMARY END ===");
+		
+	} catch(e) {
+		noti_warning(exception_print(e));
+	}
+	
+	// print("\n============== render stat ==============");
+	// print($"Get value hit: {global.getvalue_hit}");
+	
+	LOG_END();
+	
+}
+
+function __renderListReset(arr) {
+	for( var i = 0; i < array_length(arr); i++ ) {
+		arr[i].setRenderStatus(false);
+		
+		if(struct_has(arr[i], "nodes"))
+			__renderListReset(arr[i].nodes);
+	}
+}
+
+function RenderList(arr) {
+	LOG_BLOCK_START();
+	LOG_IF(global.FLAG.render == 1, $"=============== RENDER LIST START [{array_length(arr)}] ===============");
+	var queue = ds_queue_create();
+	
+	try {
+		var rendering = noone;
+		var error	  = 0;
+		var t		  = current_time;
+		
+		__renderListReset(arr);
+		
+		// get leaf node
+		for( var i = 0, n = array_length(arr); i < n; i++ ) {
+			var _node = arr[i];
+			_node.passiveDynamic = false;
+		}
+		
+		for( var i = 0, n = array_length(arr); i < n; i++ ) {
+			var _node = arr[i];
+			
+			if(!__nodeIsRenderLeaf(_node))
+				continue;
+			
+			LOG_IF(global.FLAG.render == 1, $"Found leaf {_node.internalName}");
+			ds_queue_enqueue(queue, _node);
+			_node.forwardPassiveDynamic();
+		}
+		
+		LOG_IF(global.FLAG.render == 1, "Get leaf complete: found " + string(ds_queue_size(queue)) + " leaves.");
+		LOG_IF(global.FLAG.render == 1, "=== Start rendering ===");
+		
+		// render forward
+		while(!ds_queue_empty(queue)) {
+			LOG_BLOCK_START();
+			rendering = ds_queue_dequeue(queue)
+			var renderable = rendering.isRenderable();
+			
+			LOG_IF(global.FLAG.render == 1, $"Rendering {rendering.internalName} ({rendering.display_name}) : {renderable? "Update" : "Pass"}");
+			
+			if(renderable) {
+				rendering.doUpdate();
+				
+				var nextNodes = rendering.getNextNodes();
+				for( var i = 0, n = array_length(nextNodes); i < n; i++ ) {
+					var _node = nextNodes[i];
+					if(array_exists(arr, _node) && _node.isRenderable())
+						ds_queue_enqueue(queue, _node);
+				}
+			} 
+			
+			LOG_BLOCK_END();
+		}
+	
+	} catch(e) {
+		noti_warning(exception_print(e));
+	}
+	
+	LOG_BLOCK_END();	
+	LOG_IF(global.FLAG.render == 1, "=== RENDER COMPLETE ===\n");
+	LOG_END();
+	
+	ds_queue_destroy(queue);
 }

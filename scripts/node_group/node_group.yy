@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "node_group",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "group",
-    "path": "folders/nodes/data/group.yy",
+  "$GMScript":"v1",
+  "%Name":"node_group",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_group",
+  "parent":{
+    "name":"group",
+    "path":"folders/nodes/data/group.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

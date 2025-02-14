@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_seperate_shape",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_seperate_shape",
+  "parent":{
+    "name":"regions",
+    "path":"folders/nodes/data/generator/regions.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

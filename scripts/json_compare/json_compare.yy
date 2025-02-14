@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"json_compare",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"json_compare",
+  "parent":{
+    "name":"Tools",
+    "path":"folders/__extensions/FireBase/Extensions/Firebase_API/Firebase_Firestore/Tools.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

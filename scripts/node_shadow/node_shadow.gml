@@ -1,73 +1,117 @@
-function Node_Shadow(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
+function Node_Shadow(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
 	name = "Shadow";
 	
-	uniform_dim  = shader_get_uniform(sh_outline_only, "dimension");
-	uniform_size = shader_get_uniform(sh_outline_only, "borderSize");
-	uniform_colr = shader_get_uniform(sh_outline_only, "borderColor");
+	newInput(0, nodeValue_Surface("Surface In", self));
+	newInput(1, nodeValue_Color("Color",   self, cola(c_black)));
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
-	inputs[| 1] = nodeValue(1, "Color",   self, JUNCTION_CONNECT.input, VALUE_TYPE.color, c_black);
+	newInput(2, nodeValue_Float("Strength", self, .5))
+		.setDisplay(VALUE_DISPLAY.slider, { range: [ 0, 2, 0.01] });
 	
-	inputs[| 2] = nodeValue(2, "Strength", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, .5)
-		.setDisplay(VALUE_DISPLAY.slider, [ 0, 2, 0.01]);
+	newInput(3, nodeValue_Vec2("Shift", self, [ 4, 4 ]))
+		.setUnitRef(function(index) { return getDimension(index); });
 	
-	inputs[| 3] = nodeValue(3, "Shift", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, [ 4, 4 ])
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(4, nodeValue_Float("Grow", self, 3))
+		.setDisplay(VALUE_DISPLAY.slider, { range: [0, 16, 0.1] });
 	
-	inputs[| 4] = nodeValue(4, "Grow", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 3)
-		.setDisplay(VALUE_DISPLAY.slider, [0, 16, 1]);
+	newInput(5, nodeValue_Float("Blur", self, 3))
+		.setDisplay(VALUE_DISPLAY.slider, { range: [1, 16, 0.1] });
 	
-	inputs[| 5] = nodeValue(5, "Blur", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 3)
-		.setDisplay(VALUE_DISPLAY.slider, [1, 16, 1]);
+	newInput(6, nodeValue_Surface("Mask", self));
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(7, nodeValue_Float("Mix", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider);
 	
-	static drawOverlay = function(active, _x, _y, _s, _mx, _my) {
-		var _surf = outputs[| 0].getValue();
+	newInput(8, nodeValue_Bool("Active", self, true));
+		active_index = 8;
+	
+	__init_mask_modifier(6); // inputs 9, 10
+	
+	newInput(11, nodeValue_Enum_Scroll("Positioning", self,  0, [ "Shift", "Light" ]));
+	
+	newInput(12, nodeValue_Vec2("Light Position", self, [ 0, 0 ]))
+		.setUnitRef(function(index) { return getDimension(index); });
+		
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	input_display_list = [ 8, 
+		["Surfaces", true], 0, 6, 7, 9, 10, 
+		["Shadow",	false], 1, 2, 11, 3, 12, 4, 5, 
+	];
+	
+	surface_blur_init();
+	attribute_surface_depth();
+		
+	static drawOverlay = function(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) {
+		var _surf = outputs[0].getValue();
+		var _hov  = false;
+		
 		if(is_array(_surf)) {
-			if(array_length(_surf) == 0) return;
+			if(array_length(_surf) == 0) return _hov;
 			_surf = _surf[preview_index];
 		}
 		
-		var ww = surface_get_width(_surf) * _s;
-		var hh = surface_get_height(_surf) * _s;
+		var ww = surface_get_width_safe(_surf) * _s;
+		var hh = surface_get_height_safe(_surf) * _s;
 		
-		inputs[| 3].drawOverlay(active, _x + ww / 2, _y + hh / 2, _s, _mx, _my);
+		var _typ = getSingleValue(11);
+		
+			 if(_typ == 0) { var hv = inputs[ 3].drawOverlay(hover, active, _x + ww / 2, _y + hh / 2, _s, _mx, _my, _snx, _sny); _hov |= hv; }
+		else if(_typ == 1) { var hv = inputs[12].drawOverlay(hover, active, _x,          _y,          _s, _mx, _my, _snx, _sny); _hov |= hv; }
+		
+		return _hov;
 	}
 	
-	static process_data = function(_outSurf, _data, _output_index) {
+	static step = function() { 
+		__step_mask_modifier();
+		
+	} 
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
+		var _surf   = _data[0];
 		var cl      = _data[1];
 		var _stre   = _data[2];
-		var _shf    = _data[3];
 		var _border = _data[4];
 		var _size   = _data[5];
 		
-		var pass1   = surface_create_valid(surface_get_width(_outSurf), surface_get_height(_outSurf));	
+		var _posi   = _data[11];
+		var _shf    = _data[ 3];
+		var _lgh    = _data[12];
+		var _dim    = surface_get_dimension(_surf);
 		
-		surface_set_target(pass1);
-		draw_clear_alpha(0, 0);
-		BLEND_ADD
-			shader_set(sh_outline_only);
-				shader_set_uniform_f_array(uniform_dim,  [ surface_get_width(_outSurf), surface_get_height(_outSurf) ]);
-				shader_set_uniform_f(uniform_size, _border);
-				shader_set_uniform_f_array(uniform_colr, [1., 1., 1., 1.0]);
+		var pass1 = surface_create_valid(_dim[0], _dim[1], attrDepth());	
+		var _shax = _shf[0]; 
+		var _shay = _shf[1];
+		
+		if(_posi == 1) {
+			_shax = _dim[0] / 2 - _lgh[0];
+			_shay = _dim[1] / 2 - _lgh[1];
+		}
+		
+		inputs[ 3].setVisible(_posi == 0);
+		inputs[12].setVisible(_posi == 1);
+		
+		surface_set_shader(pass1, sh_outline_only);
+			shader_set_f("dimension",   _dim);
+			shader_set_f("borderSize",  _border);
+			shader_set_f("borderColor", [ 1., 1., 1., 1. ]);
 				
-				draw_surface_safe(_data[0], _shf[0], _shf[1]);
-			shader_reset();
-		BLEND_NORMAL
-		surface_reset_target();
-		
-		pass1 = surface_apply_gaussian(pass1, _size, false, cl);
+			draw_surface_safe(_data[0], _shax, _shay);
+		surface_reset_shader();
 		
 		surface_set_target(_outSurf);
-		draw_clear_alpha(0, 0);
-		BLEND_ADD
-			draw_surface_ext_safe(pass1, 0, 0, 1, 1, 0, cl, _stre);
-		BLEND_NORMAL
-			draw_surface_safe(_data[0], 0, 0);
+			DRAW_CLEAR
+			BLEND_OVERRIDE
+				var _s = surface_apply_gaussian(pass1, _size, false, cl, 2);
+				draw_surface_ext_safe(_s, 0, 0, 1, 1, 0, cl, _stre * _color_get_alpha(cl));
+			BLEND_ALPHA_MULP
+				draw_surface_safe(_surf);
+			BLEND_NORMAL
 		surface_reset_target();
 		
 		surface_free(pass1);
+		
+		__process_mask_modifier(_data);
+		_outSurf = mask_apply(_data[0], _outSurf, _data[6], _data[7]);
 		
 		return _outSurf;
 	}

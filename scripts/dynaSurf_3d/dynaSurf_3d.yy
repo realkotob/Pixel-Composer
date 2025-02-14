@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"dynaSurf_3d",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"dynaSurf_3d",
+  "parent":{
+    "name":"dynaSurf",
+    "path":"folders/functions/surface/dynaSurf.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

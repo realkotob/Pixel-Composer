@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_vector_dot",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_vector_dot",
+  "parent":{
+    "name":"vector",
+    "path":"folders/nodes/data/value/vector.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

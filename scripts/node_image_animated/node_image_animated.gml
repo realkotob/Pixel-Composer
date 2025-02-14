@@ -1,26 +1,28 @@
-function Node_create_Image_Animated(_x, _y, _group = -1) {
+function Node_create_Image_Animated(_x, _y, _group = noone) {
 	var path = "";
-	if(!LOADING && !APPENDING) {
-		path = get_open_filenames(".png", "");
+	if(NODE_NEW_MANUAL) {
+		path = get_open_filenames_compat("image|*.png;*.jpg", "");
+		key_release();
 		if(path == "") return noone;
 	}
 	
-	var node = new Node_Image_Animated(_x, _y, _group);
-	var paths = paths_to_array(path);
-	node.inputs[| 0].setValue(paths);
-	node.doUpdate();
+	var node  = new Node_Image_Animated(_x, _y, _group);
+	node.skipDefault();
 	
-	//ds_list_add(PANEL_GRAPH.nodes_list, node);
+	var paths = string_splice(path, "\n");
+	node.inputs[0].setValue(paths);
+	
+	if(NODE_NEW_MANUAL) node.doUpdate();
+	
 	return node;
 }
 
 function Node_create_Image_Animated_path(_x, _y, _path) {
-	var node = new Node_Image_Animated(_x, _y);
-	
-	node.inputs[| 0].setValue(_path);
+	var node = new Node_Image_Animated(_x, _y, PANEL_GRAPH.getCurrentContext());
+	node.skipDefault();
+	node.inputs[0].setValue(_path);
 	node.doUpdate();
 	
-	//ds_list_add(PANEL_GRAPH.nodes_list, node);
 	return node;
 }
 
@@ -31,51 +33,67 @@ enum ANIMATION_END {
 	hide
 }
 
-function Node_Image_Animated(_x, _y, _group = -1) : Node(_x, _y, _group) constructor {
-	name  = "";
+function Node_Image_Animated(_x, _y, _group = noone) : Node(_x, _y, _group) constructor {
+	name  = "Animation";
 	spr   = [];
 	color = COLORS.node_blend_input;
+	setAlwaysTimeline(new timelineItemNode_Image_Animated(self));
 	
 	update_on_frame = true;
-	always_output   = true;
 	
-	inputs[| 0]  = nodeValue(0, "Path", self, JUNCTION_CONNECT.input, VALUE_TYPE.path, "")
-		.setDisplay(VALUE_DISPLAY.path_array, ["*.png", ""]);
+	newInput(0, nodeValue_Path("Path", self, []))
+		.setDisplay(VALUE_DISPLAY.path_array, { filter: ["image|*.png;*.jpg", ""] });
 	
-	inputs[| 1]  = nodeValue(1, "Padding", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, [0, 0, 0, 0])
-		.setDisplay(VALUE_DISPLAY.padding);
+	newInput(1, nodeValue_Padding("Padding", self, [0, 0, 0, 0]))
+		.rejectArray();
 		
-	inputs[| 2] = nodeValue(2, "Stretch frame", self, JUNCTION_CONNECT.input, VALUE_TYPE.boolean, false);
+	newInput(2, nodeValue_Bool("Stretch frame", self, false, "Stretch animation speed to match project length."))
+		.rejectArray();
 	
-	inputs[| 3] = nodeValue(3, "Frame duration", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 1);
-	inputs[| 4] = nodeValue(4, "Animation end", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0)
-		.setDisplay(VALUE_DISPLAY.enum_scroll, ["Loop", "Ping pong", "Hold last frame", "Hide"]);
+	newInput(3, nodeValue_Float("Animation speed", self, 1))
+		.rejectArray();
 		
-	inputs[| 5] = nodeValue(5, "Set animation length to match", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0)
-		.setDisplay(VALUE_DISPLAY.button, [ function() { 
-				if(array_length(spr) == 0) return;
-				ANIMATOR.frames_total = array_length(spr);
-			}, "Match length"] );
+	newInput(4, nodeValue_Enum_Scroll("Loop modes", self,  0, ["Loop", "Ping pong", "Hold last frame", "Hide"]))
+		.rejectArray();
+		
+	newInput(5, nodeValue_Trigger("Set animation length to match", self, false ))
+		.setDisplay(VALUE_DISPLAY.button, { name: "Match length", UI : true, onClick: function() /*=>*/ { if(array_empty(spr)) return; TOTAL_FRAMES = array_length(spr); } });
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(6, nodeValue_Bool("Custom frame order", self, false));
+	
+	newInput(7, nodeValue_Int("Frame", self, 0));
+
+	newInput(8, nodeValue_Enum_Scroll("Canvas size", self,  2, [ "First", "Minimum", "Maximum" ]))
+		.rejectArray();
+		
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
 	
 	input_display_list = [
-		["Image", false],		0, 1,
-		["Animation", false],	5, 2, 3, 4,
+		["Image", false],		0, 1, 8, 
+		["Animation", false],	5, 4, 2, 3, 
+		["Custom Frame Order", false, 6], 7, 
 	];
 	
-	path_loaded = [];
+	attribute_surface_depth();
 	
-	on_dragdrop_file = function(path) {
-		if(directory_exists(path)) {
+	path_current = [];
+	edit_time    = 0;
+	
+	attributes.file_checker = true;
+	array_push(attributeEditors, [ "File Watcher", function() /*=>*/ {return attributes.file_checker}, new checkBox(function() /*=>*/ { attributes.file_checker = !attributes.file_checker; }) ]);
+	
+	on_drop_file = function(_path) {
+		if(directory_exists(_path)) {
 			with(dialogCall(o_dialog_drag_folder, WIN_W / 2, WIN_H / 2)) {
-				dir_paths = path;
+				dir_paths = _path;
 				target    = other;
 			}
 			return true;
 		}
 		
-		var paths = paths_to_array(path);
+		var paths = paths_to_array_ext(_path);
+		
+		inputs[0].setValue(paths);
 		if(updatePaths(paths)) {
 			doUpdate();
 			return true;
@@ -84,88 +102,214 @@ function Node_Image_Animated(_x, _y, _group = -1) : Node(_x, _y, _group) constru
 		return false;
 	}
 	
-	function updatePaths(paths) {
+	function updatePaths(paths = path_current) {
 		if(!is_array(paths) && ds_exists(paths, ds_type_list))
 			paths = ds_list_to_array(paths);
-			
+		
 		for(var i = 0; i < array_length(spr); i++) {
 			if(spr[i] && sprite_exists(spr[i]))
 				sprite_delete(spr[i]);
 		}
+		
 		spr = [];
+		path_current = [];
 		
-		path_loaded = array_create(array_length(paths));
-		
-		for( var i = 0; i < array_length(paths); i++ )  {
-			path_loaded[i] = paths[i];
-			var path = try_get_path(paths[i]);
-			if(path == -1) continue;
+		for( var i = 0, n = array_length(paths); i < n; i++ )  {
+			var _path = path_get(paths[i]);
+			if(_path == -1) continue;
 			
-			name  = string_replace(filename_name(path), filename_ext(path), "");
-			array_push(spr, sprite_add(path, 1, false, false, 0, 0));
+			array_push(path_current, _path);
+			if(file_exists_empty(_path)) setDisplayName(filename_name_only(_path));
+			
+			var ext = string_lower(filename_ext(_path));
+			
+			switch(ext) {
+				case ".png"	 :
+				case ".jpg"	 :
+				case ".jpeg" :
+					var _real_path = sprite_path_check_depth(_path);
+					var _spr = sprite_add(_real_path, 1, false, false, 0, 0);
+					
+					if(_spr == -1) {
+						var _txt = $"Image node: File not a valid image.";
+						logNode(_txt); noti_warning(_txt);
+						return false;
+					}
+					
+					edit_time = max(edit_time, file_get_modify_s(_path));
+					array_push(spr, _spr);
+					break;
+			}
 		}
 		
 		return true;
 	}
 	
-	static update = function() {
-		var path = inputs[| 0].getValue();
-		if(path == "") return;
-		if(is_array(path) && !array_equals(path, path_loaded)) 
+	setTrigger(1, __txt("Refresh"), [ THEME.refresh_icon, 1, COLORS._main_value_positive ], function() /*=>*/ { updatePaths(path_get(getInputData(0))); triggerRender(); });
+	
+	static step = function() {
+		var str  = getInputData(2);
+		var _cus = getInputData(6);
+		
+		inputs[2].setVisible(!_cus);
+		inputs[3].setVisible(!_cus && !str);
+		inputs[4].setVisible(!_cus && !str);
+		
+		if(attributes.file_checker)
+		for( var i = 0, n = array_length(path_current); i < n; i++ ) {
+			if(file_get_modify_s(path_current[i]) > edit_time) {
+				updatePaths();
+				triggerRender();
+				break;
+			}
+		}
+	}
+	
+	static update = function(frame = CURRENT_FRAME) {
+		insp2UpdateTooltip = attributes.cache_use? __txt("Remove Cache") : __txt("Cache");
+		insp2UpdateIcon[0] = attributes.cache_use? THEME.cache : THEME.cache_group;
+		insp2UpdateIcon[2] = attributes.cache_use? c_white : COLORS._main_icon;
+		
+		var path = path_get(getInputData(0));
+		if(!array_equals(path_current, path)) 
 			updatePaths(path);
-		if(array_length(spr) == 0) return;
+			
+		var _sprs = attributes.cache_use? cache_spr : spr;
+		if(array_length(_sprs) == 0) return;
 		
-		var pad  = inputs[| 1].getValue();
-		var str  = inputs[| 2].getValue();
-		inputs[| 3].setVisible(!str);
-		inputs[| 4].setVisible(!str);
+		var _pad = getInputData(1);
 		
-		var spd  = str? (ANIMATOR.frames_total + 1) / array_length(spr) : inputs[| 3].getValue();
-		var _end = inputs[| 4].getValue();
-		if(spd == 0) spd = 1;
+		var _cus = getInputData(6);
+		var _str = getInputData(2);
+		var _end = getInputData(4);
+		var _spd = _str? (TOTAL_FRAMES + 1) / array_length(_sprs) : 1 / getInputData(3);
+		if(_spd == 0) _spd = 1;
+		var _frame = _cus? getInputData(7) : floor(CURRENT_FRAME / _spd);
 		
-		var ww = sprite_get_width(spr[0]); 
-		var hh = sprite_get_height(spr[0]);
-		ww += pad[0] + pad[2];
-		hh += pad[1] + pad[3];
+		var _len = array_length(_sprs);
+		var _drw = true;
 		
-		var surfs = outputs[| 0].getValue();
-		if(!is_surface(surfs)) {
-			surfs = surface_create_valid(ww, hh);
-			outputs[| 0].setValue(surfs);
-		} else
-			surface_size_to(surfs, ww, hh);
-		var frame = floor(ANIMATOR.current_frame / spd);
+		var _siz = getInputData(8); 
+		var sw = sprite_get_width(_sprs[0]); 
+		var sh = sprite_get_height(_sprs[0]);
 		
-		switch(_end) {
-			case ANIMATION_END.loop : 
-				frame = safe_mod(frame, array_length(spr));
-				break;
-			case ANIMATION_END.ping :
-				frame = safe_mod(frame, array_length(spr) * 2 - 2);
-				if(frame >= array_length(spr))
-					frame = array_length(spr) * 2 - 2 - frame;
-				break;
-			case ANIMATION_END.hold :
-				frame = min(frame, array_length(spr) - 1);
-				break;
+		if(_siz) {
+			for( var i = 1, n = array_length(_sprs); i < n; i++ ) {
+				var _sw = sprite_get_width(_sprs[i]); 
+				var _sh = sprite_get_height(_sprs[i]);
+				
+				if(_siz == 1) {
+					sw = min(_sw, sw);
+					sh = min(_sh, sh);
+				} else if(_siz == 2) {
+					sw = max(_sw, sw);
+					sh = max(_sh, sh);
+				}
+			}
 		}
 		
-		var curr_w = sprite_get_width(spr[frame]);
-		var curr_h = sprite_get_height(spr[frame]);
-		var curr_x = pad[2] + (ww - curr_w) / 2;
-		var curr_y = pad[1] + (hh - curr_h) / 2;
+		var ww = sw;
+		var hh = sh;
 		
-		surface_set_target(surfs);
-			draw_clear_alpha(0, 0);
-			BLEND_ADD
-			if(_end == ANIMATION_END.hide) {
-				if(frame < array_length(spr))
-					draw_sprite(spr[frame], 0, curr_x, curr_y);
-			} else
-				draw_sprite(spr[frame], 0, curr_x, curr_y);
-			BLEND_NORMAL
-		surface_reset_target();
+		ww += _pad[0] + _pad[2];
+		hh += _pad[1] + _pad[3];
+		
+		var surfs = outputs[0].getValue();
+		surfs = surface_verify(surfs, ww, hh, attrDepth());
+		outputs[0].setValue(surfs);
+		
+		switch(_end) {
+			case ANIMATION_END.loop : _frame = safe_mod(_frame, _len); break;
+				
+			case ANIMATION_END.ping :
+				_frame = safe_mod(_frame, _len * 2 - 2);
+				if(_frame >= _len) _frame = _len * 2 - 2 - _frame;
+				break;
+				
+			case ANIMATION_END.hold : _frame = min(_frame, _len - 1); break;
+			case ANIMATION_END.hide : if(_frame < 0 || _frame >= _len) _drw = false; break;
+		}
+		
+		var _spr = array_safe_get_fast(_sprs, _frame, noone);
+		if(_spr == noone) return;
+		
+		var curr_w = sprite_get_width(_spr);
+		var curr_h = sprite_get_height(_spr);
+		var curr_x = _pad[2] + (sw - curr_w) / 2;
+		var curr_y = _pad[1] + (sh - curr_h) / 2;
+		
+		surface_set_shader(surfs);
+			if(_drw) draw_sprite(_spr, 0, curr_x, curr_y);
+		surface_reset_shader();
 	}
-	doUpdate();
+	
+	////- Cache
+	
+	attributes.cache_use  = false;
+	attributes.cache_data = "";
+	cache_spr = [];
+	
+	static cacheData = function() {
+		attributes.cache_use  = true;
+		cache_spr = spr;
+		attributes.cache_data = sprite_array_serialize(spr);
+		triggerRender();
+	}
+	
+	static uncacheData = function() {
+		attributes.cache_use  = false;
+		triggerRender();
+	}
+	
+	setTrigger(2, __txt("Cache"), [ THEME.cache_group, 0, COLORS._main_icon ], function() /*=>*/ { if(attributes.cache_use) uncacheData() else cacheData(); });
+	
+	////- Serialize
+
+	static postDeserialize = function() {
+		if(!attributes[$ "cache_use"] ?? 0) return;
+		cache_spr = sprite_array_deserialize(attributes[$ "cache_data"] ?? "");
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+function timelineItemNode_Image_Animated(node) : timelineItemNode(node) constructor {
+	
+	static drawDopesheet = function(_x, _y, _s, _msx, _msy) {
+		if(!is_instanceof(node, Node_Image_Animated)) return;
+		if(!node.attributes.show_timeline) return;
+		
+		var _sprs = node.spr;
+		var _spr, _rx, _ry;
+		
+		for (var i = 0, n = array_length(_sprs); i < n; i++) {
+			_spr = _sprs[i];
+			if(!sprite_exists(_spr)) continue;
+			
+			_rx = _x + (i + 1) * _s;
+			_ry = h / 2 + _y;
+			
+			var _sw = sprite_get_width(_spr);
+			var _sh = sprite_get_height(_spr);
+			var _ss = h / max(_sw, _sh);
+			
+			draw_sprite_ext(_spr, 0, _rx - _sw * _ss / 2, _ry - _sh * _ss / 2, _ss, _ss, 0, c_white, .5);
+		}
+	}
+	
+	static drawDopesheetOver = function(_x, _y, _s, _msx, _msy, _hover, _focus) {
+		if(!is_instanceof(node, Node_Image_Animated)) return;
+		if(!node.attributes.show_timeline) return;
+		
+		drawDopesheetOutput(_x, _y, _s, _msx, _msy);
+	}
+	
+	static onSerialize = function(_map) {
+		_map.type = "timelineItemNode_Image_Animated";
+	}
+	
+	static dropPath = function(path) { 
+		if(!is_array(path)) path = [ path ];
+		inputs[0].setValue(path); 
+	}
 }

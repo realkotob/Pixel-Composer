@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"pack_best_fit",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"pack_best_fit",
+  "parent":{
+    "name":"packing",
+    "path":"folders/functions/packing.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

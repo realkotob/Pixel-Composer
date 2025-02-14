@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_lua_compute",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_lua_compute",
+  "parent":{
+    "name":"lua",
+    "path":"folders/nodes/data/lua.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

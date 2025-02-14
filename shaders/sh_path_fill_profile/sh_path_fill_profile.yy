@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_path_fill_profile",
+  "name":"sh_path_fill_profile",
+  "parent":{
+    "name":"drawer",
+    "path":"folders/nodes/data/generator/drawer.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

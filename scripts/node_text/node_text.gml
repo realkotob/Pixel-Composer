@@ -1,131 +1,620 @@
-function Node_Text(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
-	name = "Text";
-	
+#region
+	FN_NODE_CONTEXT_INVOKE {
+		addHotkey("Node_Text", "Output Dimension > Toggle", "D", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[9].setValue((_n.inputs[9].getValue() + 1) % 2); });
+	});
+#endregion
+
+function Node_Text(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
+	name = "Draw Text";
 	font = f_p0;
 	
-	inputs[| 0] = nodeValue(0, "Text", self, JUNCTION_CONNECT.input, VALUE_TYPE.text, "")
+	dimension_index = -1;
+	
+	newInput(0, nodeValue_Text("Text", self, ""))
 		.setVisible(true, true);
 	
-	inputs[| 1] = nodeValue(1, "Font", self, JUNCTION_CONNECT.input, VALUE_TYPE.path, "")
-		.setDisplay(VALUE_DISPLAY.path_font);
-	
-	inputs[| 2] = nodeValue(2, "Size", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 16);
-	
-	inputs[| 3] = nodeValue(3, "Anti-Aliasing ", self, JUNCTION_CONNECT.input, VALUE_TYPE.boolean, false);
-	
-	inputs[| 4] = nodeValue(4, "Character range", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, [ 32, 128 ])
-		.setDisplay(VALUE_DISPLAY.vector);
-	
-	inputs[| 5] = nodeValue(5, "Color", self, JUNCTION_CONNECT.input, VALUE_TYPE.color, c_white);
-	
-	inputs[| 6] = nodeValue(6, "Fixed dimension", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, def_surf_size2 )
-		.setDisplay(VALUE_DISPLAY.vector)
+	newInput(1, nodeValue_Font("Font", self))
 		.setVisible(true, false);
 	
-	inputs[| 7] = nodeValue(7, "Horizontal alignment", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0 )
-		.setDisplay(VALUE_DISPLAY.enum_button, [ THEME.inspector_text_halign, THEME.inspector_text_halign, THEME.inspector_text_halign]);
+	newInput(2, nodeValue_Int("Size", self, 16));
 	
-	inputs[| 8] = nodeValue(8, "Vertical alignment", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0 )
-		.setDisplay(VALUE_DISPLAY.enum_button, [ THEME.inspector_text_valign, THEME.inspector_text_valign, THEME.inspector_text_valign ]);
+	newInput(3, nodeValue_Bool("Anti-aliasing ", self, false));
 	
-	inputs[| 9] = nodeValue(9, "Output dimension", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 1 )
-		.setDisplay(VALUE_DISPLAY.enum_scroll, [ "Fixed", "Dynamic" ]);
+	newInput(4, nodeValue_Vec2("Character Range", self, [ 32, 128 ]));
 	
-	inputs[| 10] = nodeValue(10, "Padding", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, [0, 0, 0, 0])
-		.setDisplay(VALUE_DISPLAY.padding);
+	newInput(5, nodeValue_Color("Color", self, cola(c_white)));
 	
-	input_display_list = [
-		["Output",			true],	9, 6, 10,
-		["Text",			false], 0, 7, 8, 5, 
-		["Font properties", false], 1, 2, 3, 4
+	newInput(6, nodeValue_Vec2("Fixed Dimension", self, DEF_SURF ))
+		.setVisible(true, false);
+	
+	newInput(7, nodeValue_Enum_Button("H Align", self, 0, [ THEME.inspector_text_halign, THEME.inspector_text_halign, THEME.inspector_text_halign]));
+	
+	newInput(8, nodeValue_Enum_Button("V Align", self, 0, [ THEME.inspector_text_valign, THEME.inspector_text_valign, THEME.inspector_text_valign ]));
+	
+	newInput(9, nodeValue_Enum_Scroll("Output Dimension", self,  1, [ "Fixed", "Dynamic" ]));
+	
+	newInput(10, nodeValue_Padding("Padding", self, [0, 0, 0, 0]));
+	
+	newInput(11, nodeValue_Float("Letter Spacing", self, 0));
+	
+	newInput(12, nodeValue_Float("Line Height", self, 0));
+	
+	newInput(13, nodeValue_PathNode("Path", self, noone))
+		.setVisible(true, true);
+	
+	newInput(14, nodeValue_Float("Path Shift", self, 0));
+	
+	newInput(15, nodeValue_Bool("Scale to Fit", self, false));
+	
+	newInput(16, nodeValue_Bool("Render Background", self, false));
+	
+	newInput(17, nodeValue_Color("BG Color", self, cola(c_black)));
+	
+	newInput(18, nodeValue_Bool("Wave", self, false));
+	
+	newInput(19, nodeValue_Float("Wave Amplitude", self, 4));
+	
+	newInput(20, nodeValue_Float("Wave Scale", self, 30));
+	
+	newInput(21, nodeValue_Rotation("Wave Phase", self, 0));
+	
+	newInput(22, nodeValue_Float("Wave Shape", self, 0))
+		.setDisplay(VALUE_DISPLAY.slider, { range: [ 0, 3, 0.01 ] });
+	
+	newInput(23, nodeValue_Bool("Typewriter", self, false));
+	
+	newInput(24, nodeValue_Slider_Range("Range", self, [ 0, 1 ]));
+	
+	newInput(25, nodeValue_Enum_Button("Trim Type", self,  0 , [ "Character", "Word", "Line" ]));
+	
+	newInput(26, nodeValue_Bool("Use Full Text Size", self, true ));
+	
+	newInput(27, nodeValue_Int("Max Line Width", self, 0 ));
+	
+	newInput(28, nodeValue_Bool("Round Position", self, true ));
+		
+	input_display_list = [ 0, 
+		["Output",		true],	9,  6, 10,
+		["Alignment",	false], 13, 14, 7, 8, 27, 
+		["Font",		false], 1,  2, 15, 3, 11, 12, 
+		["Rendering",	false], 5, 
+		["Background",   true, 16], 17, 
+		["Wave",	     true, 18], 22, 19, 20, 21, 
+		["Trim",		 true, 23], 25, 24, 26, 
 	];
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	 
+	attribute_surface_depth();
 	
-	_font_current = "";
-	_size_current = 0;
-	_aa_current   = false;
-	_rang_current = [0, 0];
+	_font_current  = "";
+	_size_current  = 0;
+	_aa_current    = false;
+	seed           = seed_random();
+	draw_data      = [];
+	draw_font_data = [];
 	
-	static generateFont = function(_path, _size, _aa, _range) {
-		if(ANIMATOR.is_playing) return;
+	#region tool
+		tools = [
+			new NodeTool( "Edit Text", THEME.text_tools_edit ).setOnToggle(function() /*=>*/ { 
+				KEYBOARD_STRING = ""; 
+				var _currStr    = getSingleValue(0);
+				edit_cursor     = 0;
+				edit_cursor_sel = string_length(_currStr);
+			}),
+		];
 		
-		if(_path == _font_current && _size == _size_current && _aa == _aa_current && _rang_current[0] == _range[0] && _rang_current[1] == _range[1]) return;
-		_font_current    = _path;
-		_size_current    = _size;
-		_aa_current      = _aa;
-		_rang_current[0] = _range[0];
-		_rang_current[1] = _range[1];
+		edit_cursor_hov = noone;
+		edit_cursor     = noone;
+		edit_cursor_sel = noone;
+		edit_typing     = false;
+	#endregion
+	
+	static generateFont = function(_path, _size, _aa) {
+		if(PROJECT.animator.is_playing) return;
+		if(font_exists(font) && _path == _font_current && _size == _size_current && _aa == _aa_current) return;
 		
-		if(file_exists(_path)) {
-			if(font != f_p0 && font_exists(font)) 
-				font_delete(font);
-			font_add_enable_aa(_aa);
-			font = font_add(_path, _size, false, false, _range[0], _range[1]);
-		}
+		_font_current = _path;
+		_size_current = _size;
+		_aa_current   = _aa;
+		
+		if(!file_exists_empty(_path)) return;
+		
+		if(font != f_p0 && font_exists(font)) font_delete(font);
+		font_add_enable_aa(_aa);
+		font = font_add(_path, _size, false, false, 0, 127);
 	}
 	
-	static process_data = function(_outSurf, _data, _output_index) {
-		var str    = _data[0];
-		var _font  = _data[1];
-		var _size  = _data[2];
-		var _aa    = _data[3];
-		var _range = _data[4];
-		var _col   = _data[5];
+	static step = function() {
+		var _font = getSingleValue(1);
+		var _dimt = getSingleValue(9);
+		var _path = getSingleValue(13);
 		
-		var _dim_type = _data[9];
-		inputs[| 6].setVisible(!_dim_type);
+		var _use_path = _path != noone && struct_has(_path, "getPointDistance");
 		
-		var _dim   = _data[6];
-		var _padd  = _data[10];
+		inputs[ 6].setVisible(_dimt == 0 || _use_path);
+		inputs[ 7].setVisible(_dimt == 0 || _use_path);
+		inputs[ 8].setVisible(_dimt == 0 || _use_path);
+		inputs[ 9].setVisible(!_use_path);
+		inputs[14].setVisible( _use_path);
+		inputs[15].setVisible(_dimt == 0 && !_use_path && _font != "");
 		
-		var ww, hh;
+	}
+	
+	static waveGet = function(_ind) {
+		var _x = __wave_phase + _ind * __wave_scale;
 		
-		generateFont(_font, _size, _aa, _range);
+		var _sine = dsin(_x) * __wave_ampli;
 		
-		draw_set_font(font);
-		if(_dim_type == 0) {
-			ww = _dim[0];
-			hh = _dim[1];
-		} else {
-			ww = max(1, string_width(str));
-			hh = max(1, string_height(str));
-		}
-		
-		ww += _padd[PADDING.left] + _padd[PADDING.right];
-		hh += _padd[PADDING.up] + _padd[PADDING.down];
-		
-		if(is_surface(_outSurf)) 
-			surface_size_to(_outSurf, ww, hh);
-		
-		surface_set_target(_outSurf);
-			draw_clear_alpha(0, 0);
-			BLEND_ADD
+		var _squr = sign(_sine) * __wave_ampli;
+		    _squr = _squr != 0? _squr : __wave_ampli;
 			
-			if(_dim[0] != 0 && _dim[1] != 0) {
-				var _hali = _data[7];
-				var _vali = _data[8];
+		var _taup = abs(_x + 90) % 360;
+		var _tria = _taup > 180? 360 - _taup : _taup;
+		    _tria = (_tria / 180 * 2 - 1) * __wave_ampli;
+		
+		     if(__wave_shape < 0) return _sine;
+		else if(__wave_shape < 1) return lerp(_sine, _tria, frac(__wave_shape));
+		else if(__wave_shape < 2) return lerp(_tria, _squr, frac(__wave_shape));
+		else if(__wave_shape < 3) return abs(_x) % 360 > 360 * (0.5 - frac(__wave_shape) / 2)? -__wave_ampli : __wave_ampli;
+		
+		return random_range_seed(-1, 1, _x + seed) * __wave_ampli;
+	}
+	
+	static drawOverlay = function(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) {
+		var _hov = false;
+		
+		var _pth = getSingleValue(13);
+		if(struct_has(_pth, "drawOverlay")) { var hv = _pth.drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny); _hov |= bool(hv); }
+		
+		if(isNotUsingTool()) return _hov;
+		
+		var _dat = array_safe_get(draw_data,      preview_index, 0);
+		var _dft = array_safe_get(draw_font_data, preview_index, 0);
+		if(_dat == 0) return _hov;
+		
+		var _cr_hover = noone;
+		var _currStr  = getSingleValue(0);
+		var _crx0 = 0, _cry0 = 0;
+		var _crx1 = 0, _cry1 = 0;
+		
+		var _crmin = min(edit_cursor, edit_cursor_sel);
+		var _crmax = max(edit_cursor, edit_cursor_sel);
+		
+		draw_set_text(_dft[0], _dft[1], _dft[2], _dft[3]);
+		for( var i = 0, n = array_length(_dat); i < n; i++ ) {
+			var _tdat = _dat[i];
+			var _tx   = _tdat[0];
+			var _ty   = _tdat[1];
+			var _tchr = _tdat[2];
+			var _tsw  = _tdat[3];
+			var _tsh  = _tdat[4];
+			var _trot = _tdat[5];
+			
+			var _tw = _tsw * string_width(_tchr);
+			var _th = _tsh * string_height(_tchr);
+			
+			var _tbx0 = _x + _s * (_tx);
+			var _tby0 = _y + _s * (_ty);
+			var _tbx1 = _x + _s * (_tx + _tw);
+			var _tby1 = _y + _s * (_ty + _th);
+			
+			var _tbxc = (_tbx0 + _tbx1) / 2;
+			
+		    if(hover && point_in_rectangle(_mx, _my, _tbx0, _tby0, _tbxc, _tby1)) {
+		     	_cr_hover = i;
+		     	draw_set_color(COLORS._main_icon); draw_set_alpha(.5); draw_line_width(_tbx0, _tby0, _tbx0, _tby1, 2); draw_set_alpha(1);
 				
-				var tx = 0, ty = 0;
-				draw_set_text(font, fa_left, fa_top, _col);
-				switch(_hali) {
-					case 0 : draw_set_halign(fa_left);		tx = 0;			break;
-					case 1 : draw_set_halign(fa_center);	tx = ww / 2;	break;
-					case 2 : draw_set_halign(fa_right);		tx = ww;		break;
-				}
-				switch(_vali) {
-					case 0 : draw_set_valign(fa_top);		ty = 0;			break;
-					case 1 : draw_set_valign(fa_middle);	ty = hh / 2;	break;
-					case 2 : draw_set_valign(fa_bottom);	ty = hh;		break;
-				}
+			} else if(hover && point_in_rectangle(_mx, _my, _tbxc, _tby0, _tbx1, _tby1)) {
+				_cr_hover = i + 1;
+				draw_set_color(COLORS._main_icon); draw_set_alpha(.5); draw_line_width(_tbx1, _tby0, _tbx1, _tby1, 2); draw_set_alpha(1);
 				
-				draw_text(_padd[PADDING.left] + tx, _padd[PADDING.up] + ty, str);
-			} else {
-				draw_set_text(font, fa_left, fa_top, _col);
-				draw_text(_padd[PADDING.left], _padd[PADDING.up], str);
 			}
 			
-			BLEND_NORMAL
-		surface_reset_target();
+			if(edit_cursor_sel != noone && i >= _crmin && i < _crmax) {
+				draw_set_color(COLORS.widget_text_highlight);
+				draw_set_alpha(0.5);
+				draw_rectangle(_tbx0, _tby0, _tbx1 - 1, _tby1 - 1, false);
+				draw_set_alpha(1);
+			}
+			
+			// draw cursor
+			
+			if(i == edit_cursor) {
+				_crx0 = _tbx0;  _cry0 = _tby0;
+				_crx1 = _tbx0;  _cry1 = _tby1;
+				
+			} else if(i + 1 == edit_cursor && i + 1 == n) {
+				_crx0 = _tbx1; _cry0 = _tby0;
+				_crx1 = _tbx1; _cry1 = _tby1;
+			}
+			
+		}
+		
+		edit_cursor_hov = _cr_hover;
+		var _out = getSingleValue(0, preview_index, true);
+		draw_surface_ext_safe(_out, _x, _y, _s, _s);
+		
+		if(edit_cursor != noone) {
+			draw_set_color(COLORS._main_text_accent);
+			draw_set_alpha((edit_typing || current_time % (PREFERENCES.caret_blink * 2000) > PREFERENCES.caret_blink * 1000) * 0.75 + 0.25);
+			draw_line_width(_crx0, _cry0, _crx1, _cry1, 2);
+			draw_set_alpha(1);
+		}
+		
+		if(isUsingTool("Edit Text")) {
+			HOTKEY_BLOCK = true;
+			
+			if(mouse_press(mb_left, active)) {
+				edit_cursor     = _cr_hover;
+				edit_cursor_sel = noone;
+				KEYBOARD_STRING = "";
+				
+			} else if(_cr_hover != noone && mouse_click(mb_left, active)) {
+				if(_cr_hover != edit_cursor) edit_cursor_sel = _cr_hover;
+			}
+			
+			if(keyboard_check_pressed(ord("A")) && key_mod_press(CTRL)) {
+				edit_cursor     = 0;
+				edit_cursor_sel = string_length(_currStr);
+				
+			} else if(edit_cursor != noone) {
+				var _edit = false;
+				
+				if(KEYBOARD_PRESSED == vk_left) {
+					edit_cursor = max(0, edit_cursor - 1);
+					edit_cursor_sel = noone;
+					
+				} else if(KEYBOARD_PRESSED == vk_right) {
+					edit_cursor = min(edit_cursor + 1, string_length(_currStr));
+					edit_cursor_sel = noone;
+					
+				} else if(KEYBOARD_PRESSED == vk_escape) {
+					PANEL_PREVIEW.tool_current = noone;
+					edit_cursor_sel = noone;
+					
+				} else if(edit_cursor_sel != noone && (KEYBOARD_STRING != "" || KEYBOARD_PRESSED == vk_backspace || KEYBOARD_PRESSED == vk_delete)) {
+					_currStr        = string_delete(_currStr, _crmin + 1, _crmax - _crmin);
+					_edit           = true;
+					edit_cursor     = _crmin;
+					edit_cursor_sel = noone;
+					
+				} else if(KEYBOARD_PRESSED == vk_backspace) {
+					_currStr    = string_delete(_currStr, edit_cursor, 1);
+					_edit       = true;
+					edit_cursor = max(0, edit_cursor - 1);
+					
+				} else if(KEYBOARD_PRESSED == vk_delete) {
+					_currStr    = string_delete(_currStr, edit_cursor + 1, 1);
+					_edit       = true;
+				
+				} else if(KEYBOARD_PRESSED == vk_enter) {
+					_currStr    = string_insert("\n", _currStr, edit_cursor + 1);
+					_edit       = true;
+					
+					edit_cursor    += 1;
+					KEYBOARD_STRING = "";
+					
+				} else if(KEYBOARD_STRING != "") {
+					_currStr    = string_insert(KEYBOARD_STRING, _currStr, edit_cursor + 1);
+					_edit       = true;
+					
+					edit_cursor    += string_length(KEYBOARD_STRING);
+					KEYBOARD_STRING = "";
+				}
+				
+				if(_edit) inputs[0].setValue(_currStr);
+			}
+		}
+		
+		return _hov;
+	}
+	
+	static getTool = function() { 
+		var _path = getInputData(13);
+		return is_instanceof(_path, Node)? _path : self; 
+	}
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
+		var str    = _data[ 0];
+		var strRaw = str;
+		
+		var _font  = _data[ 1];
+		var _size  = _data[ 2];
+		var _aa    = _data[ 3];
+		var _col   = _data[ 5];
+		var _dim   = _data[ 6];
+		var _hali  = _data[ 7];
+		var _vali  = _data[ 8];
+		var _dimt  = _data[ 9];
+		var _padd  = _data[10];
+		var _trck  = _data[11];
+		var _line  = _data[12];
+		var _path  = _data[13];
+		var _pthS  = _data[14];
+		var _scaF  = _data[15];
+		var _ubg   = _data[16];
+		var _bgc   = _data[17];
+		
+		var _wave  = _data[18];
+		var _waveA = _data[19];
+		var _waveS = _data[20];
+		var _waveP = _data[21];
+		var _waveH = _data[22];
+		
+		var _type  = _data[23];
+		var _typeR = _data[24];
+		var _typeC = _data[25];
+		var _typeF = _data[26];
+		
+		var _lineW = _data[27];
+		__rnd_pos  = _data[28];
+		
+		__dwData   = array_create(string_length(str));
+		__dwDataI  = 0;
+		__f        = font;
+		
+		#region font
+			inputs[2].setVisible(false);
+			inputs[3].setVisible(false);
+				
+			if(is_string(_font))   { 
+				inputs[2].setVisible(_font != "");
+				inputs[3].setVisible(_font != "");
+			 	
+			 	generateFont(_font, _size, _aa); 
+			 	__f = font; 
+				
+			} else if(font_exists(_font)) { 
+				__f = _font; 
+			}
+				
+			draw_set_font(__f);
+		#endregion
+		
+		#region typewritter
+			if(_type) {
+				var _typAmo = 0;
+				var _typSpa = [];
+				
+				switch(_typeC) {
+					case 0 : _typAmo = string_length(str); 
+							 break;
+							 
+					case 1 : _typSpa = string_splice(str, [" ", "\n"], true);
+							 _typAmo = array_length(_typSpa); 
+							 break;
+							 
+					case 2 : _typSpa = string_splice(str, "\n", true);
+					         _typAmo = array_length(_typSpa); 
+							 break;
+				}
+				
+				var _typS = round(_typeR[0] * _typAmo);
+				var _typE = round(_typeR[1] * _typAmo);
+				var _typStr = "";
+				
+				switch(_typeC) {
+					case 0 : _typStr = string_copy(          str, _typS, _typE - _typS); break;
+					case 1 : _typStr = string_concat_ext(_typSpa, _typS, _typE - _typS); break;
+					case 2 : _typStr = string_concat_ext(_typSpa, _typS, _typE - _typS); break;
+				}
+				
+				str = _typStr;
+				if(_typeF == false) strRaw = str;
+			}
+		#endregion
+		
+		#region cut string
+			var _cut_lines = string_splice(str, "\n");
+			
+			var _str_lines   = [];
+			var _line_widths = [];
+			var _ind = 0;
+			
+			for( var i = 0, n = array_length(_cut_lines); i < n; i++ ) {
+				var _str_line = _cut_lines[i];
+				
+				if(_lineW == 0) {
+					_str_lines[_ind]   = _str_line;
+					_line_widths[_ind] = string_width(_str_line) + _trck * (string_length(_str_line) - 1);
+					_ind++;
+				} else {
+					var _lw  = 0;
+					var _lne = "";
+					
+					for( var j = 1; j <= string_length(_str_line); j++ ) {
+						var _chr = string_char_at(_str_line, j);
+						var _chw = string_width(_chr) + _trck;
+						
+						if(_lw + _chw >= _lineW) {
+							_str_lines[_ind]   = _lne;
+							_line_widths[_ind] = _lw - _trck;
+							_ind++;
+							
+							_lne = "";
+							_lw = 0;
+						}
+						
+						_lne += _chr;
+						_lw  += _chw;
+					}
+					
+					if(_lne != "") {
+						_str_lines[_ind]   = _lne;
+						_line_widths[_ind] = _lw - _trck;
+						_ind++;
+					}
+				}
+			}
+			
+			var _max_ww = 0;
+			var _max_hh = 0;
+			
+			for( var i = 0, n = array_length(_str_lines); i < n; i++ ) {
+				_max_ww  = max(_max_ww, _line_widths[i]);
+				_max_hh += string_height(_str_lines[i]);
+				if(i) _max_hh += _line
+			}
+		#endregion
+		
+		#region dimension
+			var ww = 0, _sw = 0;
+			var hh = 0, _sh = 0;
+		
+			ww = _max_ww;
+			hh = _max_hh;
+		
+			var _use_path = _path != noone && struct_has(_path, "getPointDistance");
+			var _ss = 1;
+		
+			if(_use_path) {
+				_sw = _dim[0];
+				_sh = _dim[1];
+				
+			} else if (_dimt == 0) {
+				_sw = _dim[0];
+				_sh = _dim[1];
+				if(_scaF) _ss = min(_sw / ww, _sh / hh);
+				
+			} else {
+				_sw = ww;
+				_sh = hh;
+				if(_wave) _sh += abs(_waveA) * 2;
+			}
+			
+			_sw += _padd[PADDING.left] + _padd[PADDING.right];
+			_sh += _padd[PADDING.top] + _padd[PADDING.bottom];
+			
+			_outSurf = surface_verify(_outSurf, _sw, _sh, attrDepth());
+		#endregion
+		
+		#region position
+			var tx = 0, ty = _padd[PADDING.top], _ty = 0;
+			if(_dimt == 0) {
+				switch(_vali) {
+					case 0 : ty = _padd[PADDING.top];						break;
+					case 1 : ty = (_sh - hh * _ss) / 2;						break;
+					case 2 : ty = _sh - _padd[PADDING.bottom] - hh * _ss;	break;
+				}
+			}
+			
+			if(_wave) ty += abs(_waveA);
+		#endregion
+		
+		#region wave
+			__wave       =  _wave;
+			__wave_ampli =  _waveA;
+			__wave_scale =  _waveS;
+			__wave_phase = -_waveP;
+			__wave_shape =  _waveH;
+		#endregion
+		
+		surface_set_shader(_outSurf, noone,, BLEND.alpha);
+		if(_ubg) {
+			draw_clear(_bgc);
+			BLEND_ALPHA_MULP
+		}
+		
+		__temp_pt   = _path;
+		__temp_ss   = _ss;
+		__temp_trck = _trck;
+		
+		if(_use_path) {
+			var _pthl = _path.getLength(0), va;
+			
+			switch(_vali) {
+				case 0 : va = fa_top;    ty = 0;                                    break;
+				case 1 : va = fa_center; ty = (_max_hh - line_get_height(__f)) / 2; break;
+				case 2 : va = fa_top;    ty =  _max_hh;                             break;
+			}
+			
+			for( var i = 0, n = array_length(_str_lines); i < n; i++ ) {
+				var _str_line   = _str_lines[i];
+				var _line_width = _line_widths[i];
+				draw_set_text(__f, fa_left, va, _col);
+				draw_font_data[_array_index] = [__f, fa_left, va, _col];
+				
+				switch(_hali) {
+					case 0 : tx = 0;                           break;
+					case 1 : tx = _pthl / 2 - _line_width / 2; break;
+					case 2 : tx = _pthl     - _line_width;     break;
+				}
+				
+				__temp_tx = tx + _pthS;
+				__temp_ty = ty;
+				__temp_p0 = new __vec2P();
+				__temp_p1 = new __vec2P();
+				
+				string_foreach(_str_line, function(_chr, _ind) /*=>*/ {
+					var _p1  = __temp_pt.getPointDistance(__temp_tx,      0, __temp_p0);
+					var _p2  = __temp_pt.getPointDistance(__temp_tx + .1, 0, __temp_p1);
+					var _nor = point_direction(_p1.x, _p1.y, _p2.x, _p2.y);
+					
+					var _line_ang = _nor + 90;
+					var _dx = lengthdir_x(__temp_ty, _line_ang);
+					var _dy = lengthdir_y(__temp_ty, _line_ang);
+					
+					var _tx = _p1.x + _dx;
+					var _ty = _p1.y + _dy;
+					
+					if(__wave) {
+						var _wd = waveGet(_ind);
+						_tx += lengthdir_x(_wd, _line_ang + 90);
+						_ty += lengthdir_y(_wd, _line_ang + 90);
+					}
+					
+					if(__rnd_pos) { _tx = round(_tx); _ty = round(_ty); }
+					
+					draw_text_transformed(_tx, _ty, _chr, 1, 1, _nor);
+					__dwData[__dwDataI++] = [_tx, _ty, _chr, 1, 1, _nor];
+					
+					__temp_tx += string_width(_chr) + __temp_trck;
+				});
+				
+				ty -= string_height(_str_line) + _line;
+			}
+			
+		} else {
+			for( var i = 0, n = array_length(_str_lines); i < n; i++ ) {
+				var _str_line   = _str_lines[i];
+				var _line_width = _line_widths[i];
+				draw_set_text(__f, fa_left, fa_top, _col);
+				draw_font_data[_array_index] = [__f, fa_left, fa_top, _col];
+				
+				tx = _padd[PADDING.left];
+				
+				if(_dimt == 0) 
+				switch(_hali) {
+					case 0 : tx = _padd[PADDING.left];								break;
+					case 1 : tx = (_sw - _line_width * _ss) / 2;					break;
+					case 2 : tx = _sw - _padd[PADDING.right] - _line_width * _ss;	break;
+				}
+				
+				__temp_tx = tx;
+				__temp_ty = ty;
+			
+				string_foreach(_str_line, function(_chr, _ind) /*=>*/ {
+					var _tx = __temp_tx;
+					var _ty = __temp_ty;
+					
+					if(__wave) _ty += waveGet(_ind);
+					if(__rnd_pos) { _tx = round(_tx); _ty = round(_ty); }
+					
+					draw_text_transformed(_tx, _ty, _chr, __temp_ss, __temp_ss, 0);
+					__dwData[__dwDataI++] = [_tx, _ty, _chr, __temp_ss, __temp_ss, 0];
+					
+					__temp_tx += (string_width(_chr) + __temp_trck) * __temp_ss;
+				});
+			
+				ty += (string_height(_str_line) + _line) * _ss;
+			}
+		}
+		surface_reset_shader();
+		
+		array_resize(__dwData, __dwDataI);
+		draw_data[_array_index] = __dwData;
+		
+		return _outSurf;
 	}
 }

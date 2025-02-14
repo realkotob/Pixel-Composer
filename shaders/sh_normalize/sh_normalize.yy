@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_normalize",
+  "name":"sh_normalize",
+  "parent":{
+    "name":"normalize",
+    "path":"folders/nodes/data/filter/colors/normalize.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

@@ -1,181 +1,273 @@
-function Node_VFX_Spawner_Base(_x, _y, _group = -1) : Node(_x, _y, _group) constructor {
+function Node_VFX_Spawner_Base(_x, _y, _group = noone) : Node(_x, _y, _group) constructor {
 	name = "Spawner";
+	update_on_frame = true;
 	
-	inputs[| 0] = nodeValue(0, "Particle sprite", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0)
-		.setDisplay(noone, "particles");
+	newInput(0, nodeValue_Surface("Particle Sprite", self));
 	
-	inputs[| 1] = nodeValue(1, "Spawn delay", self,  JUNCTION_CONNECT.input, VALUE_TYPE.integer, 4);
-	inputs[| 2] = nodeValue(2, "Spawn amount", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 2);
-	inputs[| 3] = nodeValue(3, "Spawn area", self,   JUNCTION_CONNECT.input, VALUE_TYPE.float, [ def_surf_size / 2, def_surf_size / 2, def_surf_size / 2, def_surf_size / 2, AREA_SHAPE.rectangle ])
-		.setDisplay(VALUE_DISPLAY.area, function() { return inputs[| 1].getValue(); });
+	newInput(1, nodeValue_Int("Spawn Delay", self, 4, "Frames delay between each particle spawn." ));
 	
-	inputs[| 4] = nodeValue(4, "Spawn distribution", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0)
-		.setDisplay(VALUE_DISPLAY.enum_button, [ "Area", "Border" ]);
+	newInput(2, nodeValue_Range("Spawn Amount", self, [ 2, 2 ] , { linked : true }))
+		.setTooltip("Amount of particle spawn in that frame.");
 	
-	inputs[| 5] = nodeValue(5, "Lifespan", self,  JUNCTION_CONNECT.input, VALUE_TYPE.integer, [ 20, 30 ])
-		.setDisplay(VALUE_DISPLAY.range);
+	newInput(3, nodeValue_Area("Spawn Area", self, DEF_AREA ));
 	
-	inputs[| 6] = nodeValue(6, "Spawn direction", self,  JUNCTION_CONNECT.input, VALUE_TYPE.integer, [ 45, 135 ])
-		.setDisplay(VALUE_DISPLAY.rotation_range);
-	inputs[| 7] = nodeValue(7, "Acceleration", self,  JUNCTION_CONNECT.input, VALUE_TYPE.float, [ 0, 0 ])
-		.setDisplay(VALUE_DISPLAY.range);
+	newInput(4, nodeValue_Enum_Scroll("Spawn Distribution", self, 0, [ "Area", "Border", "Map" ] ));
 	
-	inputs[| 8] = nodeValue(8, "Orientation", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, [0, 0])
-		.setDisplay(VALUE_DISPLAY.rotation_range);
-		
-	inputs[| 9] = nodeValue(9, "Rotational speed", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [ 0, 0 ])
-		.setDisplay(VALUE_DISPLAY.range);
+	newInput(5, nodeValue_Range("Lifespan", self, [ 20, 30 ] ));
 	
-	inputs[| 10] = nodeValue(10, "Spawn scale", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [ 1, 1, 1, 1 ] )
-		.setDisplay(VALUE_DISPLAY.vector_range);
-	inputs[| 11] = nodeValue(11, "Scaling speed", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [ 0, 0 ] )
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(6, nodeValue_Rotation_Random("Spawn Direction", self, [ 0, 45, 135, 0, 0 ] )); 
 	
-	inputs[| 12] = nodeValue(12, "Color over lifetime", self, JUNCTION_CONNECT.input, VALUE_TYPE.color, c_white)
-		.setDisplay(VALUE_DISPLAY.gradient);
-	inputs[| 13] = nodeValue(13, "Alpha", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [ 1, 1 ])
-		.setDisplay(VALUE_DISPLAY.range);
-	inputs[| 14] = nodeValue(14, "Alpha over time", self, JUNCTION_CONNECT.input, VALUE_TYPE.curve, [1, 1, 1, 1]);
+	newInput(7, nodeValue_Range("Acceleration", self, [ 0, 0 ] , { linked : true }));
 	
-	inputs[| 15] = nodeValue(15, "Rotate by direction", self, JUNCTION_CONNECT.input, VALUE_TYPE.boolean, false);
+	newInput(8, nodeValue_Rotation_Random("Orientation", self, [ 0, 0, 0, 0, 0 ] ));
 	
-	inputs[| 16] = nodeValue(16, "Spawn type", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0)
-		.setDisplay(VALUE_DISPLAY.enum_button, [ "Stream", "Burst" ]);
+	newInput(9, nodeValue_Range("Rotational Speed", self, [ 0, 0 ] , { linked : true }));
 	
-	inputs[| 17] = nodeValue(17, "Spawn size", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [ 1, 1 ] )
-		.setDisplay(VALUE_DISPLAY.range);
+	newInput(10, nodeValue_Vec2_Range("Spawn Scale", self, [ 1, 1, 1, 1 ] , { linked : true }));
 	
-	inputs[| 18] = nodeValue(18, "Spawn velocity", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, [1, 2] )
-		.setDisplay(VALUE_DISPLAY.range);
+	newInput(11, nodeValue_Curve("Scale Over Time", self, CURVE_DEF_11));
 	
-	inputs[| 19] = nodeValue(19, "Gravity", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0 );
-	inputs[| 20] = nodeValue(20, "Wiggle", self, JUNCTION_CONNECT.input, VALUE_TYPE.float,  0 );
+	newInput(12, nodeValue_Gradient("Color Over Lifetime", self, new gradientObject(cola(c_white))));
 	
-	inputs[| 21] = nodeValue(21, "Loop", self, JUNCTION_CONNECT.input, VALUE_TYPE.boolean, true );
+	newInput(13, nodeValue_Range("Alpha", self, [ 1, 1 ], { linked : true }));
 	
-	inputs[| 22] = nodeValue(22, "Surface array", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0 )
-		.setDisplay(VALUE_DISPLAY.enum_scroll, [ "Random", "Order", "Animation" ])
+	newInput(14, nodeValue_Curve("Alpha Over Time", self, CURVE_DEF_11));
+	
+	newInput(15, nodeValue_Bool("Rotate by Direction", self, false, "Make the particle rotates to follow its movement."));
+	
+	newInput(16, nodeValue_Enum_Button("Spawn Type", self,  0, [ "Stream", "Burst", "Trigger" ]));
+	
+	newInput(17, nodeValue_Range("Spawn Size", self, [ 1, 1 ] , { linked : true }));
+	
+	newInput(18, nodeValue_Range("Spawn Velocity", self, [ 1, 2 ] ));
+	
+	newInput(19, nodeValue_Range("Gravity", self, [ 0, 0 ] , { linked : true }));
+	
+	newInput(20, nodeValue_Vec2("Direction Wiggle", self, [ 0, 0 ] , { label: [ "Amplitude", "Period" ], linkable: false, per_line: true }));
+	
+	newInput(21, nodeValue_Bool("Loop", self, true ));
+	
+	newInput(22, nodeValue_Enum_Scroll("Surface Array", self, 0, [ "Random", "Order", "Animation", "Scale" ]))
+		.setTooltip("Whether to select image from an array in order, at random, or treat array as animation.")
 		.setVisible(false);
 	
-	inputs[| 23] = nodeValue(23, "Animation speed", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 1 )
+	newInput(23, nodeValue_Range("Animation Speed", self, [ 1, 1 ] , { linked : true }))
 		.setVisible(false);
 	
-	inputs[| 24] = nodeValue(24, "Scatter", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 1)
-		.setDisplay(VALUE_DISPLAY.enum_button, [ "Uniform", "Random", "Data" ]);
+	newInput(24, nodeValue_Enum_Button("Scatter", self,  1, [ "Uniform", "Random" ]));
 	
-	inputs[| 25] = nodeValue(25, "Boundary data", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, [])
+	newInput(25, nodeValue_Int("Boundary Data", self, []))
+		.setArrayDepth(1)
 		.setVisible(false, true);
 	
-	inputs[| 26] = nodeValue(26, "On animation end", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, ANIM_END_ACTION.loop)
-		.setDisplay(VALUE_DISPLAY.enum_button, [ "Loop", "Ping pong", "Destroy" ])
+	newInput(26, nodeValue_Enum_Button("On Animation End", self,  ANIM_END_ACTION.loop, [ "Loop", "Ping pong", "Destroy" ]))
 		.setVisible(false);
 		
-	inputs[| 27] = nodeValue(27, "Spawn", self, JUNCTION_CONNECT.input, VALUE_TYPE.boolean, true);
-	input_len = ds_list_size(inputs);
+	newInput(27, nodeValue_Bool("Spawn", self, true));
 	
-	input_display_list = [
-		["Sprite",	   false],	0, 22, 23, 26,
-		["Spawn",		true],	27, 16, 1, 2, 3, 4, 24, 25, 5,
-		["Movement",	true],	6, 18, 7,
-		["Physics",		true],	19, 20,
+	newInput(28, nodeValue_Gradient("Random Blend", self, new gradientObject(cola(c_white))));
+		
+	newInput(29, nodeValue_Bool("Directed From Center", self, false, "Make particle move away from the spawn center."));
+	
+	newInput(30, nodeValue_Surface("Distribution Map", self))
+	
+	newInput(31, nodeValue_Surface("Atlas", self,  []))
+		.setArrayDepth(1);
+	
+	newInput(32, nodeValueSeed(self));
+	
+	newInput(33, nodeValue_Rotation("Gravity Direction", self, -90));
+	
+	newInput(34, nodeValue_Range("Turning", self, [ 0, 0 ] , { linked : true }));
+	
+	newInput(35, nodeValue_Bool("Turn Both Directions", self, false, "Apply randomized 1, -1 multiplier to the turning speed." ));
+	
+	newInput(36, nodeValue_Float("Turn Scale with Speed", self, false ));
+	
+	newInput(37, nodeValue_Bool("Collide Ground", self, false ));
+	
+	newInput(38, nodeValue_Float("Ground Offset", self, 0 ));
+	
+	newInput(39, nodeValue_Float("Bounce Amount", self, 0.5 ))
+		.setDisplay(VALUE_DISPLAY.slider);
+	
+	newInput(40, nodeValue_Float("Bounce Friction", self, 0.1, "Apply horizontal friction once particle stop bouncing." ))
+		.setDisplay(VALUE_DISPLAY.slider);
+		
+	newInput(41, nodeValue_Vec2("Position Wiggle", self, [ 0, 0 ] , { label: [ "Amplitude", "Period" ], linkable: false, per_line: true }));
+		
+	newInput(42, nodeValue_Vec2("Rotation Wiggle", self, [ 0, 0 ] , { label: [ "Amplitude", "Period" ], linkable: false, per_line: true }));
+		
+	newInput(43, nodeValue_Vec2("Scale Wiggle", self, [ 0, 0 ] , { label: [ "Amplitude", "Period" ], linkable: false, per_line: true }));
+		
+	newInput(44, nodeValue_Trigger("Spawn", self,  false ))
+		.setDisplay(VALUE_DISPLAY.button, { name: "Trigger" });
+	
+	newInput(45, nodeValue_Bool("Follow Path", self, false ));
+	
+	newInput(46, nodeValue_PathNode("Path", self, noone ));
+	
+	newInput(47, nodeValue_Curve("Path Deviation", self, CURVE_DEF_11 ));
+	
+	newInput(48, nodeValue_Trigger("Reset Seed", self, false ))
+		.setDisplay(VALUE_DISPLAY.button, { name: "Trigger" })
+	
+	newInput(49, nodeValue_Bool("Stretch Animation", self, false ));
+	
+	newInput(50, nodeValue_Palette("Color by Index", self, [ cola(c_white) ] ));
+	
+	newInput(51, nodeValue_Int("Burst Duration", self, 1 ));
+	
+	newInput(52, nodeValue_Float("Uniform Period", self, 4 ));
+	
+	newInput(53, nodeValue_Rotation_Range("Angle Range", self, [ 0, 360 ]));
+	
+	for (var i = 2, n = array_length(inputs); i < n; i++)
+		inputs[i].rejectArray();
+	input_len = array_length(inputs);
+	
+	input_display_list = [ 32, 48, 
+		["Sprite",	   false],	0, 22, 23, 49, 26,
+		["Spawn",		true],	27, 16, 44, 1, 51, 2, 3, 4, 30, 24, 52, 5,
+		["Movement",	true],	29, 53, 6, 18,
+		["Follow path", true, 45], 46, 47, 
+		["Physics",		true],	7, 19, 33, 34, 35, 36, 
+		["Ground",		true, 37], 38, 39, 40, 
 		["Rotation",	true],	15, 8, 9, 
 		["Scale",		true],	10, 17, 11, 
-		["Color",		true],	12, 13, 14, 
-		["Render",		true],	21
+		["Wiggles",		true],	20, 41, 42, 43, 
+		["Color",		true],	12, 28, 50, 13, 14, 
+		["Render",		true],	21, 
 	];
 	
-	parts = ds_list_create();
+	attributes.part_amount = 512;
+	array_push(attributeEditors, [ "Maximum particles", function() /*=>*/ {return attributes.part_amount}, new textBox(TEXTBOX_INPUT.number, function(v) /*=>*/ { attributes.part_amount = v; }) ]);
 	
-	seed_origin = irandom(9999999);
-	seed = seed_origin;
-	spawn_index = 0;
-	def_surface = -1;
+	parts = array_create(attributes.part_amount);
+	for( var i = 0; i < attributes.part_amount; i++ ) parts[i] = new __part(self);
 	
-	for(var i = 0; i < PREF_MAP[? "part_max_amount"]; i++)
-		ds_list_add(parts, new __part(self));
+	parts_runner    = 0;
+	seed            = 0;
+	spawn_index_raw = 0;
+	spawn_index     = 0;
+	scatter_index   = 0;
+	def_surface     = -1;
+	surface_cache   = {};
+	
+	wiggle_maps = {
+		wig_psx: new wiggleMap(seed, 1, 1000),
+		wig_psy: new wiggleMap(seed, 1, 1000),
+		wig_scx: new wiggleMap(seed, 1, 1000),
+		wig_scy: new wiggleMap(seed, 1, 1000),
+		wig_rot: new wiggleMap(seed, 1, 1000),
+		wig_dir: new wiggleMap(seed, 1, 1000),
+	};
+	
+	curve_scale    = noone;
+	curve_alpha    = noone;
+	curve_path_div = noone;
 		
-	static spawn = function(_time = ANIMATOR.current_frame, _pos = -1) {
-		random_set_seed(seed++);
+	static spawn = function(_time = CURRENT_FRAME, _pos = -1) {
+		var _inSurf     	= getInputData( 0);
 		
-		var _inSurf = inputs[| 0].getValue(_time);
+		var _spawn_amount	= getInputData( 2);
 		
-		if(_inSurf == 0) {
-			if(def_surface == -1 || !surface_exists(def_surface)) { 
-				def_surface = PIXEL_SURFACE;
-				surface_set_target(def_surface);
-				draw_clear(c_white);
-				surface_reset_target();
-			}
-			_inSurf = def_surface;	
-		}
+		var _spawn_area 	= getInputData( 3);
+		var _distrib    	= getInputData( 4);
+		var _dist_map   	= getInputData(30);
+		var _scatter    	= getInputData(24);
+		var _spawn_period   = getInputData(52);
 		
-		var _spawn_amount	= inputs[| 2].getValue(_time);
-		var _amo = _spawn_amount;
+		var _life       	= getInputData( 5);
+		var _direction  	= getInputData( 6);
+		var _directCenter	= getInputData(29);
+		var _directRange	= getInputData(53);
+		var _velocity   	= getInputData(18);
 		
-		var _spawn_area		= inputs[| 3].getValue(_time);
-		var _distrib		= inputs[| 4].getValue(_time);
-		var _scatter		= inputs[| 24].getValue(_time);
+		var _accel      	= getInputData( 7);
+		var _grav       	= getInputData(19);
+		var _gvDir      	= getInputData(33);
+		var _turn       	= getInputData(34);
+		var _turnBi     	= getInputData(35);
+		var _turnSc     	= getInputData(36);
 		
-		var _life			= inputs[| 5].getValue(_time);
-		var _direction		= inputs[| 6].getValue(_time);
-		var _velocity		= inputs[| 18].getValue(_time);
+		var _follow     	= getInputData(15);
+		var _rotation   	= getInputData( 8);
+		var _rotation_speed	= getInputData( 9);
+		var _scale      	= getInputData(10);
+		var _size       	= getInputData(17);
 		
-		var _accel			= inputs[| 7].getValue(_time);
-		var _grav			= inputs[| 19].getValue(_time);
-		var _wigg			= inputs[| 20].getValue(_time);
+		var _color      	= getInputData(12);
+		var _blend      	= getInputData(28);
+		var _color_idx   	= getInputData(50);
+		var _color_idx_len  = array_length(_color_idx);
+		var _alpha      	= getInputData(13);
 		
-		var _follow			= inputs[| 15].getValue(_time);
-		var _rotation		= inputs[| 8].getValue(_time);
-		var _rotation_speed	= inputs[| 9].getValue(_time);
-		var _scale			= inputs[| 10].getValue(_time);
-		var _size 			= inputs[| 17].getValue(_time);
-		var _scale_speed	= inputs[| 11].getValue(_time);
+		var _arr_type   	= getInputData(22);
+		var _anim_speed 	= getInputData(23);
+		var _anim_stre  	= getInputData(49);
+		var _anim_end   	= getInputData(26);
 		
-		var _color	= inputs[| 12].getValue(_time);
-		var _alpha	= inputs[| 13].getValue(_time);
-		var _fade	= inputs[| 14].getValue(_time);
+		var _ground     	= getInputData(37);
+		var _ground_offset	= getInputData(38);
+		var _ground_bounce	= getInputData(39);
+		var _ground_frict	= getInputData(40);
 		
-		var _arr_type	= inputs[| 22].getValue(_time);
-		var _anim_speed	= inputs[| 23].getValue(_time);
-		var _anim_end	= inputs[| 26].getValue(_time);
+		var _path       	= getInputData(46);
 		
-		if(_rotation[1] < _rotation[0]) _rotation[1] += 360;
+		var _posDist = [];
 		
-		for(var i = 0; i < PREF_MAP[? "part_max_amount"]; i++) {
-			if(parts[| i].active) continue;
+		if(array_empty(_inSurf)) return;
+		
+		random_set_seed(seed); seed += 1000;
+		var _amo = irandom_range(_spawn_amount[0], _spawn_amount[1]);
+		if(_distrib == 2) _posDist = get_points_from_dist(_dist_map, _amo, seed);
+		
+		for( var i = 0; i < _amo; i++ ) {
+			parts_runner = clamp(parts_runner, 0, array_length(parts) - 1);
+			var part = parts[parts_runner];
+			
+			part.reset();
 			
 			var _spr = _inSurf, _index = 0;
 			if(is_array(_inSurf)) {
-				if(_arr_type == 0) {
-					_index = irandom(array_length(_inSurf) - 1);
-					_spr = _inSurf[_index];						
-				} else if(_arr_type == 1) {
-					_index = safe_mod(spawn_index, array_length(_inSurf));
-					_spr = _inSurf[_index];
-				} else if(_arr_type == 2)
-					_spr = _inSurf;
+				switch(_arr_type) {
+					case 0 : 	
+						_index = irandom(array_length(_inSurf) - 1);
+						_spr = _inSurf[_index];						
+						break;
+					case 1 : 
+						_index = safe_mod(spawn_index, array_length(_inSurf));
+						_spr = _inSurf[_index];
+						break;
+					case 2 : 
+					case 3 : 
+						_spr = _inSurf;
+						break;
+				}
 			}
 			var xx = 0;
 			var yy = 0;
 			
 			if(_pos == -1) {
-				if(_scatter == 2) {
-					var _b_data = inputs[| 25].getValue(_time);
-					if(!is_array(_b_data) || array_length(_b_data) <= 0) return;
-					var _b = _b_data[safe_mod(_index, array_length(_b_data))];
-					if(!is_array(_b) || array_length(_b) != 4) return;
+				if(is_instanceof(_spr, SurfaceAtlas)) {
+					xx = _spawn_area[0] + _spr.x + _spr.w / 2;
+					yy = _spawn_area[1] + _spr.y + _spr.h / 2;
+					part.atlas = _spr;
 					
-					xx = array_safe_get(_spawn_area, 0) - array_safe_get(_spawn_area, 2);
-					yy = array_safe_get(_spawn_area, 1) - array_safe_get(_spawn_area, 3);
-					
-					parts[| i].boundary_data = _b;
-				} else {
-					var sp = area_get_random_point(_spawn_area, _distrib, _scatter, spawn_index, _spawn_amount);
+				} else if(_distrib < 2) {
+					var sp = area_get_random_point(_spawn_area, _distrib, _scatter, spawn_index, _spawn_period + 1);
 					xx = sp[0];
 					yy = sp[1];
 					
-					parts[| i].boundary_data = -1;
+				} else if(_distrib == 2) {
+					var sp = array_safe_get_fast(_posDist, i);
+					if(!is_array(sp)) continue;
+						
+					xx = _spawn_area[0] + _spawn_area[2] * (sp[0] * 2 - 1.);
+					yy = _spawn_area[1] + _spawn_area[3] * (sp[1] * 2 - 1.);
 				}
+				
 			} else {
 				xx = _pos[0];
 				yy = _pos[1];
@@ -183,11 +275,17 @@ function Node_VFX_Spawner_Base(_x, _y, _group = -1) : Node(_x, _y, _group) const
 				
 			var _lif = irandom_range(_life[0], _life[1]);
 				
-			var _rot	 = random_range(_rotation[0], _rotation[1]);
+			var _rot	 = angle_random_eval(_rotation);
 			var _rot_spd = random_range(_rotation_speed[0], _rotation_speed[1]);
-				
-			var _dirr	= random_range(_direction[0], _direction[1]);
-				
+			
+			var _dirRand = angle_random_eval(_direction);
+			var _dirr	 = _dirRand;
+			if(_directCenter) {
+				var _pointDir = point_direction(_spawn_area[0], _spawn_area[1], xx, yy);
+				    _pointDir = lerp(_directRange[0], _directRange[1], _pointDir / 360);
+				_dirr += _pointDir;
+			}
+			
 			var _velo	= random_range(_velocity[0], _velocity[1]);
 			var _vx		= lengthdir_x(_velo, _dirr);
 			var _vy		= lengthdir_y(_velo, _dirr);
@@ -198,123 +296,250 @@ function Node_VFX_Spawner_Base(_x, _y, _group = -1) : Node(_x, _y, _group) const
 			var _scy = random_range(_scale[2], _scale[3]) * _ss;
 				
 			var _alp = random_range(_alpha[0], _alpha[1]);
-				
-			parts[| i].create(_spr, xx, yy, _lif);
-			parts[| i].anim_speed = _anim_speed;
-			parts[| i].anim_end = _anim_end;
-				
-			parts[| i].setPhysic(_vx, _vy, _acc, _grav, _wigg);
-			parts[| i].setTransform(_scx, _scy, _scale_speed[0], _scale_speed[1], _rot, _rot_spd, _follow);
-			parts[| i].setDraw(_color, _alp, _fade);
-			spawn_index = safe_mod(spawn_index + 1, PREF_MAP[? "part_max_amount"]);
-			onSpawn(_time, parts[| i]);
+			var _bld = _blend.eval(random(1));
 			
-			if(--_amo <= 0) return;
+			var _clr_ind = array_safe_get(_color_idx, safe_mod(spawn_index, _color_idx_len), cola(c_white));
+			    _bld = colorMultiply(_bld, _clr_ind);
+			
+			part.seed = irandom_range(100000, 999999);
+			part.create(_spr, xx, yy, _lif);
+			part.anim_speed = random_range(_anim_speed[0], _anim_speed[1]);
+			part.anim_stre  = _anim_stre;
+			part.anim_end   = _anim_end;
+			part.arr_type   = _arr_type;
+				
+			var _trn = random_range(_turn[0], _turn[1]);
+			if(_turnBi) _trn *= choose(-1, 1);
+			
+			var _gravity = random_range(_grav[0], _grav[1]);
+			
+			part.setPhysic(_vx, _vy, _acc, _gravity, _gvDir, _trn, _turnSc);
+			part.setWiggle(wiggle_maps);
+			part.setGround(_ground, _ground_offset, _ground_bounce, _ground_frict);
+			part.setTransform(_scx, _scy, curve_scale, _rot, _rot_spd, _follow);
+			part.setDraw(_color, _bld, _alp, curve_alpha);
+			part.setPath(_path, curve_path_div);
+			
+			spawn_index = safe_mod(spawn_index + 1, attributes.part_amount);
+			onSpawn(_time, part);
+			
+			parts_runner = safe_mod(parts_runner + 1, attributes.part_amount);
+			spawn_index_raw++;
 		}
 	}
 	
 	static onSpawn = function(_time, part) {}
 	
-	function reset() {
-		spawn_index = 0;
-		for(var i = 0; i < PREF_MAP[? "part_max_amount"]; i++) {
-			parts[| i].kill();
+	static updateParticleForward = function() {}
+	
+	static getSurfaceCache = function() {
+		var surfs = getInputData(0);
+		
+		if(array_empty(surfs)) return;
+		if(!is_array(surfs)) surfs = [ surfs ];
+		surfs = array_spread(surfs);
+		
+		for( var i = 0, n = array_length(surfs); i < n; i++ ) {
+			var _s = surfs[i];
+			
+			if(is(_s, dynaSurf)) {
+				surface_cache[$ surfs[i]] = _s;
+				continue;
+			}
+			
+			if(surface_exists(surface_cache[$ _s])) 
+				continue;
+				
+			if(is(_s, SurfaceAtlas))
+				_s = _s.surface.get();
+				
+			if(!is_surface(_s)) 
+				continue;
+			
+			surface_cache[$ surfs[i]] = surface_clone(_s);
 		}
+	}
+	
+	function reset() {
+		getInputs(0);
+		
+		var keys = variable_struct_get_names(surface_cache);
+		for( var i = 0, n = array_length(keys); i < n; i++ )
+			surface_free_safe(surface_cache[$ keys[i]]);
+		surface_cache = {};
+		getSurfaceCache();
+		
+		spawn_index_raw = 0;
+		spawn_index     = 0;
+		scatter_index   = 0;
+		
+		for(var i = 0; i < array_length(parts); i++) {
+			if(!parts[i].active) continue;
+			parts[i].kill(false);
+		}
+		
+		#region ----- precomputes -----
+			resetSeed();
+			
+			var _wigg_pos = getInputData(41);
+			var _wigg_rot = getInputData(42);
+			var _wigg_sca = getInputData(43);
+			var _wigg_dir = getInputData(20);
+		
+			wiggle_maps.wig_psx.check(_wigg_pos[0], _wigg_pos[1], seed + 10);
+			wiggle_maps.wig_psy.check(_wigg_pos[0], _wigg_pos[1], seed + 20);
+			wiggle_maps.wig_rot.check(_wigg_rot[0], _wigg_rot[1], seed + 30);
+			wiggle_maps.wig_scx.check(_wigg_sca[0], _wigg_sca[1], seed + 40);
+			wiggle_maps.wig_scy.check(_wigg_sca[0], _wigg_sca[1], seed + 50);
+			wiggle_maps.wig_dir.check(_wigg_dir[0], _wigg_dir[1], seed + 60);
+		
+			var _curve_sca = getInputData(11);
+			var _curve_alp = getInputData(14);
+			var _curve_pth = getInputData(47);
+		
+			curve_scale    = new curveMap(_curve_sca, TOTAL_FRAMES);
+			curve_alpha    = new curveMap(_curve_alp, TOTAL_FRAMES);
+			curve_path_div = new curveMap(_curve_pth, TOTAL_FRAMES);
+		#endregion
+		
 		render();
-		seed = seed_origin;
-		
-		var _loop	= inputs[| 21].getValue();
-		if(!_loop) return;
-		
-		for(var i = 0; i < ANIMATOR.frames_total; i++)
-			runVFX(i);
-		
-		seed = seed_origin;
+	}
+	
+	static resetSeed = function() {
+		seed = getInputData(32);
 	}
 	
 	function checkPartPool() {
-		var _part_amo = PREF_MAP[? "part_max_amount"];
-		var _curr_amo = ds_list_size(parts);
+		var _part_amo = attributes.part_amount;
+		var _curr_amo = array_length(parts);
 		
 		if(_part_amo > _curr_amo) {
 			repeat(_part_amo - _curr_amo)
-				ds_list_add(parts, new __part(self));
+				array_push(parts, new __part(self));
 		} else if(_part_amo < _curr_amo) {
-			repeat(_curr_amo - _part_amo)
-				ds_list_delete(parts, 0);
+			array_resize(parts, _part_amo);
 		}
 	}
 	
-	static runVFX = function(_time = ANIMATOR.current_frame) {
-		var _spawn_delay  = inputs[| 1].getValue(_time);
-		var _spawn_type   = inputs[| 16].getValue(_time);
-		var _spawn_active = inputs[| 27].getValue(_time);
+	static runVFX = function(_time = CURRENT_FRAME, _render = true) {
+		var _spawn_delay    = inputs[ 1].getValue(_time);
+		var _spawn_type     = inputs[16].getValue(_time);
+		var _spawn_active   = inputs[27].getValue(_time);
+		var _spawn_trig     = inputs[44].getValue(_time);
+		var _spawn_duration = inputs[51].getValue(_time);
+		
+		getInputs(_time);
+		getSurfaceCache();
 		
 		if(_spawn_active) {
 			switch(_spawn_type) {
-				case 0 :
-					if(safe_mod(_time, _spawn_delay) == 0)
-						spawn(_time);
-					break;
-				case 1 :
-					if(_time == _spawn_delay)
-						spawn(_time);
-					break;
+				case 0 : if(safe_mod(_time, _spawn_delay) == 0) spawn(_time); break;
+				case 1 : if(_time >= _spawn_delay && _time < _spawn_delay + _spawn_duration) spawn(_time); break;
+				case 2 : if(_spawn_trig) spawn(_time); break;
 			}
 		}
+		
+		//print($"\n===== Running VFX {_time} =====")
+		//var activeParts = 0;
+		for(var i = 0; i < array_length(parts); i++) {
+			//activeParts++;
+			parts[i].step(_time);
+		}
+		
+		//print($"Run VFX frame {_time} seed {seed}");
+		//print($"[{display_name}] Running VFX frame {_time}: {activeParts} active particles.");
 			
-		for(var i = 0; i < ds_list_size(parts); i++)
-			parts[| i].step();
-		triggerRender();
+		if(!_render) return;
+		
 		render(_time);
 	}
 	
+	static onStep = function() {}
+	
 	static step = function() {
-		var _inSurf = inputs[| 0].getValue();
-		var _scatt  = inputs[| 24].getValue();
+		var _inSurf = getInputData(0);
+		var _dist   = getInputData(4);
+		var _spwTyp = getInputData(16);
+		var _scatt  = getInputData(24);
+		var _turn   = getInputData(34);
+		var _usePth = getInputData(45);
+		var _direct = getInputData(29);
 		
-		inputs[| 22].setVisible(false);
-		inputs[| 23].setVisible(false);
-		inputs[| 25].setVisible(_scatt == 2);
+		inputs[24].setVisible(_dist < 2);
+		
+		inputs[30].setVisible(_dist == 2, _dist == 2);
+		
+		inputs[35].setVisible(_turn[0] != 0 && _turn[1] != 0);
+		inputs[36].setVisible(_turn[0] != 0 && _turn[1] != 0);
+		
+		inputs[22].setVisible(false);
+		inputs[23].setVisible(false);
+		inputs[26].setVisible(false);
+		inputs[49].setVisible(false);
+		
+		inputs[46].setVisible(true, _usePth);
+		inputs[51].setVisible(_spwTyp == 1);
+		inputs[52].setVisible(_scatt  == 0);
+		inputs[53].setVisible(_direct);
+		
+		inputs[1].setVisible(_spwTyp < 2);
+		if(_spwTyp == 0)		inputs[1].name = "Spawn delay";
+		else if(_spwTyp == 1)	inputs[1].name = "Spawn frame";
+		
+		inputs[44].setVisible(_spwTyp == 2);
 		
 		if(is_array(_inSurf)) {
-			inputs[| 22].setVisible(true);
-			var _type = inputs[| 22].getValue();
+			inputs[22].setVisible(true);
+			var _type = getInputData(22);
 			if(_type == 2) {
-				inputs[| 23].setVisible(true);
-				inputs[| 26].setVisible(true);
+				inputs[23].setVisible(true);
+				inputs[26].setVisible(true);
+				inputs[49].setVisible(true);
 			}
 		}
-		
-		checkPartPool();
-		var _spawn_type = inputs[| 16].getValue();
-		if(_spawn_type == 0)	inputs[| 1].name = "Spawn delay";
-		else					inputs[| 1].name = "Spawn frame";
 		
 		onStep();
 	}
 	
-	static onStep = function() {
-		if(!ANIMATOR.frame_progress) return;
-		if(!ANIMATOR.is_playing) return;
+	static drawOverlay = function(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) {
+		var _spr  = getInputData(0);
+		if(array_empty(_spr)) return;
+		if(is_array(_spr))
+			_spr = _spr[0];
 		
-		if(ANIMATOR.current_frame == 0)
-			reset();
-		runVFX(ANIMATOR.current_frame);
-	}
-	
-	static drawOverlay = function(active, _x, _y, _s, _mx, _my) {
-		inputs[| 3].drawOverlay(active, _x, _y, _s, _mx, _my);
+		var _flag = is_instanceof(_spr, SurfaceAtlas)? 0b0001 : 0b0011;
+		
+		inputs[3].drawOverlay(hover, active, _x, _y, _s, _mx, _my, _snx, _sny, _flag);
 		if(onDrawOverlay != -1)
 			onDrawOverlay(active, _x, _y, _s, _mx, _my);
 	}
 	
 	static onDrawOverlay = -1;
 	
-	static update = function() {}
+	static update = function(frame = CURRENT_FRAME) {
+		var _resetSeed = getInputData(48);
+		if(_resetSeed) resetSeed();
+	
+		checkPartPool();
+		onUpdate(frame);
+	}
+	
+	static onUpdate = function(frame = CURRENT_FRAME) {}
+	
 	static render = function() {}
 	
-	static onPartCreate = function(part) {}
-	static onPartStep = function(part) {}
-	static onPartDestroy = function(part) {}
+	static onPartCreate  = noone;
+	static onPartStep    = noone;
+	static onPartDestroy = noone;
+	
+	static doSerialize = function(_map) {
+		_map.part_base_length = input_len;
+	}
+	
+	static postDeserialize = function() {
+		var _tlen = struct_try_get(load_map, "part_base_length", 40);
+		
+		for( var i = _tlen; i < input_len; i++ )
+			array_insert(load_map.inputs, i, noone);
+	}
 }

@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"byte_read_function",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"byte_read_function",
+  "parent":{
+    "name":"importers",
+    "path":"folders/functions/importers.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

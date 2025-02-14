@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_warp",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_warp",
+  "parent":{
+    "name":"transform",
+    "path":"folders/nodes/data/transform.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

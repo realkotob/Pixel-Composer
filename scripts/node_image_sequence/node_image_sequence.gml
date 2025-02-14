@@ -1,25 +1,28 @@
-function Node_create_Image_Sequence(_x, _y, _group = -1) {
+function Node_create_Image_Sequence(_x, _y, _group = noone) {
 	var path = "";
-	if(!LOADING && !APPENDING) {
-		path = get_open_filenames(".png", "");
+	if(NODE_NEW_MANUAL) {
+		path = get_open_filenames_compat("image|*.png;*.jpg", "");
+		key_release();
 		if(path == "") return noone;
 	}
 	
-	var node = new Node_Image_Sequence(_x, _y, _group);
-	var paths = paths_to_array(path);
-	node.inputs[| 0].setValue(paths);
-	node.doUpdate();
+	var node  = new Node_Image_Sequence(_x, _y, _group);
+	node.skipDefault();
 	
-	//ds_list_add(PANEL_GRAPH.nodes_list, node);
+	var paths = string_splice(path, "\n");
+	node.inputs[0].setValue(paths);
+	
+	if(NODE_NEW_MANUAL) node.doUpdate();
+	
 	return node;
 }
 
 function Node_create_Image_Sequence_path(_x, _y, _path) {
-	var node = new Node_Image_Sequence(_x, _y);
-	node.inputs[| 0].setValue(_path);
-	node.doUpdate();
-	
-	//ds_list_add(PANEL_GRAPH.nodes_list, node);
+	var node = new Node_Image_Sequence(_x, _y, PANEL_GRAPH.getCurrentContext());
+	node.skipDefault();
+    node.inputs[0].setValue(_path);
+    node.doUpdate();
+
 	return node;
 }
 
@@ -34,42 +37,40 @@ enum CANVAS_SIZING {
 	scale
 }
 
-function Node_Image_Sequence(_x, _y, _group = -1) : Node(_x, _y, _group) constructor {
-	name  = "";
+function Node_Image_Sequence(_x, _y, _group = noone) : Node(_x, _y, _group) constructor {
+	name  = "Image Array";
 	spr   = [];
 	color = COLORS.node_blend_input;
-	always_output   = true;
 	
-	inputs[| 0]  = nodeValue(0, "Path", self, JUNCTION_CONNECT.input, VALUE_TYPE.path, "")
-		.setDisplay(VALUE_DISPLAY.path_array, ["*.png", ""]);
+	newInput(0, nodeValue_Path("Paths", self, []))
+		.setDisplay(VALUE_DISPLAY.path_array, { filter: ["image|*.png;*.jpg", ""] });
 	
-	inputs[| 1]  = nodeValue(1, "Padding", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, [0, 0, 0, 0])
-		.setDisplay(VALUE_DISPLAY.padding);
+	newInput(1, nodeValue_Padding("Padding", self, [0, 0, 0, 0]))
+		.rejectArray();
 	
-	inputs[| 2] = nodeValue(2, "Canvas size", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0)
-		.setDisplay(VALUE_DISPLAY.enum_scroll, [ "Individual", "Minimum", "Maximum" ]);
+	newInput(2, nodeValue_Enum_Scroll("Canvas size", self,  0, [ "Individual", "Minimum", "Maximum" ]))
+		.rejectArray();
 	
-	inputs[| 3] = nodeValue(3, "Sizing method", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0)
-		.setDisplay(VALUE_DISPLAY.enum_scroll, [ "Padding / Crop", "Scale" ]);
-	
-	inputs[| 4] = nodeValue(4, "Edit", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0)
-		.setDisplay(VALUE_DISPLAY.button, [ function() {
-			with(dialogCall(o_dialog_image_array_edit, WIN_W / 2, WIN_H / 2)) {
-				target = other;	
-			}
-		}, "Edit array" ]);
+	newInput(3, nodeValue_Enum_Scroll("Sizing method", self,  0, [ "Padding / Crop", "Scale" ]))
+		.rejectArray();
 	
 	input_display_list = [
-		["Sequence settings",	false], 4, 0, 1, 2, 3
+		["Array settings",	false], 0, 1, 2, 3
 	];
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, [ PIXEL_SURFACE ]);
-	outputs[| 1] = nodeValue(1, "Paths", self, JUNCTION_CONNECT.output, VALUE_TYPE.path, [] ).
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, []));
+	newOutput(1, nodeValue_Output("Paths", self, VALUE_TYPE.path, [] )).
 		setVisible(true, true);
 	
-	path_loaded = [];
+	attribute_surface_depth();
 	
-	on_dragdrop_file = function(path) {
+	path_current = [];
+	edit_time    = 0;
+	
+	attributes.file_checker = true;
+	array_push(attributeEditors, [ "File Watcher", function() /*=>*/ {return attributes.file_checker}, new checkBox(function() /*=>*/ { attributes.file_checker = !attributes.file_checker; }) ]);
+	
+	on_drop_file = function(path) {
 		if(directory_exists(path)) {
 			with(dialogCall(o_dialog_drag_folder, WIN_W / 2, WIN_H / 2)) {
 				dir_paths = path;
@@ -78,8 +79,10 @@ function Node_Image_Sequence(_x, _y, _group = -1) : Node(_x, _y, _group) constru
 			return true;
 		}
 		
-		var paths = paths_to_array(path);
-		if(updatePaths(paths)) {
+		var paths = paths_to_array_ext(path);
+		
+		inputs[0].setValue(path);
+		if(updatePaths()) {
 			doUpdate();
 			return true;
 		}
@@ -87,94 +90,133 @@ function Node_Image_Sequence(_x, _y, _group = -1) : Node(_x, _y, _group) constru
 		return false;
 	}
 	
-	function updatePaths(paths) {
+	setTrigger(1, __txt("Refresh"), [ THEME.refresh_icon, 1, COLORS._main_value_positive ], function() /*=>*/ { updatePaths(); triggerRender(); });
+	
+	function updatePaths() {
+		var _paths   = getInputData(0);
+		var paths    = path_get(_paths);
+		path_current = array_clone(paths);
+		
 		for(var i = 0; i < array_length(spr); i++) {
 			if(spr[i] && sprite_exists(spr[i]))
 				sprite_delete(spr[i]);
 		}
+		
 		spr = [];
 		
-		path_loaded = array_create(array_length(paths));
-		
-		for( var i = 0; i < array_length(paths); i++ )  {
-			path_loaded[i] = paths[i];
-			var path = try_get_path(paths[i]);
+		for( var i = 0, n = array_length(paths); i < n; i++ )  {
+			var path = paths[i];
 			if(path == -1) continue;
 			
-			name  = string_replace(filename_name(path), filename_ext(path), "");
-			array_push(spr, sprite_add(path, 1, false, false, 0, 0));
+			var ext = string_lower(filename_ext(path));
+			if(file_exists_empty(path)) setDisplayName(filename_name_only(path));
+			edit_time = max(edit_time, file_get_modify_s(path));
+			
+			switch(ext) {
+				case ".png"	 :
+				case ".jpg"	 :
+				case ".jpeg" :
+					var _spr = sprite_add_map(path);
+					
+					if(_spr == -1) {
+						var _txt = $"Image node: File not a valid image.";
+						logNode(_txt); noti_warning(_txt);
+						return false;
+					}
+					
+					array_push(spr, _spr);
+					break;
+			}
 		}
 		
-		outputs[| 1].setValue(paths);
+		outputs[1].setValue(paths);
 		
 		return true;
 	}
 	
-	static update = function() {
-		var path = inputs[| 0].getValue();
-		if(path == "") return;
-		if(!array_equals(path, path_loaded)) 
-			updatePaths(path);
+	static step = function() {
+		if(attributes.file_checker)
+		for( var i = 0, n = array_length(path_current); i < n; i++ ) {
+			var _ed = file_get_modify_s(path_current[i]);
+			
+			if(_ed > edit_time) {
+				updatePaths();
+				triggerRender();
+				break;
+			}
+		}
+	}
+	
+	static update = function(frame = CURRENT_FRAME) {
+		insp2UpdateTooltip = attributes.cache_use? __txt("Remove Cache") : __txt("Cache");
+		insp2UpdateIcon[0] = attributes.cache_use? THEME.cache : THEME.cache_group;
+		insp2UpdateIcon[2] = attributes.cache_use? c_white : COLORS._main_icon;
 		
-		var pad = inputs[| 1].getValue();
-		var can = inputs[| 2].getValue();
-		inputs[| 3].setVisible(can != CANVAS_SIZE.individual);
+		var path = inputs[0].getValue();
 		
-		var siz = inputs[| 3].getValue();
+		if(!array_equals(path_current, path)) 
+			updatePaths();
 		
-		var ww = -1, hh = -1;
+		var pad = getInputData(1);
+		var can = getInputData(2);
+		inputs[3].setVisible(can != CANVAS_SIZE.individual);
+		
+		var siz = getInputData(3);
+		
+		var  ww = -1,  hh = -1;
 		var _ww = -1, _hh = -1;
 		
-		var surfs = outputs[| 0].getValue();
+		var surfs = outputs[0].getValue();
 		
-		for(var i = 0; i < array_length(surfs); i++) {
-			if(is_surface(surfs[i]))
-				surface_free(surfs[i]);
-		}
+		var _sprs = attributes.cache_use? cache_spr : spr;
+		var amo   = array_length(_sprs);
+		for(var i = amo; i < array_length(surfs); i++)
+			surface_free(surfs[i]);
+			
+		array_resize(surfs, amo);
 		
-		for(var i = 0; i < array_length(spr); i++) {
-			var _spr = spr[i];
+		for(var i = 0; i < amo; i++) {
+			var _spr = _sprs[i];
 			var _w = sprite_get_width(_spr);
 			var _h = sprite_get_height(_spr);
 			
 			switch(can) {
 				case CANVAS_SIZE.minimum :
-					if(ww == -1)	ww = _w;
-					else			ww = min(ww, _w);
-					if(hh == -1)	hh = _h;
-					else			hh = min(hh, _h);
+					ww = ww == -1? _w : min(ww, _w);
+					hh = hh == -1? _h : min(hh, _h);
 					break;
+					
 				case CANVAS_SIZE.maximum :
-					if(ww == -1)	ww = _w;
-					else			ww = max(ww, _w);
-					if(hh == -1)	hh = _h;
-					else			hh = max(hh, _h);
+					ww = ww == -1? _w : max(ww, _w);
+					hh = hh == -1? _h : max(hh, _h);
 					break;
 			}
 		}
+		
 		_ww = ww;
 		_hh = hh;
 		ww += pad[0] + pad[2];
 		hh += pad[1] + pad[3];
 		
-		for(var i = 0; i < array_length(spr); i++) {
-			var _spr = spr[i];
+		for(var i = 0; i < array_length(_sprs); i++) {
+			var _spr = _sprs[i];
 			switch(can) {
 				case CANVAS_SIZE.individual :
-					ww = sprite_get_width(_spr) + pad[0] + pad[2];
+					ww = sprite_get_width(_spr)  + pad[0] + pad[2];
 					hh = sprite_get_height(_spr) + pad[1] + pad[3];
 					
-					surfs[i] = surface_create_valid(ww, hh);
+					surfs[i] = surface_verify(surfs[i], ww, hh, attrDepth());
 					surface_set_target(surfs[i]);
-						draw_clear_alpha(0, 0);
-						BLEND_ADD
+						DRAW_CLEAR
+						BLEND_OVERRIDE
 						draw_sprite(_spr, 0, pad[2], pad[1]);
 						BLEND_NORMAL
 					surface_reset_target();
 					break;
+					
 				case CANVAS_SIZE.maximum :
 				case CANVAS_SIZE.minimum :
-					surfs[i] = surface_create_valid(ww, hh);
+					surfs[i] = surface_verify(surfs[i], ww, hh, attrDepth());
 					var _w = sprite_get_width(_spr);
 					var _h = sprite_get_height(_spr);
 						
@@ -184,18 +226,19 @@ function Node_Image_Sequence(_x, _y, _group = -1) : Node(_x, _y, _group) constru
 						var sh = (hh - _h * ss) / 2;
 						
 						surface_set_target(surfs[i]);
-							draw_clear_alpha(0, 0);
-							BLEND_ADD
+							DRAW_CLEAR
+							BLEND_OVERRIDE
 							draw_sprite_ext(_spr, 0, sw, sh, ss, ss, 0, c_white, 1);
 							BLEND_NORMAL
 						surface_reset_target();
+						
 					} else {
 						var xx = (ww - _w) / 2;
 						var yy = (hh - _h) / 2;
 						
 						surface_set_target(surfs[i]);
-							draw_clear_alpha(0, 0);
-							BLEND_ADD
+							DRAW_CLEAR
+							BLEND_OVERRIDE
 							draw_sprite(_spr, 0, xx, yy);
 							BLEND_NORMAL
 						surface_reset_target();
@@ -205,7 +248,38 @@ function Node_Image_Sequence(_x, _y, _group = -1) : Node(_x, _y, _group) constru
 			
 		}
 		
-		outputs[| 0].setValue(surfs);
+		outputs[0].setValue(surfs);
 	}
-	doUpdate();
+	
+	static dropPath = function(path) { 
+		if(!is_array(path)) path = [ path ];
+		inputs[0].setValue(path); 
+	}
+	
+	////- Cache
+	
+	attributes.cache_use  = false;
+	attributes.cache_data = "";
+	cache_spr = [];
+	
+	static cacheData = function() {
+		attributes.cache_use  = true;
+		cache_spr = spr;
+		attributes.cache_data = sprite_array_serialize(spr);
+		triggerRender();
+	}
+	
+	static uncacheData = function() {
+		attributes.cache_use  = false;
+		triggerRender();
+	}
+	
+	setTrigger(2, __txt("Cache"), [ THEME.cache_group, 0, COLORS._main_icon ], function() /*=>*/ { if(attributes.cache_use) uncacheData() else cacheData(); });
+	
+	////- Serialize
+
+	static postDeserialize = function() {
+		if(!attributes[$ "cache_use"] ?? 0) return;
+		cache_spr = sprite_array_deserialize(attributes[$ "cache_data"] ?? "");
+	}
 }

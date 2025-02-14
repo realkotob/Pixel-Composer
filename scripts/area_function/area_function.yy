@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "area_function",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "value",
-    "path": "folders/functions/value.yy",
+  "$GMScript":"v1",
+  "%Name":"area_function",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"area_function",
+  "parent":{
+    "name":"value",
+    "path":"folders/functions/value.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

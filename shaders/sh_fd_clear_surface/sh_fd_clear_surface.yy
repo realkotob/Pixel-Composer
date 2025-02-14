@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_fd_clear_surface",
+  "name":"sh_fd_clear_surface",
+  "parent":{
+    "name":"Shaders",
+    "path":"folders/nodes/data/simulation/smokeSim/Shaders.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

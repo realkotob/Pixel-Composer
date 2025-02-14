@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "node_iterate",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "iterate",
-    "path": "folders/nodes/data/iterate.yy",
+  "$GMScript":"v1",
+  "%Name":"node_iterate",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_iterate",
+  "parent":{
+    "name":"for",
+    "path":"folders/nodes/data/iterate/for.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

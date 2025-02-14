@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "node_math",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "value",
-    "path": "folders/nodes/data/value.yy",
+  "$GMScript":"v1",
+  "%Name":"node_math",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_math",
+  "parent":{
+    "name":"number",
+    "path":"folders/nodes/data/value/number.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

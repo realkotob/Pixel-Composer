@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"__node_shader_processor",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"__node_shader_processor",
+  "parent":{
+    "name":"data",
+    "path":"folders/nodes/data.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

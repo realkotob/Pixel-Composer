@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_mk_tile55_edge_t",
+  "name":"sh_mk_tile55_edge_t",
+  "parent":{
+    "name":"Tile",
+    "path":"folders/nodes/data/MKFX/Tile.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

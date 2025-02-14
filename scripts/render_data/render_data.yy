@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "render_data",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "scritps",
-    "path": "folders/main/scritps.yy",
+  "$GMScript":"v1",
+  "%Name":"render_data",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"render_data",
+  "parent":{
+    "name":"components",
+    "path":"folders/main/components.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

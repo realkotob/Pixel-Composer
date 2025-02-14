@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"process_functions",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"process_functions",
+  "parent":{
+    "name":"functions",
+    "path":"folders/functions.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

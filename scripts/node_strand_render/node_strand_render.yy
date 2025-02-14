@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_strand_render",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_strand_render",
+  "parent":{
+    "name":"strandSim",
+    "path":"folders/nodes/data/simulation/strandSim.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

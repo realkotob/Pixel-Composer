@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_smoke_render_output",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_smoke_render_output",
+  "parent":{
+    "name":"legacy",
+    "path":"folders/nodes/data/simulation/smokeSim/legacy.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

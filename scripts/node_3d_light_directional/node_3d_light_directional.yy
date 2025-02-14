@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_3d_light_directional",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_3d_light_directional",
+  "parent":{
+    "name":"d3d_light",
+    "path":"folders/nodes/data/3D/d3d_light.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

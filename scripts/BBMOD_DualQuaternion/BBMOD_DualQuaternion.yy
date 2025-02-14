@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"BBMOD_DualQuaternion",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"BBMOD_DualQuaternion",
+  "parent":{
+    "name":"Math",
+    "path":"folders/__extensions/BBMOD/Math.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

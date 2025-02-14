@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"_draw_defines",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"_draw_defines",
+  "parent":{
+    "name":"draw",
+    "path":"folders/functions/draw.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

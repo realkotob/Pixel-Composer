@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_mask_expand",
+  "name":"sh_mask_expand",
+  "parent":{
+    "name":"mask",
+    "path":"folders/shader/mask.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

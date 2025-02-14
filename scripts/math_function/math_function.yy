@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "math_function",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "value",
-    "path": "folders/functions/value.yy",
+  "$GMScript":"v1",
+  "%Name":"math_function",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"math_function",
+  "parent":{
+    "name":"math",
+    "path":"folders/functions/math.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

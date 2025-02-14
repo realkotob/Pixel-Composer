@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_draw_mapping",
+  "name":"sh_draw_mapping",
+  "parent":{
+    "name":"draw",
+    "path":"folders/shader/draw.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

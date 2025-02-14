@@ -1,18 +1,44 @@
-function Node_Level_Selector(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
+function Node_Level_Selector(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
 	name = "Level Selector";
 	
-	uniform_middle = shader_get_uniform(sh_level_selector, "middle");
-	uniform_range  = shader_get_uniform(sh_level_selector, "range");
+	newInput(0, nodeValue_Surface("Surface In", self));
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
+	newInput(1, nodeValue_Float("Midpoint", self, 0))
+		.setDisplay(VALUE_DISPLAY.slider)
+		.setMappable(9);
 	
-	inputs[| 1] = nodeValue(1, "Middle", self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0)
-		.setDisplay(VALUE_DISPLAY.slider, [ 0, 1, 0.01]);
+	newInput(2, nodeValue_Float("Range",   self, 0.1))
+		.setDisplay(VALUE_DISPLAY.slider)
+		.setMappable(10);
 	
-	inputs[| 2] = nodeValue(2, "Range",   self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0.1)
-		.setDisplay(VALUE_DISPLAY.slider, [ 0, 1, 0.01]);
+	newInput(3, nodeValue_Surface("Mask", self));
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(4, nodeValue_Float("Mix", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider);
+	
+	newInput(5, nodeValue_Bool("Active", self, true));
+		active_index = 5;
+	
+	newInput(6, nodeValue_Toggle("Channel", self, 0b1111, { data: array_create(4, THEME.inspector_channel) }));
+	
+	__init_mask_modifier(3); // inputs 7, 8, 
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput( 9, nodeValueMap("Midpoint map", self));
+	
+	newInput(10, nodeValueMap("Range map", self));
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(11, nodeValue_Bool("Keep Original", self, false));
+	
+	newInput(12, nodeValue_Float("Smoothness",   self, 0))
+		.setDisplay(VALUE_DISPLAY.slider);
+		
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	attribute_surface_depth();
 	
 	level_renderer = new Inspector_Custom_Renderer(function(_x, _y, _w, _m, _hover, _focus) {
 		var _h = 128;
@@ -22,8 +48,12 @@ function Node_Level_Selector(_x, _y, _group = -1) : Node_Processor(_x, _y, _grou
 		var y1 = _y + _h; 
 		level_renderer.h = 128;
 		
-		var _middle = inputs[| 1].getValue();
-		var _span   = inputs[| 2].getValue();
+		var _middle = getInputData(1);
+		var _span   = getInputData(2);
+		
+		if(is_array(_middle)) _middle = array_safe_get_fast(_middle, 0);
+		if(is_array(_span))   _span   = array_safe_get_fast(_span,   0);
+		
 		var _min    = _middle - _span;
 		var _max    = _middle + _span;
 		
@@ -35,7 +65,7 @@ function Node_Level_Selector(_x, _y, _group = -1) : Node_Processor(_x, _y, _grou
 			var _bx = x1 - 20 - i * 24;
 			var _by = y0;
 			
-			if(buttonInstant(THEME.button_hide, _bx, _by, 20, 20, _m, _focus, _hover) == 2) 
+			if(buttonInstant(THEME.button_hide_fill, _bx, _by, 20, 20, _m, _hover, _focus) == 2) 
 				histShow[i] = !histShow[i];
 			draw_sprite_ui_uniform(THEME.circle, 0, _bx + 10, _by + 10, 1, COLORS.histogram[i], 0.5 + histShow[i] * 0.5);
 		}
@@ -45,11 +75,15 @@ function Node_Level_Selector(_x, _y, _group = -1) : Node_Processor(_x, _y, _grou
 
 		draw_set_color(COLORS.node_level_outline);
 		draw_rectangle(x0, y0, x1, y1, true);
+		
+		return _h;
 	});
 	
-	input_display_list = [
+	input_display_list = [ 5, 6, 
 		level_renderer,
-		["Level",	false],	0, 1, 2,
+		["Surfaces", true],	0, 3, 4, 7, 8, 
+		["Level",	false],	1, 9, 2, 10, 12, 
+		["Output",	false],	11, 
 	];
 	histogramInit();
 	
@@ -58,7 +92,7 @@ function Node_Level_Selector(_x, _y, _group = -1) : Node_Processor(_x, _y, _grou
 			histogramUpdate(current_data[0]);
 	}
 	
-	static onValueUpdate = function(index) {
+	static onValueFromUpdate = function(index) {
 		if(index == 0) {
 			update();
 			if(array_length(current_data) > 0)
@@ -66,23 +100,27 @@ function Node_Level_Selector(_x, _y, _group = -1) : Node_Processor(_x, _y, _grou
 		}
 	}
 	
-	static process_data = function(_outSurf, _data, _output_index) {
-		var _middle = _data[1];
-		var _range  = _data[2];
+	static step = function() {
+		__step_mask_modifier();
 		
-		surface_set_target(_outSurf);
-			draw_clear_alpha(0, 0);
-			BLEND_ADD
+		inputs[1].mappableStep();
+		inputs[2].mappableStep();
+	}
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
+		
+		surface_set_shader(_outSurf, sh_level_selector);
+			shader_set_f_map("middle", _data[1], _data[ 9], inputs[1]);
+			shader_set_f_map("range" , _data[2], _data[10], inputs[2]);
+			shader_set_f("smoothness", _data[12]);
+			shader_set_i("keep", _data[11]);
 			
-			shader_set(sh_level_selector);
-			shader_set_uniform_f(uniform_middle, _middle);
-			shader_set_uniform_f(uniform_range , _range );
-			
-			draw_surface_safe(_data[0], 0, 0);
-			shader_reset();
-			
-			BLEND_NORMAL
-		surface_reset_target();
+			draw_surface_safe(_data[0]);
+		surface_reset_shader();
+		
+		__process_mask_modifier(_data);
+		_outSurf = mask_apply(_data[0], _outSurf, _data[3], _data[4]);
+		_outSurf = channel_apply(_data[0], _outSurf, _data[6]);
 		
 		return _outSurf;
 	}

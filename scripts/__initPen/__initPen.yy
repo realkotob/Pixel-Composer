@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"__initPen",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"__initPen",
+  "parent":{
+    "name":"pen_input",
+    "path":"folders/functions/pen_input.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

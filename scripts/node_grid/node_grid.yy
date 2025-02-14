@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "node_grid",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "generator",
-    "path": "folders/nodes/data/generator.yy",
+  "$GMScript":"v1",
+  "%Name":"node_grid",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_grid",
+  "parent":{
+    "name":"pattern",
+    "path":"folders/nodes/data/generator/pattern.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

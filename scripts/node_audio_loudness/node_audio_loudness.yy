@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_audio_loudness",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_audio_loudness",
+  "parent":{
+    "name":"audio",
+    "path":"folders/nodes/data/value/audio.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

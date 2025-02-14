@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "json_file",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "files",
-    "path": "folders/functions/files.yy",
+  "$GMScript":"v1",
+  "%Name":"json_file",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"json_file",
+  "parent":{
+    "name":"files",
+    "path":"folders/functions/files.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

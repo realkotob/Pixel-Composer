@@ -1,52 +1,64 @@
-function Node_Time_Remap(_x, _y, _group = -1) : Node(_x, _y, _group) constructor {
-	name	= "Time remap";
-	use_cache   = true;
+#region
+	FN_NODE_CONTEXT_INVOKE {
+		addHotkey("Node_Time_Remap", "Max Life > Set", KEY_GROUP.numeric, MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[2].setValue(toNumber(chr(keyboard_key))); });
+		addHotkey("Node_Time_Remap", "Loop > Toggle",                "L", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[3].setValue((_n.inputs[3].getValue() + 1) % 2); });
+	});
+#endregion
+
+function Node_Time_Remap(_x, _y, _group = noone) : Node(_x, _y, _group) constructor {
+	name      = "Time Remap";
+	use_cache = CACHE_USE.manual;
+	update_on_frame = true;
 	
-	uniform_map = shader_get_sampler_index(sh_time_remap, "map");
-	uniform_min = shader_get_uniform(sh_time_remap, "vMin");
-	uniform_max = shader_get_uniform(sh_time_remap, "vMax");
+	newInput(0, nodeValue_Surface("Surface In", self))
+		.rejectArray();
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
-	inputs[| 1] = nodeValue(1, "Map", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
-	inputs[| 2] = nodeValue(2, "Max life",   self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 3);
+	newInput(1, nodeValue_Surface("Map", self))
+		.rejectArray();
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(2, nodeValue_Int("Max Life", self, 3))
+		.rejectArray();
 	
-	static update = function() {
-		if(array_length(cached_output) != ANIMATOR.frames_total + 1)
-			return;
-			
-		var _inSurf  = inputs[| 0].getValue();
-		var _map     = inputs[| 1].getValue();
-		var _life    = inputs[| 2].getValue();
+	newInput(3, nodeValue_Bool("Loop", self, false))
+	
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	input_display_list = [ 
+		["Surfaces", false], 0, 1, 
+		["Remap",	 false], 2, 3,
+	]
+	
+	attribute_surface_depth();
+	
+	static update = function(frame = CURRENT_FRAME) {
+		var _inSurf  = getInputData(0);
+		var _map     = getInputData(1);
+		var _life    = getInputData(2);
+		var _loop    = getInputData(3);
+		cacheCurrentFrame(_inSurf);
 		
-		var _surf  = outputs[| 0].getValue();
-		if(!is_surface(_surf)) {
-			_surf = surface_create_valid(surface_get_width(_inSurf), surface_get_height(_inSurf));
-			outputs[| 0].setValue(_surf);
-		} else
-			surface_size_to(_surf, surface_get_width(_inSurf), surface_get_height(_inSurf));
+		var _surf  = outputs[0].getValue();
+		_surf = surface_verify(_surf, surface_get_width_safe(_inSurf), surface_get_height_safe(_inSurf), attrDepth());
+		outputs[0].setValue(_surf);
 		
 		var ste = 1 / _life;
 		
-		surface_set_target(_surf);
-		draw_clear_alpha(0, 0);
-		shader_set(sh_time_remap);
-		texture_set_stage(uniform_map, surface_get_texture(_map));
+		surface_set_shader(_surf, sh_time_remap);
+		shader_set_surface("map", _map);
 		
 		for(var i = 0; i <= _life; i++) {
-			var frame = clamp(ANIMATOR.current_frame - i, 0, ANIMATOR.frames_total - 1);
+			var _frame = CURRENT_FRAME - i;
+			if(_loop) _frame = _frame < 0? TOTAL_FRAMES - 1 + _frame : _frame;
+			else      _frame = clamp(_frame, 0, TOTAL_FRAMES - 1);
 			
-			if(is_surface(cached_output[frame])) {
-				shader_set_uniform_f(uniform_min, i * ste);	
-				shader_set_uniform_f(uniform_max, i * ste + ste);	
-				draw_surface_safe(cached_output[frame], 0, 0);
-			}
+			var s = array_safe_get_fast(cached_output, _frame);
+			if(!is_surface(s)) continue;
+			
+			shader_set_f("vMin", i * ste);	
+			shader_set_f("vMax", i * ste + ste);	
+			draw_surface_safe(s);
 		}
 		
-		shader_reset();
-		surface_reset_target();
-		
-		cacheCurrentFrame(_inSurf);
+		surface_reset_shader();
 	}
 }

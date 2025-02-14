@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "node_export",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "render",
-    "path": "folders/nodes/data/render.yy",
+  "$GMScript":"v1",
+  "%Name":"node_export",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_export",
+  "parent":{
+    "name":"io",
+    "path":"folders/nodes/data/io.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

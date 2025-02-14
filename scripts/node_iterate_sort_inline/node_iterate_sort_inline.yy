@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_iterate_sort_inline",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_iterate_sort_inline",
+  "parent":{
+    "name":"for_sort",
+    "path":"folders/nodes/data/iterate/for_sort.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

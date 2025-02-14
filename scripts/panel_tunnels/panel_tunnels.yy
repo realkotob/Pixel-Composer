@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"panel_tunnels",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"panel_tunnels",
+  "parent":{
+    "name":"graph",
+    "path":"folders/panels/graph.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

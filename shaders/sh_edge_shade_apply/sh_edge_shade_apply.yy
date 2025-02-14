@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_edge_shade_apply",
+  "name":"sh_edge_shade_apply",
+  "parent":{
+    "name":"edge_shade",
+    "path":"folders/nodes/data/filter/effects/edge_shade.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

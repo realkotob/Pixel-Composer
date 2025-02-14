@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "color_loader",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "sprites",
-    "path": "folders/sprites.yy",
+  "$GMScript":"v1",
+  "%Name":"color_loader",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"color_loader",
+  "parent":{
+    "name":"components",
+    "path":"folders/main/components.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

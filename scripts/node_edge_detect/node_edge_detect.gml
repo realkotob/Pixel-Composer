@@ -1,30 +1,71 @@
-function Node_Edge_Detect(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
-	name = "Edge detect";
+#region
+	FN_NODE_CONTEXT_INVOKE {
+		addHotkey("Node_Edge_Detect", "Algorithm > Toggle", "A", MOD_KEY.none, function() /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[1].setValue((_n.inputs[1].getValue() + 1) % 4); });
+	});
+#endregion
+
+function Node_Edge_Detect(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
+	name = "Edge Detect";
 	
-	uniform_dim    = shader_get_uniform(sh_edge_detect, "dimension");
-	uniform_filter = shader_get_uniform(sh_edge_detect, "filter");
+	shader = sh_edge_detect;
+	uniform_dim    = shader_get_uniform(shader, "dimension");
+	uniform_filter = shader_get_uniform(shader, "filter");
+	uniform_sam    = shader_get_uniform(shader, "sampleMode");
 	
-	inputs[| 0] = nodeValue(0, "Surface in",	 self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
-	inputs[| 1] = nodeValue(1, "Filter",		 self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 0)
-		.setDisplay(VALUE_DISPLAY.enum_scroll, ["Sobel", "Prewitt", "Laplacian"] );
+	newInput(0, nodeValue_Surface("Surface in self", self));
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(1, nodeValue_Enum_Scroll("Algorithm", self, 0, ["Sobel", "Prewitt", "Laplacian", "Neighbor max diff"] ));
 	
-	static process_data = function(_outSurf, _data, _output_index) {
+	newInput(2, nodeValue_Enum_Scroll("Oversample mode", self, 0, [ "Empty", "Clamp", "Repeat" ]))
+		.setTooltip("How to deal with pixel outside the surface.\n    - Empty: Use empty pixel\n    - Clamp: Repeat edge pixel\n    - Repeat: Repeat texture.");
+	
+	newInput(3, nodeValue_Surface("Mask", self));
+	
+	newInput(4, nodeValue_Float("Mix", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider);
+	
+	newInput(5, nodeValue_Bool("Active", self, true));
+		active_index = 5;
+	
+	newInput(6, nodeValue_Toggle("Channel", self, 0b1111, { data: array_create(4, THEME.inspector_channel) }));
+		
+	__init_mask_modifier(3); // inputs 7, 8
+	
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	input_display_list = [ 5, 6, 
+		["Surfaces",	 true],	0, 3, 4, 7, 8, 
+		["Edge detect",	false],	1, 
+	];
+	
+	attribute_surface_depth();
+	attribute_oversample();
+	
+	static step = function() { #region
+		__step_mask_modifier();
+	} #endregion
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
 		var ft = _data[1];
+		var ov = getAttribute("oversample");
 		
 		surface_set_target(_outSurf);
-		draw_clear_alpha(0, 0);
-		BLEND_ADD
+		DRAW_CLEAR
+		BLEND_OVERRIDE
 		
-		shader_set(sh_edge_detect);
-			shader_set_uniform_f_array(uniform_dim, [surface_get_width(_data[0]), surface_get_height(_data[0])]);
+		shader_set(shader);
+			shader_set_uniform_f_array_safe(uniform_dim, [surface_get_width_safe(_data[0]), surface_get_height_safe(_data[0])]);
 			shader_set_uniform_i(uniform_filter, ft);
-			draw_surface_safe(_data[0], 0, 0);
+			shader_set_uniform_i(uniform_sam, ov);
+			draw_surface_safe(_data[0]);
 		shader_reset();
 		
 		BLEND_NORMAL
 		surface_reset_target();
+		
+		__process_mask_modifier(_data);
+		_outSurf = mask_apply(_data[0], _outSurf, _data[3], _data[4]);
+		_outSurf = channel_apply(_data[0], _outSurf, _data[6]);
 		
 		return _outSurf;
 	}

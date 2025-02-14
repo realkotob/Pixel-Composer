@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"__d3d_gizmo",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"__d3d_gizmo",
+  "parent":{
+    "name":"gizmo",
+    "path":"folders/functions/3d/gizmo.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

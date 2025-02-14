@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"locale_data",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"locale_data",
+  "parent":{
+    "name":"components",
+    "path":"folders/main/components.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

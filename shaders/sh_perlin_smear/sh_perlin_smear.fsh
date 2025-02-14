@@ -4,15 +4,14 @@
 varying vec2 v_vTexcoord;
 varying vec4 v_vColour;
 
-uniform vec2  u_resolution;
+uniform vec2  dimension;
 uniform vec2  position;
+uniform float rotation;
 uniform vec2  scale;
 uniform int   iteration;
 uniform float bright;
 
-float random (in vec2 st) {
-    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
-}
+float random (in vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123); }
 
 float noise (in vec2 st) {
     vec2 i = floor(st);
@@ -49,13 +48,15 @@ float noise (in vec2 st) {
 }
 
 void main() {
-	vec2 st = v_vTexcoord + position;
-    vec2 pos = st * scale;
+	float ang = radians(rotation);
+	vec2 pos  = position / dimension;
+	vec2 st   = (v_vTexcoord - pos) * mat2(cos(ang), -sin(ang), sin(ang), cos(ang)) * scale;
+	
 	float amp = bright;
     float n = 0.;
 	
 	for(int i = 0; i < iteration; i++) {
-		n += noise(pos) * amp;
+		n += noise(st) * amp;
 		
 		amp *= .5;
 		pos *= 2.;

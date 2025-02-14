@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"matrixGrid",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"matrixGrid",
+  "parent":{
+    "name":"text",
+    "path":"folders/widgets/text.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

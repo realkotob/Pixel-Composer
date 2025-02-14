@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_average",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_average",
+  "parent":{
+    "name":"blur",
+    "path":"folders/nodes/data/filter/blur.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

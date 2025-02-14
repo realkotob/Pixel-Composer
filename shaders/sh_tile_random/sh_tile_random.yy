@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_tile_random",
+  "name":"sh_tile_random",
+  "parent":{
+    "name":"transform",
+    "path":"folders/nodes/data/transform.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

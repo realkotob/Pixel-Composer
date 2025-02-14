@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_shadow_cast",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_shadow_cast",
+  "parent":{
+    "name":"effects",
+    "path":"folders/nodes/data/filter/effects.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

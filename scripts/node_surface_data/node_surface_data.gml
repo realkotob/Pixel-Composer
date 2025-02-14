@@ -1,36 +1,47 @@
-function Node_Surface_data(_x, _y, _group = -1) : Node(_x, _y, _group) constructor {
+function Node_Surface_data(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
 	name	= "Surface data";
-	color	= COLORS.node_blend_number;
-	previewable = false;
 	
-	inputs[| 0] = nodeValue(0, "Surface", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
+	newInput(0, nodeValue_Surface("Surface", self));
 	
-	outputs[| 0] = nodeValue(0, "Dimension", self, JUNCTION_CONNECT.output, VALUE_TYPE.integer, [ 1, 1 ])
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newOutput(0, nodeValue_Output("Dimension", self, VALUE_TYPE.integer, [ 1, 1 ]))
 		.setDisplay(VALUE_DISPLAY.vector);
-	outputs[| 1] = nodeValue(1, "Array length", self, JUNCTION_CONNECT.output, VALUE_TYPE.integer, 0);
 	
-	min_h = 0;
-	w = 96;
+	newOutput(1, nodeValue_Output("Width", self, VALUE_TYPE.integer, 1));
 	
-	static update = function() {
-		var _insurf	= inputs[| 0].getValue();
-		if(is_array(_insurf)) {
-			var len = array_length(_insurf);
-			var _dim = array_create(len);
-			
-			for( var i = 0; i < len; i++ ) {
-				_dim[i][0] = surface_get_width(_insurf[i]);
-				_dim[i][1] = surface_get_height(_insurf[i]);
-			}
-			
-			outputs[| 0].setValue(_dim);
-			outputs[| 1].setValue(len);
-			return;
-		}
+	newOutput(2, nodeValue_Output("Height", self, VALUE_TYPE.integer, 1));
+	
+	newOutput(3, nodeValue_Output("Format String", self, VALUE_TYPE.text, ""))
+		.setVisible(false);
+	
+	newOutput(4, nodeValue_Output("Bit Depth", self, VALUE_TYPE.integer, 8))
+		.setVisible(false);
+	
+	newOutput(5, nodeValue_Output("Channels", self, VALUE_TYPE.integer, 4))
+		.setVisible(false);
+	
+	setDimension(96, 48);
+	
+	static processData = function(_outData, _data, _output_index, _array_index = 0) { 
+		var _surf = _data[0];
+		if(!is_surface(_surf)) return _outData; 
 		
-		if(!_insurf || !surface_exists(_insurf)) return;
+		var _dim = surface_get_dimension(_surf);
+		_outData[0] = _dim;
+		_outData[1] = _dim[0];
+		_outData[2] = _dim[1];
 		
-		outputs[| 0].setValue([ surface_get_width(_insurf), surface_get_height(_insurf) ]);
+		var _frm = surface_get_format(_surf);
+		_outData[3] = surface_format_string(_frm);
+		_outData[4] = surface_format_get_depth(_frm);
+		_outData[5] = surface_format_get_channel(_frm);
+		
+		return _outData;
 	}
-	doUpdate();
+	
+	static onDrawNode = function(xx, yy, _mx, _my, _s, _hover, _focus) {
+		var bbox = drawGetBbox(xx, yy, _s);
+		draw_sprite_bbox_uniform(s_node_surface_data, 0, bbox);
+	}
 }

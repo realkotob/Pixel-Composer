@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_feedback_inline",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_feedback_inline",
+  "parent":{
+    "name":"feedback",
+    "path":"folders/nodes/data/iterate/feedback.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

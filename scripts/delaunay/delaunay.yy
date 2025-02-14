@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"delaunay",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"delaunay",
+  "parent":{
+    "name":"delaunay",
+    "path":"folders/functions/delaunay.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

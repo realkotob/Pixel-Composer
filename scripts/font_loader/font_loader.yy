@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "font_loader",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "font",
-    "path": "folders/font.yy",
+  "$GMScript":"v1",
+  "%Name":"font_loader",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"font_loader",
+  "parent":{
+    "name":"font",
+    "path":"folders/sprites/font.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }

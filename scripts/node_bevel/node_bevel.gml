@@ -1,42 +1,91 @@
-function Node_Bevel(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
+function Node_Bevel(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
 	name = "Bevel";
 	
-	uniform_dim = shader_get_uniform(sh_bevel, "dimension");
-	uniform_shf = shader_get_uniform(sh_bevel, "shift");
-	uniform_sca = shader_get_uniform(sh_bevel, "scale");
-	uniform_hei = shader_get_uniform(sh_bevel, "height");
+	newInput(0, nodeValue_Surface("Surface In", self));
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
-	inputs[| 1] = nodeValue(1, "Height", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, 4);
+	newInput(1, nodeValue_Int("Height", self, 4))
+		.setMappable(11);
 	
-	inputs[| 2] = nodeValue(2, "Shift", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, [ 0, 0 ] )
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(2, nodeValue_Vec2("Shift", self, [ 0, 0 ]));
 	
-	inputs[| 3] = nodeValue(3, "Scale", self, JUNCTION_CONNECT.input, VALUE_TYPE.integer, [ 1, 1 ] )
-		.setDisplay(VALUE_DISPLAY.vector);
+	newInput(3, nodeValue_Vec2("Scale", self, [ 1, 1 ] ));
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(4, nodeValue_Enum_Scroll("Slope", self, 0, [ new scrollItem("Linear",   s_node_curve_type, 2), 
+												          new scrollItem("Smooth",   s_node_curve_type, 4), 
+												          new scrollItem("Circular", s_node_curve_type, 5), ]));
 	
-	static process_data = function(_outSurf, _data, _output_index) {
+	newInput(5, nodeValue_Surface("Mask", self));
+	
+	newInput(6, nodeValue_Float("Mix", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider);
+	
+	newInput(7, nodeValue_Bool("Active", self, true));
+		active_index = 7;
+		
+	newInput(8, nodeValue_Enum_Scroll("Oversample mode", self, 0, [ "Empty", "Clamp", "Repeat" ]))
+		.setTooltip("How to deal with pixel outside the surface.\n    - Empty: Use empty pixel\n    - Clamp: Repeat edge pixel\n    - Repeat: Repeat texture.");
+		
+	__init_mask_modifier(5); // inputs 9, 10
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(11, nodeValueMap("Height map", self));
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	input_display_list = [ 7, 
+		["Surfaces",	 true], 0, 5, 6, 9, 10, 
+		["Bevel",		false], 4, 1, 11, 
+		["Transform",	false], 2, 3, 
+	];
+	
+	attribute_surface_depth();
+	attribute_oversample();
+	
+	static drawOverlay = function(hover, active, _x, _y, _s, _mx, _my, _snx, _sny) {
+		PROCESSOR_OVERLAY_CHECK
+		
+		var _surf = current_data[0];
+		if(!is_surface(_surf)) return false;
+		
+		var _pw = surface_get_width_safe(_surf) * _s / 2;
+		var _ph = surface_get_height_safe(_surf) * _s / 2;
+		var _hov = false;
+		
+		var hv = inputs[2].drawOverlay(hover, active, _x + _pw, _y + _ph, _s, _mx, _my, _snx, _sny); _hov |= hv;
+		
+		return _hov;
+	}
+	
+	static step = function() {
+		__step_mask_modifier();
+		
+		inputs[1].mappableStep();
+	}
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
 		var _hei = _data[1];
 		var _shf = _data[2];
 		var _sca = _data[3];
+		var _slp = _data[4];
+		var _sam = getAttribute("oversample");
+		var _dim = surface_get_dimension(_data[0]);
 		
-		surface_set_target(_outSurf);
-			draw_clear_alpha(0, 0);
-			BLEND_ADD
+		surface_set_shader(_outSurf, max(_dim[0], _dim[1]) < 256? sh_bevel : sh_bevel_highp);
+			shader_set_f("dimension",  _dim);
+			shader_set_f_map("height", _hei, _data[11], inputs[1]);
+			shader_set_2("shift",      _shf);
+			shader_set_2("scale",      _sca);
+			shader_set_i("slope",      _slp);
+			shader_set_i("sampleMode", _sam);
+			
+			draw_surface_safe(_data[0]);
+		surface_reset_shader();
 		
-			shader_set(sh_bevel);
-			shader_set_uniform_f(uniform_hei, _hei);
-			shader_set_uniform_f_array(uniform_shf, _shf);
-			shader_set_uniform_f_array(uniform_sca, _sca);
-			shader_set_uniform_f_array(uniform_dim, [ surface_get_width(_data[0]), surface_get_height(_data[0]) ]);
-			
-			draw_surface_safe(_data[0], 0, 0);
-			shader_reset();
-			
-			BLEND_NORMAL
-		surface_reset_target();
+		__process_mask_modifier(_data);
+		_outSurf = mask_apply(_data[0], _outSurf, _data[5], _data[6]);
 		
 		return _outSurf;
 	}

@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_freeform_fill_pass2",
+  "name":"sh_freeform_fill_pass2",
+  "parent":{
+    "name":"shader",
+    "path":"folders/nodes/data/canvas/shader.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_gradient_display_alpha",
+  "name":"sh_gradient_display_alpha",
+  "parent":{
+    "name":"gradient",
+    "path":"folders/shader/UI/gradient.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

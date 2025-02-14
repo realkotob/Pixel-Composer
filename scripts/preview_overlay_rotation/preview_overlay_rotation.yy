@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"preview_overlay_rotation",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"preview_overlay_rotation",
+  "parent":{
+    "name":"overlay",
+    "path":"folders/panels/preview/overlay.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

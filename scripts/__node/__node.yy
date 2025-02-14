@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"__node",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"__node",
+  "parent":{
+    "name":"__base__",
+    "path":"folders/nodes/__base__.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

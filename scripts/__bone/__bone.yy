@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"__bone",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"__bone",
+  "parent":{
+    "name":"armature",
+    "path":"folders/nodes/data/compose/armature.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_custom",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_custom",
+  "parent":{
+    "name":"custom",
+    "path":"folders/nodes/data/misc/custom.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "tags":[],
+}

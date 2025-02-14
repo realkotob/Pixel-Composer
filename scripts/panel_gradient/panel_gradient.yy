@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"panel_gradient",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"panel_gradient",
+  "parent":{
+    "name":"colors",
+    "path":"folders/panels/colors.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

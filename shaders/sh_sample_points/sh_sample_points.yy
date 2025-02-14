@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_sample_points",
+  "name":"sh_sample_points",
+  "parent":{
+    "name":"value",
+    "path":"folders/functions/value.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

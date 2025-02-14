@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_websocket_receiver",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_websocket_receiver",
+  "parent":{
+    "name":"network",
+    "path":"folders/nodes/data/io/network.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

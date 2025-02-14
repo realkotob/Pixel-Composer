@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"time_source",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"time_source",
+  "parent":{
+    "name":"functions",
+    "path":"folders/functions.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

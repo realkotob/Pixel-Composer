@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_sdf",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_sdf",
+  "parent":{
+    "name":"conversion",
+    "path":"folders/nodes/data/filter/conversion.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

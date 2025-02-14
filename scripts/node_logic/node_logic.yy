@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"node_logic",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_logic",
+  "parent":{
+    "name":"bool",
+    "path":"folders/nodes/data/value/bool.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

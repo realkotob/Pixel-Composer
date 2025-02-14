@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_combine_hsv",
+  "name":"sh_combine_hsv",
+  "parent":{
+    "name":"combine",
+    "path":"folders/nodes/data/filter/combine.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

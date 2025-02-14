@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"pcx_server",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"pcx_server",
+  "parent":{
+    "name":"PCX",
+    "path":"folders/functions/PCX.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

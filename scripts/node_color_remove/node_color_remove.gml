@@ -1,47 +1,74 @@
-function Node_Color_Remove(_x, _y, _group = -1) : Node_Processor(_x, _y, _group) constructor {
-	name = "Color Remove";
+#region
+	FN_NODE_CONTEXT_INVOKE {
+		addHotkey("Node_Color_Remove", "Invert > Toggle",  "I", MOD_KEY.none, function(val) /*=>*/ { PANEL_GRAPH_FOCUS_STR _n.inputs[6].setValue(!_n.inputs[6].getValue()); });
+	});
+#endregion
+
+function Node_Color_Remove(_x, _y, _group = noone) : Node_Processor(_x, _y, _group) constructor {
+	name = "Remove Color";
 	
-	uniform_from       = shader_get_uniform(sh_color_remove, "colorFrom");
-	uniform_from_count = shader_get_uniform(sh_color_remove, "colorFrom_amo");
+	newInput(0, nodeValue_Surface("Surface In", self));
 	
-	uniform_ter  = shader_get_uniform(sh_color_remove, "treshold");
+	newInput(1, nodeValue_Palette("Colors", self, array_clone(DEF_PALETTE)));
 	
-	inputs[| 0] = nodeValue(0, "Surface in", self, JUNCTION_CONNECT.input, VALUE_TYPE.surface, 0);
-	inputs[| 1] = nodeValue(1, "Colors", self, JUNCTION_CONNECT.input, VALUE_TYPE.color, [ c_black ])
-		.setDisplay(VALUE_DISPLAY.palette);
+	newInput(2, nodeValue_Float("Threshold", self, 0.1))
+		.setDisplay(VALUE_DISPLAY.slider)
+		.setMappable(10);
 	
-	inputs[| 2] = nodeValue(2, "Treshold",   self, JUNCTION_CONNECT.input, VALUE_TYPE.float, 0.1)
-		.setDisplay(VALUE_DISPLAY.slider, [0, 1, 0.01]);
+	newInput(3, nodeValue_Surface("Mask", self));
 	
-	outputs[| 0] = nodeValue(0, "Surface out", self, JUNCTION_CONNECT.output, VALUE_TYPE.surface, PIXEL_SURFACE);
+	newInput(4, nodeValue_Float("Mix", self, 1))
+		.setDisplay(VALUE_DISPLAY.slider);
 	
-	static process_data = function(_outSurf, _data, _output_index) {
-		var fr = _data[1];
-		var tr = _data[2];
+	newInput(5, nodeValue_Bool("Active", self, true));
+		active_index = 5;
+	
+	newInput(6, nodeValue_Bool("Invert", self, false, "Keep the selected colors and remove the rest."));
+	
+	newInput(7, nodeValue_Toggle("Channel", self, 0b1111, { data: array_create(4, THEME.inspector_channel) }));
+	
+	__init_mask_modifier(3); // inputs 8, 9, 
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	newInput(10, nodeValueMap("Threshold map", self));
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	input_display_list = [ 5, 7, 
+		["Surfaces", true], 0, 3, 4, 8, 9, 
+		["Remove",	false], 1, 2, 10, 6, 
+	]
+	
+	newOutput(0, nodeValue_Output("Surface Out", self, VALUE_TYPE.surface, noone));
+	
+	attribute_surface_depth();
+	
+	static step = function() {
+		__step_mask_modifier();
 		
-		var _colors = array_create(array_length(fr) * 4);
-		for(var i = 0; i < array_length(fr); i++) {
-			_colors[i * 4 + 0] = color_get_red(fr[i]) / 255;
-			_colors[i * 4 + 1] = color_get_green(fr[i]) / 255;
-			_colors[i * 4 + 2] = color_get_blue(fr[i]) / 255;
-			_colors[i * 4 + 3] = 1;
-		}
+		inputs[2].mappableStep();
+	}
+	
+	static processData = function(_outSurf, _data, _output_index, _array_index) {
+		var frm = _data[1];
 		
-		surface_set_target(_outSurf);
-		draw_clear_alpha(0, 0);
-		BLEND_ADD
+		var _colors = [];
+		for(var i = 0; i < array_length(frm); i++)
+			array_append(_colors, colToVec4(frm[i]));
 		
-		shader_set(sh_color_remove);
-			shader_set_uniform_f_array(uniform_from, _colors);
-			shader_set_uniform_i(uniform_from_count, array_length(fr));
+		surface_set_shader(_outSurf, sh_color_remove);
+			shader_set_f("colorFrom",     _colors);
+			shader_set_i("colorFrom_amo", array_length(frm));
+			shader_set_f_map("treshold",  _data[2], _data[10], inputs[2]);
+			shader_set_i("invert",        _data[6]);
 			
-			shader_set_uniform_f(uniform_ter, tr);
-			
-			draw_surface_safe(_data[0], 0, 0);
-		shader_reset();
+			draw_surface_safe(_data[0]);
+		surface_reset_shader();
 		
-		BLEND_NORMAL
-		surface_reset_target();
+		__process_mask_modifier(_data);
+		_outSurf = mask_apply(_data[0], _outSurf, _data[3], _data[4]);
+		_outSurf = channel_apply(_data[0], _outSurf, _data[7]);
 		
 		return _outSurf;
 	}

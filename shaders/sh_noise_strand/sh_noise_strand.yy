@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"sh_noise_strand",
+  "name":"sh_noise_strand",
+  "parent":{
+    "name":"noise",
+    "path":"folders/nodes/data/generator/noise.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}

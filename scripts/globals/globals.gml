@@ -1,84 +1,138 @@
 #region save
-	globalvar LOADING, APPENDING, MODIFIED, CURRENT_PATH, READONLY, CONNECTION_CONFLICT, GLOBAL_SEED, ALWAYS_FULL;
-	LOADING   = false;
-	APPENDING = false;
-	READONLY  = false;
+	globalvar LOADING, CLONING, CLONING_GROUP;
+	globalvar CONNECTION_CONFLICT, LOADING_VERSION;
+	globalvar MESSAGE;
 	
-	CURRENT_PATH = "";
-	MODIFIED  = false;
+	globalvar APPENDING, APPEND_MAP, APPEND_LIST;
+	APPEND_MAP      = ds_map_create();
+	APPEND_LIST     = [];
+	
+	LOADING		    = false;
+	LOADING_VERSION = 0;
+	CLONING_GROUP   = noone;
+	CLONING		    = false;
+	APPENDING	    = false;
+	MESSAGE         = noone;
+	
 	CONNECTION_CONFLICT = ds_queue_create();
 	
 	randomize();
-	GLOBAL_SEED = irandom(9999999999);
-	ALWAYS_FULL = false;
 #endregion
 
-#region main
-	globalvar DEBUG, THEME, CDEF, COLORS, COLOR_KEYS;
+#region ======================================================================= MAIN =======================================================================
+	globalvar OS, DEBUG, THEME, COLOR_KEYS, RUN_IDE;
+	globalvar CMD, CMDIN, CMDPRG;
+	globalvar FPS_REAL;
+	
+	#macro MAC (OS == os_macosx)
+	
+	OS       = os_type;
+	CMD      = [];
+	CMDIN    = [];
+	CMDPRG   = noone;
+	
+	FPS_REAL = 0;
+	RUN_IDE  = GM_build_type == "run";
+	
 	DEBUG = false;
-	THEME = {};
 	COLOR_KEYS = [];
 	
-	globalvar VERSION, SAVEFILE_VERSION, VERSION_STRING;
-	VERSION = 1000;
-	SAVEFILE_VERSION = 1000;
-	VERSION_STRING = "1.0.0";
+	globalvar VERSION, SAVE_VERSION, VERSION_STRING, BUILD_NUMBER, LATEST_VERSION, NIGHTLY;
+	globalvar HOTKEYS, HOTKEY_CONTEXT;
 	
-	globalvar NODES, NODE_MAP, APPEND_MAP, HOTKEYS, HOTKEY_CONTEXT;
+	LATEST_VERSION	= 1_18_00_0;
+	VERSION			= 1_18_08_0;
+	SAVE_VERSION	= 1_18_09_0;
+	VERSION_STRING  = MAC? "1.18.003m" : "1.18.9.003";
+	BUILD_NUMBER	= 118080.003;
+	PREF_VERSION    = 1_17_1;
 	
-	NODES		= ds_list_create();
-	NODE_MAP	= ds_map_create();
-	APPEND_MAP  = ds_map_create();
+	var _vsp = string_split(VERSION_STRING, ".");
+	var _lsp = _vsp[array_length(_vsp) - 1];
+	NIGHTLY  = string_length(_lsp) == 3;
 	
-	HOTKEYS			= ds_map_create();
+	HOTKEYS			= {};
 	HOTKEY_CONTEXT	= ds_list_create();
-	HOTKEY_CONTEXT[| 0] = "";
+	HOTKEY_CONTEXT[| 0] = 0;
 	
-	globalvar CURSOR, TOOLTIP, DIALOG_DEPTH_HOVER, KEYBOARD_STRING;
-	globalvar UPDATE, RENDER_STACK;
+	globalvar TOOLTIP, DRAGGING, DIALOG_DEPTH_HOVER;
+	global.KEYS = { download_links: "" };
 	
-	enum ANIMATOR_END {
-		loop,
-		stop
-	}
+	globalvar CURRENT_COLOR;
+	CURRENT_COLOR = cola(c_white);
+	
 #endregion
 
-#region inputs
-	globalvar FOCUS, FOCUS_STR, HOVER, DOUBLE_CLICK, CURRENT_PATH, DIALOG_CLICK;
-	globalvar TEXTBOX_ACTIVE;
+#region input
+	globalvar FOCUS, FOCUS_STR, FOCUS_CONTENT, HOVER, HOVERING_ELEMENT, _HOVERING_ELEMENT;
+	globalvar DOUBLE_CLICK, DOUBLE_CLICK_POS;
+	globalvar DIALOG_CLICK;
+	globalvar WINDOW_ACTIVE, TOOLTIP_WINDOW;
 	
-	CURRENT_PATH = "";
-	DOUBLE_CLICK = false;
-	FOCUS = noone;
-	FOCUS_STR = "";
-	HOVER = noone;
-	TEXTBOX_ACTIVE = noone;
+	DOUBLE_CLICK_POS = [ 0, 0 ];
+	DOUBLE_CLICK  = false;
+	
+	FOCUS	      = noone;
+	FOCUS_CONTENT = noone;
+	FOCUS_STR	  = "";
+	
+	HOVER             = noone;
+	HOVERING_ELEMENT  = noone;
+	_HOVERING_ELEMENT = noone;
+	
 	DIALOG_CLICK = true;
 	
-	globalvar ADD_NODE_PAGE, ADD_NODE_W, ADD_NODE_H, ADD_NODE_MODE;
-	ADD_NODE_PAGE = 0;
-	ADD_NODE_W = -1;
-	ADD_NODE_H = -1;
-	ADD_NODE_MODE = 0;
+	globalvar ADD_NODE_PAGE, ADD_NODE_SCROLL, ADD_NODE_SUBPAGE;
+	
+	ADD_NODE_PAGE    = 0;
+	ADD_NODE_SUBPAGE = 0;
+	ADD_NODE_SCROLL  = 0;
+	WINDOW_ACTIVE    = noone;
+	TOOLTIP_WINDOW   = noone;
 #endregion
 
 #region macro
+	#macro TEMPDIR filepath_resolve(PREFERENCES.temp_path)
+	
+	#macro NOT_LOAD !LOADING && !APPENDING
+	
+	#macro WIN_X window_get_x()
+	#macro WIN_Y window_get_y()
 	#macro WIN_W window_get_width()
 	#macro WIN_H window_get_height()
 	
 	#macro WIN_SW window_get_width()
 	#macro WIN_SH window_get_height()
 	
-	#macro UI_SCALE PREF_MAP[? "display_scaling"]
+	#macro UI_SCALE PREFERENCES.display_scaling
 	
-	#macro mouse_mx device_mouse_x_to_gui(0)
-	#macro mouse_my device_mouse_y_to_gui(0)
-	#macro mouse_ui [device_mouse_x_to_gui(0), device_mouse_y_to_gui(0)]
+	#macro mouse_ui [mouse_mx, mouse_my]
+	#macro mouse_mx (PEN_USE? PEN_X : winwin_mouse_get_x_safe(WINDOW_ACTIVE))
+	#macro mouse_my (PEN_USE? PEN_Y : winwin_mouse_get_y_safe(WINDOW_ACTIVE))
 	
-	#macro sFOCUS FOCUS == self
-	#macro sHOVER HOVER == self
+	#macro mouse_mxs (FILE_IS_DROPPING? FILE_DROPPING_X : mouse_mx)
+	#macro mouse_mys (FILE_IS_DROPPING? FILE_DROPPING_Y : mouse_my)
 	
-	#macro DELTA_TIME delta_time / 1000000
+	#macro mouse_raw_x display_mouse_get_x()
+	#macro mouse_raw_y display_mouse_get_y()
+	
+	#macro sFOCUS (FOCUS == self.id)
+	#macro DIALOG_SHOW_FOCUS (FOCUS == self.id || (instance_exists(o_dialog_menubox) && o_dialog_menubox.getContextPanel() == self))
+	#macro sHOVER (!CURSOR_IS_LOCK && (HOVER == self.id || (WINDOW_ACTIVE != noone && winwin_mouse_is_over_safe(WINDOW_ACTIVE))))
+	
+	#macro DELTA_TIME delta_time / 1_000_000
+	
+	#macro INLINE gml_pragma("forceinline");
+	#macro is is_instanceof
+	
+	#macro CONF_TESTING false
+	globalvar TESTING, TEST_ERROR;
+	TESTING = CONF_TESTING;
+	TEST_ERROR = false;
+	
+	#macro DEMO	false
+	#macro ItchDemo:DEMO  true
+	#macro SteamDemo:DEMO true
 	
 	#region color
 		#macro c_ui_blue_dkblack	$251919
@@ -105,38 +159,46 @@
 		#macro c_ui_white			$ffffff
 	#endregion
 	
-	#region functions
-		#macro BLEND_ADD gpu_set_blendmode_ext(bm_one, bm_zero);
-		#macro BLEND_NORMAL gpu_set_blendmode(bm_normal);
-		#macro BLEND_OVERRIDE gpu_set_blendmode_ext(bm_one, bm_zero);
-	#endregion
+	#macro RETURN_ON_REST if(!PROJECT.animator.is_playing || !PROJECT.animator.frame_progress) return;
+	#macro PANEL_PAD THEME_VALUE.panel_padding
 	
-	#macro PIXEL_SURFACE surface_create_valid(1, 1)
-	#macro print show_debug_message
-	#macro printlog if(log) show_debug_message
-	
-	function printIf(cond, log) {
-		if(!cond) return;
-		show_debug_message(log);
-	}
+	//!#mfunc returnNull {"args":["v"," a"],"order":[0,1,0,0]}
+#macro returnNull_mf0  var 
+#macro returnNull_mf1  = 
+#macro returnNull_mf2 ; if(is_undefined(
+#macro returnNull_mf3 ) || 
+#macro returnNull_mf4  == noone) return;
 #endregion
 
 #region presets
 	function INIT_FOLDERS() {
-		if(!directory_exists(DIRECTORY + "Palettes"))
-			directory_create(DIRECTORY + "Palettes");
-		if(!directory_exists(DIRECTORY + "Gradients"))
-			directory_create(DIRECTORY + "Gradients");
+		directory_verify(DIRECTORY + "Palettes");
+		directory_verify(DIRECTORY + "Gradients");
 	}
 #endregion
 
 #region default
-	globalvar DEF_SURFACE;
+	globalvar DEF_SURFACE, USE_DEF;
+	DEF_SURFACE = noone;
+	USE_DEF = -10;
+	
 	function DEF_SURFACE_RESET() {
-		DEF_SURFACE = PIXEL_SURFACE;
+		if(is_surface(DEF_SURFACE)) return;
+		
+		DEF_SURFACE = surface_create_valid(32, 32);
 		surface_set_target(DEF_SURFACE);
-			draw_clear_alpha(c_white, 0);
+			draw_clear(c_white);
 		surface_reset_target();
 	}
 	DEF_SURFACE_RESET();
+#endregion
+
+#region debug
+	global.FLAG = {
+		render				: 0,
+		renderTime			: false,
+		keyframe_override	: true,
+		wav_import			: true,
+		ase_import			: false,
+	};
 #endregion

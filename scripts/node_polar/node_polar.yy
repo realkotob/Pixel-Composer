@@ -1,11 +1,13 @@
 {
-  "resourceType": "GMScript",
-  "resourceVersion": "1.0",
-  "name": "node_polar",
-  "isDnD": false,
-  "isCompatibility": false,
-  "parent": {
-    "name": "transform",
-    "path": "folders/nodes/data/transform.yy",
+  "$GMScript":"v1",
+  "%Name":"node_polar",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"node_polar",
+  "parent":{
+    "name":"transform",
+    "path":"folders/nodes/data/transform.yy",
   },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
 }
